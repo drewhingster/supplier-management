@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Document Management System | Bureau of Statistics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Authentication Modal -->
+    <div id="auth-modal" class="modal">
+        <div class="modal-content auth-modal-content">
+            <div class="auth-header">
+                <div class="gov-seal">
+                    <svg viewBox="0 0 80 80" class="seal-icon">
+                        <circle cx="40" cy="40" r="38" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="40" cy="40" r="32" fill="none" stroke="currentColor" stroke-width="1"/>
+                        <path d="M40 12 L44 28 L60 28 L48 38 L52 54 L40 44 L28 54 L32 38 L20 28 L36 28 Z" fill="currentColor"/>
+                    </svg>
+                </div>
+                <h2>Supplier Document Management System</h2>
+                <p class="auth-subtitle">Bureau of Statistics — Ministry of Finance</p>
+            </div>
+            <form id="auth-form">
+                <div class="form-group">
+                    <label for="auth-token">Access Token</label>
+                    <input type="password" id="auth-token" placeholder="Enter your access token" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">
+                    <span>Authenticate</span>
+                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </form>
+            <p class="auth-footer">Authorized personnel only. All access is logged and monitored.</p>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="app-container hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-container">
+                    <svg viewBox="0 0 60 60" class="logo-icon">
+                        <rect x="8" y="8" width="44" height="44" rx="4" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <line x1="8" y1="20" x2="52" y2="20" stroke="currentColor" stroke-width="2"/>
+                        <line x1="20" y1="20" x2="20" y2="52" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="36" cy="36" r="8" fill="currentColor" opacity="0.3"/>
+                        <path d="M33 36 L36 39 L42 33" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>
+                </div>
+                <div class="header-title">
+                    <h1>Supplier Document Management</h1>
+                    <span class="header-subtitle">Bureau of Statistics — Procurement Unit</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="add-category-btn" class="btn btn-secondary">
+                    <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Categories
+                </button>
+                <button id="add-supplier-btn" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Add Supplier
+                </button>
+                <button id="logout-btn" class="btn btn-ghost" title="Logout">
+                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5-5-5m5 5H9" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sidebar Filters -->
+            <aside class="sidebar">
+                <div class="search-container">
+                    <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/></svg>
+                    <input type="text" id="search-input" placeholder="Search suppliers...">
+                </div>
+                
+                <div class="filter-section">
+                    <h3 class="filter-title">Filter by Category</h3>
+                    <div id="category-filters" class="category-list">
+                        <label class="category-item active">
+                            <input type="radio" name="category-filter" value="all" checked>
+                            <span class="category-radio"></span>
+                            <span class="category-name">All Categories</span>
+                            <span class="category-count" id="count-all">0</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="filter-section">
+                    <h3 class="filter-title">Document Status</h3>
+                    <div class="status-filters">
+                        <label class="status-item">
+                            <input type="checkbox" id="filter-complete" checked>
+                            <span class="status-checkbox"></span>
+                            <span class="status-name">Complete</span>
+                        </label>
+                        <label class="status-item">
+                            <input type="checkbox" id="filter-incomplete" checked>
+                            <span class="status-checkbox"></span>
+                            <span class="status-name">Incomplete</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="sidebar-stats">
+                    <div class="stat-card">
+                        <span class="stat-value" id="total-suppliers">0</span>
+                        <span class="stat-label">Total Suppliers</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="compliant-suppliers">0</span>
+                        <span class="stat-label">Fully Compliant</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Supplier List -->
+            <section class="supplier-grid">
+                <div class="grid-header">
+                    <h2>Registered Suppliers</h2>
+                    <div class="view-toggle">
+                        <button id="view-grid" class="view-btn active" title="Grid View">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="3" y="14" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="14" width="7" height="7" rx="1" fill="currentColor"/></svg>
+                        </button>
+                        <button id="view-list" class="view-btn" title="List View">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1" fill="currentColor"/><rect x="3" y="10" width="18" height="4" rx="1" fill="currentColor"/><rect x="3" y="16" width="18" height="4" rx="1" fill="currentColor"/></svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="supplier-list" class="suppliers-container grid-view">
+                    <!-- Suppliers will be populated here -->
+                </div>
+                
+                <div id="empty-state" class="empty-state hidden">
+                    <svg viewBox="0 0 120 120" class="empty-icon">
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="8 4"/>
+                        <path d="M40 45h40M40 60h40M40 75h25" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                    <h3>No Suppliers Found</h3>
+                    <p>Add your first supplier to get started, or adjust your filters.</p>
+                    <button class="btn btn-primary" onclick="openSupplierModal()">
+                        <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        Add First Supplier
+                    </button>
+                </div>
+
+                <div id="loading-state" class="loading-state hidden">
+                    <div class="loading-spinner"></div>
+                    <p>Loading suppliers...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add/Edit Supplier Modal -->
+    <div id="supplier-modal" class="modal hidden">
+        <div class="modal-content supplier-modal-content">
+            <div class="modal-header">
+                <h2 id="supplier-modal-title">Add New Supplier</h2>
+                <button class="modal-close" onclick="closeSupplierModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+            
+            <form id="supplier-form" class="supplier-form">
+                <input type="hidden" id="supplier-id">
+                
+                <div class="form-section">
+                    <h3>Supplier Information</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplier-name">Supplier Name <span class="required">*</span></label>
+                            <input type="text" id="supplier-name" required placeholder="e.g., Laparkan Trading (Guyana) Company Limited">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplier-address">Address <span class="required">*</span></label>
+                            <textarea id="supplier-address" required placeholder="Full business address"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row two-col">
+                        <div class="form-group">
+                            <label for="supplier-telephone">Telephone Number <span class="required">*</span></label>
+                            <input type="tel" id="supplier-telephone" required placeholder="e.g., 592-225-1234">
+                        </div>
+                        <div class="form-group">
+                            <label for="supplier-email">Email Address</label>
+                            <input type="email" id="supplier-email" placeholder="contact@supplier.com">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="supplier-contact">Contact Person</label>
+                            <input type="text" id="supplier-contact" placeholder="Name of primary contact">
+                        </div>
+                    </div>
+                    
+                    <!-- MULTI-CATEGORY SELECTION -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Categories <span class="required">*</span></label>
+                            <p class="form-hint">Select one or more categories for this supplier</p>
+                            <div id="supplier-category-checkboxes" class="category-checkboxes">
+                                <!-- Checkboxes populated dynamically by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COMPLIANCE EXPIRATION DATES -->
+                <div class="form-section">
+                    <h3>Compliance Expiration Dates</h3>
+                    <p class="form-hint">Enter the expiration dates for compliance certificates. Status is calculated automatically.</p>
+                    <div class="form-row two-col">
+                        <div class="form-group">
+                            <label for="nis-expiration-date">NIS Compliance Expiration</label>
+                            <input type="date" id="nis-expiration-date">
+                            <span class="field-hint">Leave blank if not applicable</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="gra-expiration-date">GRA Compliance Expiration</label>
+                            <input type="date" id="gra-expiration-date">
+                            <span class="field-hint">Leave blank if not applicable</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section" id="documents-section">
+                    <h3>Compliance Documents</h3>
+                    <p class="form-hint">Upload PDF documents only. Maximum file size: 10MB per document.</p>
+                    
+                    <div class="document-uploads">
+                        <div class="document-upload-item">
+                            <div class="doc-info">
+                                <svg viewBox="0 0 24 24" class="doc-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                <div class="doc-details">
+                                    <span class="doc-label">Business Registration Certificate</span>
+                                    <span class="doc-status" id="status-business_registration">Not uploaded</span>
+                                </div>
+                            </div>
+                            <div class="doc-actions">
+                                <input type="file" id="file-business_registration" accept=".pdf" class="file-input">
+                                <label for="file-business_registration" class="btn btn-outline btn-sm">Choose File</label>
+                            </div>
+                        </div>
+
+                        <div class="document-upload-item">
+                            <div class="doc-info">
+                                <svg viewBox="0 0 24 24" class="doc-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                <div class="doc-details">
+                                    <span class="doc-label">NIS Compliance Certificate</span>
+                                    <span class="doc-status" id="status-nis_compliance">Not uploaded</span>
+                                </div>
+                            </div>
+                            <div class="doc-actions">
+                                <input type="file" id="file-nis_compliance" accept=".pdf" class="file-input">
+                                <label for="file-nis_compliance" class="btn btn-outline btn-sm">Choose File</label>
+                            </div>
+                        </div>
+
+                        <div class="document-upload-item">
+                            <div class="doc-info">
+                                <svg viewBox="0 0 24 24" class="doc-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                <div class="doc-details">
+                                    <span class="doc-label">GRA Compliance Certificate</span>
+                                    <span class="doc-status" id="status-gra_compliance">Not uploaded</span>
+                                </div>
+                            </div>
+                            <div class="doc-actions">
+                                <input type="file" id="file-gra_compliance" accept=".pdf" class="file-input">
+                                <label for="file-gra_compliance" class="btn btn-outline btn-sm">Choose File</label>
+                            </div>
+                        </div>
+
+                        <div class="document-upload-item">
+                            <div class="doc-info">
+                                <svg viewBox="0 0 24 24" class="doc-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                <div class="doc-details">
+                                    <span class="doc-label">TIN Certificate</span>
+                                    <span class="doc-status" id="status-tin_certificate">Not uploaded</span>
+                                </div>
+                            </div>
+                            <div class="doc-actions">
+                                <input type="file" id="file-tin_certificate" accept=".pdf" class="file-input">
+                                <label for="file-tin_certificate" class="btn btn-outline btn-sm">Choose File</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeSupplierModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="supplier-submit-btn">
+                        <span>Save Supplier</span>
+                        <div class="btn-spinner hidden">
+                            <svg class="spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.416" stroke-dashoffset="10"/></svg>
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supplier Detail Modal -->
+    <div id="supplier-detail-modal" class="modal hidden">
+        <div class="modal-content detail-modal-content">
+            <div class="modal-header">
+                <h2 id="detail-supplier-name">Supplier Details</h2>
+                <button class="modal-close" onclick="closeDetailModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+            
+            <div class="detail-content">
+                <div class="detail-section">
+                    <h3>Contact Information</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Address</span>
+                            <span class="detail-value" id="detail-address">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Telephone</span>
+                            <span class="detail-value" id="detail-telephone">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Email</span>
+                            <span class="detail-value" id="detail-email">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Contact Person</span>
+                            <span class="detail-value" id="detail-contact">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Categories</span>
+                            <span class="detail-value" id="detail-category">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Registered</span>
+                            <span class="detail-value" id="detail-created">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compliance Status Section -->
+                <div class="detail-section">
+                    <h3>Compliance Status</h3>
+                    <div id="detail-compliance" class="compliance-status-grid">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>Compliance Documents</h3>
+                    <div class="documents-grid" id="detail-documents">
+                        <!-- Documents will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-actions">
+                <button class="btn btn-danger" id="delete-supplier-btn">
+                    <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Delete Supplier
+                </button>
+                <button class="btn btn-primary" id="edit-supplier-btn">
+                    <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Edit Supplier
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Management Modal -->
+    <div id="category-modal" class="modal hidden">
+        <div class="modal-content category-modal-content">
+            <div class="modal-header">
+                <h2>Manage Categories</h2>
+                <button class="modal-close" onclick="closeCategoryModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+            
+            <div class="category-form-container">
+                <form id="category-form" class="category-add-form">
+                    <input type="text" id="new-category-name" placeholder="Enter new category name" required>
+                    <button type="submit" class="btn btn-primary">Add Category</button>
+                </form>
+            </div>
+
+            <div class="category-list-container">
+                <h3>Existing Categories</h3>
+                <div id="category-list" class="category-manage-list">
+                    <!-- Categories will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        <div class="toast-content">
+            <svg viewBox="0 0 24 24" class="toast-icon toast-success"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="22,4 12,14.01 9,11.01" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+            <svg viewBox="0 0 24 24" class="toast-icon toast-error hidden"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+            <span class="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

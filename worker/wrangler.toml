@@ -1,0 +1,60 @@
+# ==========================================================================
+# Supplier Document Management System
+# Cloudflare Worker Configuration
+# 
+# Bureau of Statistics — Procurement Unit
+# ==========================================================================
+
+name = "supplier-management-api"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# ==========================================================================
+# D1 Database Binding
+# ==========================================================================
+# The D1 database stores supplier data, categories, and document metadata.
+# Create the database first:
+#   wrangler d1 create supplier-management-db
+# Then update the database_id below with the ID returned.
+# ==========================================================================
+[[d1_databases]]
+binding = "DB"
+database_name = "supplier-management-db"
+database_id = "YOUR_D1_DATABASE_ID"  # Replace after running: wrangler d1 create supplier-management-db
+
+# ==========================================================================
+# R2 Bucket Binding
+# ==========================================================================
+# The R2 bucket stores PDF compliance documents.
+# Create the bucket first:
+#   wrangler r2 bucket create supplier-documents
+# ==========================================================================
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "supplier-documents"
+
+# ==========================================================================
+# Environment Variables
+# ==========================================================================
+# AUTH_TOKEN should be set as a secret for security:
+#   wrangler secret put AUTH_TOKEN
+# 
+# For local development, you can use .dev.vars file (not committed to git)
+# ==========================================================================
+[vars]
+# AUTH_TOKEN = "your-secure-token"  # Use wrangler secret put AUTH_TOKEN instead
+
+# ==========================================================================
+# Routes (Optional - for custom domains)
+# ==========================================================================
+# Uncomment and configure if using a custom domain
+# routes = [
+#   { pattern = "api.yourdomain.com/*", zone_name = "yourdomain.com" }
+# ]
+
+# ==========================================================================
+# Development Settings
+# ==========================================================================
+[dev]
+port = 8787
+local_protocol = "http"

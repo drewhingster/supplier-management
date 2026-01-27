@@ -66,11 +66,44 @@
                     <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     Add Supplier
                 </button>
+                
+                <!-- Notification Button -->
+                <button id="notification-btn" class="btn btn-ghost notification-btn" title="Compliance Alerts">
+                    <svg viewBox="0 0 24 24" class="btn-icon">
+                        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>
+                    <span id="notification-badge" class="notification-badge hidden">0</span>
+                </button>
+                
                 <button id="logout-btn" class="btn btn-ghost" title="Logout">
                     <svg viewBox="0 0 24 24" class="btn-icon"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5-5-5m5 5H9" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                 </button>
             </div>
         </header>
+
+        <!-- Notification Panel (hidden by default) -->
+        <div id="notification-panel" class="notification-panel hidden">
+            <div class="notification-panel-header">
+                <h3>
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Compliance Alerts
+                </h3>
+                <button class="notification-close" onclick="closeNotificationPanel()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+            <div class="notification-summary" id="notification-summary">
+                <!-- Summary populated by JS -->
+            </div>
+            <div class="notification-list" id="notification-list">
+                <!-- Alerts populated by JS -->
+            </div>
+        </div>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -117,6 +150,10 @@
                     <div class="stat-card">
                         <span class="stat-value" id="compliant-suppliers">0</span>
                         <span class="stat-label">Fully Compliant</span>
+                    </div>
+                    <div class="stat-card stat-card-warning" id="needs-attention-card">
+                        <span class="stat-value" id="needs-attention">0</span>
+                        <span class="stat-label">Needs Attention</span>
                     </div>
                 </div>
             </aside>

@@ -1,13 +1,14 @@
 /**
  * Supplier Document Management System
- * Main Application - VERSION 2
+ * Main Application - VERSION 3
  * 
  * Bureau of Statistics — Procurement Unit
  * 
- * FIXES APPLIED:
+ * FEATURES:
  * 1. Edit Supplier properly loads existing data with isEditMode flag
  * 2. NIS/GRA Expiration dates with automatic compliance status
  * 3. Multi-category support with checkboxes
+ * 4. In-app compliance notification system
  */
 
 // ==================== State ====================
@@ -16,7 +17,8 @@ const state = {
     categories: [],
     currentSupplier: null,
     pendingDocuments: {},
-    isEditMode: false,  // Explicit edit mode flag
+    isEditMode: false,
+    notificationPanelOpen: false,
     filters: {
         search: '',
         category: 'all',
@@ -40,6 +42,15 @@ const elements = {
     addSupplierBtn: document.getElementById('add-supplier-btn'),
     addCategoryBtn: document.getElementById('add-category-btn'),
     logoutBtn: document.getElementById('logout-btn'),
+    
+    // Notifications
+    notificationBtn: document.getElementById('notification-btn'),
+    notificationBadge: document.getElementById('notification-badge'),
+    notificationPanel: document.getElementById('notification-panel'),
+    notificationSummary: document.getElementById('notification-summary'),
+    notificationList: document.getElementById('notification-list'),
+    needsAttention: document.getElementById('needs-attention'),
+    needsAttentionCard: document.getElementById('needs-attention-card'),
     
     // Search & Filters
     searchInput: document.getElementById('search-input'),
@@ -122,8 +133,16 @@ function setupEventListeners() {
     elements.logoutBtn.addEventListener('click', handleLogout);
     
     // Navigation
-    elements.addSupplierBtn.addEventListener('click', () => openSupplierModal(null)); // Explicit null for create mode
+    elements.addSupplierBtn.addEventListener('click', () => openSupplierModal(null));
     elements.addCategoryBtn.addEventListener('click', openCategoryModal);
+    
+    // Notifications
+    if (elements.notificationBtn) {
+        elements.notificationBtn.addEventListener('click', toggleNotificationPanel);
+    }
+    if (elements.needsAttentionCard) {
+        elements.needsAttentionCard.addEventListener('click', openNotificationPanel);
+    }
     
     // Search & Filters
     elements.searchInput.addEventListener('input', debounce(handleSearch, 300));
@@ -152,15 +171,28 @@ function setupEventListeners() {
         }
     });
     
-    // Close modals
+    // Close modals and panels on escape
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeSupplierModal();
             closeDetailModal();
             closeCategoryModal();
+            closeNotificationPanel();
         }
     });
     
+    // Close notification panel when clicking outside
+    document.addEventListener('click', (e) => {
+        if (state.notificationPanelOpen && 
+            elements.notificationPanel && 
+            !elements.notificationPanel.contains(e.target) &&
+            !elements.notificationBtn.contains(e.target) &&
+            !elements.needsAttentionCard?.contains(e.target)) {
+            closeNotificationPanel();
+        }
+    });
+    
+    // Modal backdrop clicks
     [elements.supplierModal, elements.detailModal, elements.categoryModal].forEach(modal => {
         if (modal) {
             modal.addEventListener('click', (e) => {
@@ -234,6 +266,7 @@ async function loadInitialData() {
         
         await loadSuppliers();
         updateStatistics();
+        updateNotifications();
     } catch (error) {
         console.error('Failed to load initial data:', error);
         showToast('Failed to load data. Please refresh the page.', 'error');
@@ -257,8 +290,138 @@ async function loadSuppliers() {
     try {
         state.suppliers = await api.getSuppliers();
         renderSuppliers();
+        updateNotifications();
     } catch (error) {
         console.error('Failed to load suppliers:', error);
+    }
+}
+
+// ==================== Notifications ====================
+
+function toggleNotificationPanel() {
+    if (state.notificationPanelOpen) {
+        closeNotificationPanel();
+    } else {
+        openNotificationPanel();
+    }
+}
+
+function openNotificationPanel() {
+    state.notificationPanelOpen = true;
+    elements.notificationPanel?.classList.remove('hidden');
+    renderNotificationPanel();
+}
+
+function closeNotificationPanel() {
+    state.notificationPanelOpen = false;
+    elements.notificationPanel?.classList.add('hidden');
+}
+
+function updateNotifications() {
+    // Get suppliers needing attention
+    const alertSuppliers = state.suppliers.filter(s => s.alert_level !== null);
+    const alertCount = alertSuppliers.length;
+    
+    // Update badge
+    if (elements.notificationBadge) {
+        elements.notificationBadge.textContent = alertCount;
+        elements.notificationBadge.classList.toggle('hidden', alertCount === 0);
+    }
+    
+    // Update sidebar stat
+    if (elements.needsAttention) {
+        elements.needsAttention.textContent = alertCount;
+    }
+    
+    // Update card styling based on alerts
+    if (elements.needsAttentionCard) {
+        elements.needsAttentionCard.classList.toggle('no-alerts', alertCount === 0);
+    }
+    
+    // If panel is open, refresh it
+    if (state.notificationPanelOpen) {
+        renderNotificationPanel();
+    }
+}
+
+function renderNotificationPanel() {
+    if (!elements.notificationList || !elements.notificationSummary) return;
+    
+    // Get suppliers with alerts, sorted by severity
+    const alertSuppliers = state.suppliers
+        .filter(s => s.alert_level !== null)
+        .sort((a, b) => {
+            const priority = { 'critical': 1, 'warning': 2, 'action_needed': 3 };
+            return (priority[a.alert_level] || 99) - (priority[b.alert_level] || 99);
+        });
+    
+    // Count by severity
+    const counts = {
+        critical: alertSuppliers.filter(s => s.alert_level === 'critical').length,
+        warning: alertSuppliers.filter(s => s.alert_level === 'warning').length,
+        action_needed: alertSuppliers.filter(s => s.alert_level === 'action_needed').length
+    };
+    
+    // Render summary badges
+    elements.notificationSummary.innerHTML = `
+        ${counts.critical > 0 ? `<span class="summary-badge critical">${counts.critical} Expired</span>` : ''}
+        ${counts.warning > 0 ? `<span class="summary-badge warning">${counts.warning} Expiring Soon</span>` : ''}
+        ${counts.action_needed > 0 ? `<span class="summary-badge action-needed">${counts.action_needed} Incomplete</span>` : ''}
+    `;
+    
+    // Render notification list
+    if (alertSuppliers.length === 0) {
+        elements.notificationList.innerHTML = `
+            <div class="notification-empty">
+                <svg viewBox="0 0 24 24">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" fill="none"/>
+                    <polyline points="22,4 12,14.01 9,11.01" stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>
+                <h4>All Clear!</h4>
+                <p>No suppliers require attention at this time.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    elements.notificationList.innerHTML = alertSuppliers.map(supplier => {
+        const iconSvg = getAlertIcon(supplier.alert_level);
+        const messages = (supplier.alert_details || []).map(alert => 
+            `<span class="notification-message-item">• ${alert.message}</span>`
+        ).join('');
+        
+        return `
+            <div class="notification-item" onclick="openSupplierFromNotification(${supplier.id})">
+                <div class="notification-icon ${supplier.alert_level}">
+                    ${iconSvg}
+                </div>
+                <div class="notification-content">
+                    <div class="notification-supplier">${escapeHtml(supplier.name)}</div>
+                    <div class="notification-message">${messages}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function getAlertIcon(alertLevel) {
+    switch (alertLevel) {
+        case 'critical':
+            return `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/><line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/></svg>`;
+        case 'warning':
+            return `<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2"/><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"/></svg>`;
+        case 'action_needed':
+            return `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2"/></svg>`;
+        default:
+            return `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/></svg>`;
+    }
+}
+
+function openSupplierFromNotification(supplierId) {
+    closeNotificationPanel();
+    const supplier = state.suppliers.find(s => s.id === supplierId);
+    if (supplier) {
+        openDetailModal(supplier);
     }
 }
 
@@ -299,6 +462,9 @@ function createSupplierCard(supplier) {
     
     // Get category names
     const categoryNames = (supplier.categories || []).map(c => c.name).join(', ') || 'Uncategorized';
+    
+    // Determine if needs attention
+    const alertClass = supplier.alert_level ? `has-alert alert-${supplier.alert_level}` : '';
     
     card.innerHTML = `
         <div class="supplier-card-header">
@@ -343,9 +509,6 @@ function createSupplierCard(supplier) {
     return card;
 }
 
-/**
- * Calculate compliance status based on expiration dates
- */
 function getComplianceStatus(supplier) {
     const today = new Date().toISOString().split('T')[0];
     
@@ -377,7 +540,6 @@ function renderCategoryFilters() {
     if (allOption) elements.categoryFilters.appendChild(allOption);
     
     state.categories.forEach(category => {
-        // Count suppliers that have this category
         const supplierCount = state.suppliers.filter(s => 
             (s.category_ids || []).includes(category.id) || s.category_id === category.id
         ).length;
@@ -407,9 +569,6 @@ function renderCategoryFilters() {
     }
 }
 
-/**
- * Populate category checkboxes for multi-select
- */
 function populateCategoryCheckboxes() {
     const container = elements.supplierCategoryCheckboxes;
     if (!container) return;
@@ -427,17 +586,11 @@ function populateCategoryCheckboxes() {
     });
 }
 
-/**
- * Get selected category IDs from checkboxes
- */
 function getSelectedCategoryIds() {
     const checkboxes = document.querySelectorAll('input[name="supplier-categories"]:checked');
     return Array.from(checkboxes).map(cb => parseInt(cb.value));
 }
 
-/**
- * Set selected categories in checkboxes
- */
 function setSelectedCategoryIds(categoryIds) {
     const checkboxes = document.querySelectorAll('input[name="supplier-categories"]');
     checkboxes.forEach(cb => {
@@ -482,15 +635,20 @@ function updateStatistics() {
         return docsCount === CONFIG.DOCUMENT_TYPES.length && compStatus.allCompliant;
     }).length;
     
+    const needsAttention = state.suppliers.filter(s => s.alert_level !== null).length;
+    
     elements.totalSuppliers.textContent = total;
     elements.compliantSuppliers.textContent = compliant;
+    
+    if (elements.needsAttention) {
+        elements.needsAttention.textContent = needsAttention;
+    }
 }
 
 // ==================== Filtering ====================
 
 function getFilteredSuppliers() {
     return state.suppliers.filter(supplier => {
-        // Search filter
         if (state.filters.search) {
             const searchLower = state.filters.search.toLowerCase();
             const nameMatch = supplier.name.toLowerCase().includes(searchLower);
@@ -502,7 +660,6 @@ function getFilteredSuppliers() {
             }
         }
         
-        // Category filter - check if supplier has this category
         if (state.filters.category !== 'all') {
             const catId = parseInt(state.filters.category);
             const hasCategory = (supplier.category_ids || []).includes(catId) || 
@@ -512,7 +669,6 @@ function getFilteredSuppliers() {
             }
         }
         
-        // Compliance filter
         const docsCount = countDocuments(supplier.documents);
         const compStatus = getComplianceStatus(supplier);
         const isComplete = docsCount === CONFIG.DOCUMENT_TYPES.length && compStatus.allCompliant;
@@ -558,29 +714,21 @@ function setViewMode(mode) {
 
 // ==================== Supplier Modal ====================
 
-/**
- * Open supplier modal - FIXED to properly handle edit vs create mode
- */
 function openSupplierModal(supplier = null) {
-    // Set edit mode flag explicitly
     state.isEditMode = supplier !== null;
     state.currentSupplier = supplier;
     state.pendingDocuments = {};
     
-    // Reset form completely
     elements.supplierForm.reset();
     elements.supplierId.value = '';
     
-    // Reset expiration date fields
     if (elements.nisExpirationDate) elements.nisExpirationDate.value = '';
     if (elements.graExpirationDate) elements.graExpirationDate.value = '';
     
-    // Clear all category checkboxes
     document.querySelectorAll('input[name="supplier-categories"]').forEach(cb => {
         cb.checked = false;
     });
     
-    // Reset document statuses
     CONFIG.DOCUMENT_TYPES.forEach(docType => {
         const statusEl = document.getElementById(`status-${docType.id}`);
         const fileInput = document.getElementById(`file-${docType.id}`);
@@ -599,18 +747,15 @@ function openSupplierModal(supplier = null) {
     });
     
     if (state.isEditMode && supplier) {
-        // ========== EDIT MODE ==========
         elements.supplierModalTitle.textContent = 'Edit Supplier';
         elements.supplierId.value = supplier.id;
         
-        // Populate form fields
         elements.supplierName.value = supplier.name || '';
         elements.supplierAddress.value = supplier.address || '';
         elements.supplierTelephone.value = supplier.telephone || '';
         elements.supplierEmail.value = supplier.email || '';
         elements.supplierContact.value = supplier.contact_person || '';
         
-        // Set expiration dates
         if (elements.nisExpirationDate && supplier.nis_expiration_date) {
             elements.nisExpirationDate.value = supplier.nis_expiration_date;
         }
@@ -618,11 +763,9 @@ function openSupplierModal(supplier = null) {
             elements.graExpirationDate.value = supplier.gra_expiration_date;
         }
         
-        // Set selected categories
         const categoryIds = supplier.category_ids || (supplier.category_id ? [supplier.category_id] : []);
         setSelectedCategoryIds(categoryIds);
         
-        // Show existing documents with View/Download buttons
         if (supplier.documents && supplier.documents.length > 0) {
             CONFIG.DOCUMENT_TYPES.forEach(docType => {
                 const doc = supplier.documents.find(d => d.document_type === docType.id);
@@ -634,7 +777,6 @@ function openSupplierModal(supplier = null) {
                         statusEl.classList.add('uploaded');
                     }
                     
-                    // Add View/Download buttons
                     const btnContainer = document.createElement('div');
                     btnContainer.id = `doc-btns-${docType.id}`;
                     btnContainer.className = 'doc-existing-btns';
@@ -658,7 +800,6 @@ function openSupplierModal(supplier = null) {
             });
         }
     } else {
-        // ========== CREATE MODE ==========
         elements.supplierModalTitle.textContent = 'Add New Supplier';
         state.isEditMode = false;
     }
@@ -674,9 +815,6 @@ function closeSupplierModal() {
     state.pendingDocuments = {};
 }
 
-/**
- * Handle form submission - separated CREATE vs UPDATE logic
- */
 async function handleSupplierSubmit(e) {
     e.preventDefault();
     
@@ -689,7 +827,6 @@ async function handleSupplierSubmit(e) {
     btnText.textContent = 'Saving...';
     
     try {
-        // Get selected category IDs
         const categoryIds = getSelectedCategoryIds();
         
         if (categoryIds.length === 0) {
@@ -710,25 +847,20 @@ async function handleSupplierSubmit(e) {
         
         let supplierId;
         
-        // Use isEditMode flag for clear separation
         if (state.isEditMode && elements.supplierId.value) {
-            // ========== UPDATE ==========
             supplierId = parseInt(elements.supplierId.value);
             await api.updateSupplier(supplierId, supplierData);
             showToast('Supplier updated successfully');
         } else {
-            // ========== CREATE ==========
             const response = await api.createSupplier(supplierData);
             supplierId = response.supplier.id;
             showToast('Supplier created successfully');
         }
         
-        // Upload any pending documents
         for (const [docType, file] of Object.entries(state.pendingDocuments)) {
             await api.uploadDocument(supplierId, docType, file);
         }
         
-        // Reload data
         await loadSuppliers();
         await loadCategories();
         
@@ -775,46 +907,62 @@ function handleFileSelect(e, docType) {
 async function openDetailModal(supplier) {
     state.currentSupplier = supplier;
     
-    // Populate basic info
     elements.detailName.textContent = supplier.name;
     elements.detailAddress.textContent = supplier.address;
     elements.detailTelephone.textContent = supplier.telephone;
     elements.detailEmail.textContent = supplier.email || '-';
     elements.detailContact.textContent = supplier.contact_person || '-';
     
-    // Show categories
     const categoryNames = (supplier.categories || []).map(c => c.name).join(', ') || 'Uncategorized';
     elements.detailCategory.textContent = categoryNames;
     
     elements.detailCreated.textContent = formatDate(supplier.created_at);
     
-    // Show compliance status
-    const complianceContainer = elements.detailCompliance || document.getElementById('detail-compliance');
+    // Show compliance status with expiration dates
+    const complianceContainer = elements.detailCompliance;
     if (complianceContainer) {
         const compStatus = getComplianceStatus(supplier);
+        
+        const nisStatusClass = supplier.nis_expiration_date 
+            ? (compStatus.nisExpired ? 'expired' : 'valid') 
+            : 'not-set';
+        const graStatusClass = supplier.gra_expiration_date 
+            ? (compStatus.graExpired ? 'expired' : 'valid') 
+            : 'not-set';
+        
         complianceContainer.innerHTML = `
-            <div class="compliance-info">
-                <div class="compliance-item ${supplier.nis_expiration_date ? (compStatus.nisExpired ? 'expired' : 'valid') : 'missing'}">
-                    <span class="compliance-label">NIS Compliance:</span>
-                    <span class="compliance-value">
-                        ${supplier.nis_expiration_date 
-                            ? `Expires ${formatDate(supplier.nis_expiration_date)} ${compStatus.nisExpired ? '(EXPIRED)' : ''}` 
-                            : 'Not set'}
+            <div class="compliance-status-item ${nisStatusClass}">
+                <div class="compliance-header">
+                    <span class="compliance-label">NIS Compliance</span>
+                    <span class="compliance-badge ${nisStatusClass}">
+                        ${!supplier.nis_expiration_date ? 'Not Set' : (compStatus.nisExpired ? 'EXPIRED' : 'Valid')}
                     </span>
                 </div>
-                <div class="compliance-item ${supplier.gra_expiration_date ? (compStatus.graExpired ? 'expired' : 'valid') : 'missing'}">
-                    <span class="compliance-label">GRA Compliance:</span>
-                    <span class="compliance-value">
-                        ${supplier.gra_expiration_date 
-                            ? `Expires ${formatDate(supplier.gra_expiration_date)} ${compStatus.graExpired ? '(EXPIRED)' : ''}` 
-                            : 'Not set'}
+                <div class="compliance-details">
+                    ${supplier.nis_expiration_date 
+                        ? `<span class="compliance-expiry">Expires: ${formatDate(supplier.nis_expiration_date)}${supplier.nis_days_remaining !== null ? ` (${supplier.nis_days_remaining < 0 ? Math.abs(supplier.nis_days_remaining) + ' days ago' : supplier.nis_days_remaining + ' days remaining'})` : ''}</span>`
+                        : '<span class="compliance-expiry">No expiration date set</span>'
+                    }
+                </div>
+            </div>
+            <div class="compliance-status-item ${graStatusClass}">
+                <div class="compliance-header">
+                    <span class="compliance-label">GRA Compliance</span>
+                    <span class="compliance-badge ${graStatusClass}">
+                        ${!supplier.gra_expiration_date ? 'Not Set' : (compStatus.graExpired ? 'EXPIRED' : 'Valid')}
                     </span>
+                </div>
+                <div class="compliance-details">
+                    ${supplier.gra_expiration_date 
+                        ? `<span class="compliance-expiry">Expires: ${formatDate(supplier.gra_expiration_date)}${supplier.gra_days_remaining !== null ? ` (${supplier.gra_days_remaining < 0 ? Math.abs(supplier.gra_days_remaining) + ' days ago' : supplier.gra_days_remaining + ' days remaining'})` : ''}</span>`
+                        : '<span class="compliance-expiry">No expiration date set</span>'
+                    }
                 </div>
             </div>
         `;
     }
     
-    // Populate documents with View/Download buttons
+    // Populate documents
     elements.detailDocuments.innerHTML = '';
     
     CONFIG.DOCUMENT_TYPES.forEach(docType => {
@@ -870,12 +1018,9 @@ function closeDetailModal() {
     state.currentSupplier = null;
 }
 
-/**
- * Handle Edit button - FIXED to properly pass supplier data
- */
 function handleEditSupplier() {
     if (state.currentSupplier) {
-        const supplierToEdit = { ...state.currentSupplier }; // Clone to preserve data
+        const supplierToEdit = { ...state.currentSupplier };
         closeDetailModal();
         openSupplierModal(supplierToEdit);
     }

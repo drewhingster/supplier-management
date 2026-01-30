@@ -117,7 +117,7 @@ const elements = {
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-    if (api.isAuthenticated) {
+    if (api.isAuthenticated()) {
         showApp();
         await loadInitialData();
     } else {

@@ -28,11 +28,13 @@ const state = {
         search: '',
         category: 'all',
         showComplete: true,
-        showIncomplete: true
+        showIncomplete: true,
+        sort: 'name-asc'
     },
     contractFilters: {
         search: '',
-        supplier_id: ''
+        supplier_id: '',
+        sort: 'date-desc'
     },
     viewMode: 'grid'
 };
@@ -77,6 +79,10 @@ const elements = {
     // View Toggle
     viewGrid: document.getElementById('view-grid'),
     viewList: document.getElementById('view-list'),
+    
+    // Sort Controls
+    supplierSort: document.getElementById('supplier-sort'),
+    contractSort: document.getElementById('contract-sort'),
     
     // Supplier List
     supplierList: document.getElementById('supplier-list'),
@@ -202,6 +208,10 @@ function setupEventListeners() {
     // View Toggle
     elements.viewGrid.addEventListener('click', () => setViewMode('grid'));
     elements.viewList.addEventListener('click', () => setViewMode('list'));
+    
+    // Sort Controls
+    elements.supplierSort?.addEventListener('change', handleSupplierSort);
+    elements.contractSort?.addEventListener('change', handleContractSort);
     
     // Supplier Form
     elements.supplierForm.addEventListener('submit', handleSupplierSubmit);
@@ -760,7 +770,7 @@ function updateStatistics() {
 // ==================== Filtering ====================
 
 function getFilteredSuppliers() {
-    return state.suppliers.filter(supplier => {
+    let filtered = state.suppliers.filter(supplier => {
         if (state.filters.search) {
             const searchLower = state.filters.search.toLowerCase();
             const nameMatch = supplier.name.toLowerCase().includes(searchLower);
@@ -789,6 +799,43 @@ function getFilteredSuppliers() {
         
         return true;
     });
+    
+    // Apply sorting
+    filtered = sortSuppliers(filtered, state.filters.sort);
+    
+    return filtered;
+}
+
+function sortSuppliers(suppliers, sortOption) {
+    const [field, direction] = sortOption.split('-');
+    const multiplier = direction === 'asc' ? 1 : -1;
+    
+    return [...suppliers].sort((a, b) => {
+        let comparison = 0;
+        
+        switch (field) {
+            case 'name':
+                comparison = a.name.localeCompare(b.name);
+                break;
+            case 'date':
+                comparison = new Date(a.created_at) - new Date(b.created_at);
+                break;
+            case 'category':
+                const catA = (a.categories && a.categories[0]?.name) || 'zzz';
+                const catB = (b.categories && b.categories[0]?.name) || 'zzz';
+                comparison = catA.localeCompare(catB);
+                break;
+            default:
+                comparison = 0;
+        }
+        
+        return comparison * multiplier;
+    });
+}
+
+function handleSupplierSort(e) {
+    state.filters.sort = e.target.value;
+    renderSuppliers();
 }
 
 function handleSearch(e) {
@@ -1237,10 +1284,46 @@ function renderContracts() {
         elements.contractsEmptyState?.classList.add('hidden');
         container.classList.remove('hidden');
         
-        state.contracts.forEach(contract => {
+        // Apply sorting
+        const sortedContracts = sortContracts(state.contracts, state.contractFilters.sort);
+        
+        sortedContracts.forEach(contract => {
             container.appendChild(createContractCard(contract));
         });
     }
+}
+
+function sortContracts(contracts, sortOption) {
+    const [field, direction] = sortOption.split('-');
+    const multiplier = direction === 'asc' ? 1 : -1;
+    
+    return [...contracts].sort((a, b) => {
+        let comparison = 0;
+        
+        switch (field) {
+            case 'number':
+                comparison = (a.contract_number || '').localeCompare(b.contract_number || '');
+                break;
+            case 'date':
+                comparison = new Date(a.created_at) - new Date(b.created_at);
+                break;
+            case 'amount':
+                comparison = (a.amount || 0) - (b.amount || 0);
+                break;
+            case 'supplier':
+                comparison = (a.supplier_name || '').localeCompare(b.supplier_name || '');
+                break;
+            default:
+                comparison = 0;
+        }
+        
+        return comparison * multiplier;
+    });
+}
+
+function handleContractSort(e) {
+    state.contractFilters.sort = e.target.value;
+    renderContracts();
 }
 
 function createContractCard(contract) {

@@ -7,7 +7,6 @@
 
 const CONFIG = {
     // API Configuration
-    // UPDATE THIS URL to your Cloudflare Worker URL
     API_BASE_URL: 'https://supplier-management.andrewhing.workers.dev/api',
 
     // Document Types

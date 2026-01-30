@@ -1180,3 +1180,6 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+// Make API available globally (both cases for compatibility)
+window.API = API;
+window.api = API;  // Add this line for lowercase compatibility

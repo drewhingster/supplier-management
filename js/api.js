@@ -353,5 +353,6 @@ const API = {
     }
 };
 
-// Make API available globally
+// Make API available globally (both cases for compatibility)
 window.API = API;
+window.api = API;  // Add this line for lowercase compatibility

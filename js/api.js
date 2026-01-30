@@ -55,6 +55,20 @@ const API = {
     // AUTHENTICATION
     // ============================================================
 
+    isAuthenticated() {
+    const token = this.getToken();
+    return token !== null && token !== undefined && token !== '';
+},
+
+async verifyToken(token) {
+    const response = await fetch(`${CONFIG.API_BASE_URL}/auth/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+    });
+    return this.handleResponse(response);
+},
+    
     async verifyToken(token) {
         const response = await fetch(`${CONFIG.API_BASE_URL}/auth/verify`, {
             method: 'POST',

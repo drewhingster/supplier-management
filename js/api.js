@@ -1,253 +1,357 @@
 /**
- * Supplier Document Management System
- * API Client - VERSION 2
+ * Supplier Document Management System - API Client
+ * Bureau of Statistics - Procurement Unit
  * 
- * Bureau of Statistics — Procurement Unit
+ * Updated: January 2026 (Added Contract Management Methods)
+ * 
+ * This file handles all communication with the Cloudflare Worker backend.
+ * Import CONFIG from config.js before using this module.
  */
 
-class SupplierAPI {
-    constructor(baseUrl) {
-        this.baseUrl = baseUrl;
-        this.token = localStorage.getItem('auth_token');
-    }
+const API = {
+    // ============================================================
+    // CONFIGURATION & HELPERS
+    // ============================================================
+    
+    token: null,
 
-    /**
-     * Store authentication token
-     */
     setToken(token) {
         this.token = token;
         localStorage.setItem('auth_token', token);
-    }
+    },
 
-    /**
-     * Get stored token
-     */
     getToken() {
-        return this.token || localStorage.getItem('auth_token');
-    }
+        if (!this.token) {
+            this.token = localStorage.getItem('auth_token');
+        }
+        return this.token;
+    },
 
-    /**
-     * Clear authentication
-     */
-    logout() {
+    clearToken() {
         this.token = null;
         localStorage.removeItem('auth_token');
-    }
+    },
 
-    /**
-     * Check if authenticated
-     */
-    isAuthenticated() {
-        return !!this.getToken();
-    }
-
-    /**
-     * Make authenticated API request
-     */
-    async request(endpoint, options = {}) {
-        const url = `${this.baseUrl}${endpoint}`;
-        
+    getHeaders() {
         const headers = {
-            'Content-Type': 'application/json',
-            ...options.headers
+            'Content-Type': 'application/json'
         };
-
-        if (this.token) {
-            headers['Authorization'] = `Bearer ${this.token}`;
+        const token = this.getToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
         }
+        return headers;
+    },
 
-        const response = await fetch(url, {
-            ...options,
-            headers
-        });
-
+    async handleResponse(response) {
+        const data = await response.json();
         if (!response.ok) {
-            const error = await response.json().catch(() => ({ error: 'Request failed' }));
-            throw new Error(error.error || `HTTP error! status: ${response.status}`);
+            throw new Error(data.error || `HTTP error ${response.status}`);
         }
+        return data;
+    },
 
-        return response.json();
-    }
+    // ============================================================
+    // AUTHENTICATION
+    // ============================================================
 
-    /**
-     * Authenticate with token
-     */
-    async authenticate(token) {
-        const response = await fetch(`${this.baseUrl}/auth/verify`, {
+    async verifyToken(token) {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/auth/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
         });
+        return this.handleResponse(response);
+    },
 
-        const data = await response.json();
+    // ============================================================
+    // CATEGORIES
+    // ============================================================
 
-        if (data.success) {
-            this.setToken(token);
-        }
-
-        return data;
-    }
-
-    // ==================== Categories ====================
-
-    /**
-     * Get all categories
-     */
     async getCategories() {
-        const response = await this.request('/categories');
-        return response.categories || [];
-    }
+        const response = await fetch(`${CONFIG.API_BASE_URL}/categories`, {
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    },
 
-    /**
-     * Create a new category
-     */
     async createCategory(name) {
-        return await this.request('/categories', {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/categories`, {
             method: 'POST',
+            headers: this.getHeaders(),
             body: JSON.stringify({ name })
         });
-    }
+        return this.handleResponse(response);
+    },
 
-    /**
-     * Delete a category
-     */
     async deleteCategory(id) {
-        return await this.request(`/categories/${id}`, {
-            method: 'DELETE'
+        const response = await fetch(`${CONFIG.API_BASE_URL}/categories/${id}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
         });
-    }
+        return this.handleResponse(response);
+    },
 
-    /**
-     * Seed default categories
-     */
     async seedCategories() {
-        return await this.request('/seed/categories', {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/seed/categories`, {
             method: 'POST',
-            body: JSON.stringify({
-                categories: CONFIG.DEFAULT_CATEGORIES
-            })
+            headers: this.getHeaders()
         });
-    }
+        return this.handleResponse(response);
+    },
 
-    // ==================== Suppliers ====================
+    // ============================================================
+    // SUPPLIERS
+    // ============================================================
 
-    /**
-     * Get all suppliers with optional filters
-     */
-    async getSuppliers(filters = {}) {
-        let endpoint = '/suppliers';
-        const params = new URLSearchParams();
+    async getSuppliers(params = {}) {
+        const queryParams = new URLSearchParams();
+        if (params.category) queryParams.append('category', params.category);
+        if (params.search) queryParams.append('search', params.search);
 
-        if (filters.category) params.append('category', filters.category);
-        if (filters.search) params.append('search', filters.search);
+        const url = `${CONFIG.API_BASE_URL}/suppliers${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+        const response = await fetch(url, {
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    },
 
-        if (params.toString()) {
-            endpoint += `?${params.toString()}`;
-        }
-
-        const response = await this.request(endpoint);
-        return response.suppliers || [];
-    }
-
-    /**
-     * Get a single supplier by ID
-     */
     async getSupplier(id) {
-        const response = await this.request(`/suppliers/${id}`);
-        return response.supplier;
-    }
+        const response = await fetch(`${CONFIG.API_BASE_URL}/suppliers/${id}`, {
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    },
 
-    /**
-     * Create a new supplier
-     */
     async createSupplier(data) {
-        return await this.request('/suppliers', {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/suppliers`, {
             method: 'POST',
+            headers: this.getHeaders(),
             body: JSON.stringify(data)
         });
-    }
+        return this.handleResponse(response);
+    },
 
-    /**
-     * Update an existing supplier
-     */
     async updateSupplier(id, data) {
-        return await this.request(`/suppliers/${id}`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/suppliers/${id}`, {
             method: 'PUT',
+            headers: this.getHeaders(),
             body: JSON.stringify(data)
         });
-    }
+        return this.handleResponse(response);
+    },
 
-    /**
-     * Delete a supplier
-     */
     async deleteSupplier(id) {
-        return await this.request(`/suppliers/${id}`, {
-            method: 'DELETE'
+        const response = await fetch(`${CONFIG.API_BASE_URL}/suppliers/${id}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
         });
-    }
+        return this.handleResponse(response);
+    },
 
-    // ==================== Documents ====================
+    // ============================================================
+    // SUPPLIER DOCUMENTS
+    // ============================================================
 
-    /**
-     * Upload a document for a supplier
-     */
     async uploadDocument(supplierId, documentType, file) {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('documentType', documentType);
+        formData.append('document_type', documentType);
 
-        const response = await fetch(`${this.baseUrl}/suppliers/${supplierId}/documents`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/suppliers/${supplierId}/documents`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${this.token}`
+                'Authorization': `Bearer ${this.getToken()}`
             },
             body: formData
         });
+        return this.handleResponse(response);
+    },
 
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({ error: 'Upload failed' }));
-            throw new Error(error.error || 'Failed to upload document');
-        }
+    getDocumentUrl(supplierId, documentType) {
+        return `${CONFIG.API_BASE_URL}/suppliers/${supplierId}/documents/${documentType}?token=${encodeURIComponent(this.getToken())}`;
+    },
 
-        return response.json();
-    }
-
-    /**
-     * Get direct URL for document (for viewing/downloading)
-     * This returns the URL string, not a fetch request
-     * The worker serves the PDF directly at this endpoint
-     */
-    getDocumentDirectUrl(supplierId, documentType) {
-        const token = this.getToken();
-        return `${this.baseUrl}/suppliers/${supplierId}/documents/${documentType}?token=${encodeURIComponent(token)}`;
-    }
-
-    /**
-     * Get document URL (legacy method)
-     */
-    async getDocumentUrl(supplierId, documentType) {
-        return await this.request(`/suppliers/${supplierId}/documents/${documentType}`);
-    }
-
-    /**
-     * Delete a document
-     */
     async deleteDocument(supplierId, documentType) {
-        return await this.request(`/suppliers/${supplierId}/documents/${documentType}`, {
-            method: 'DELETE'
+        const response = await fetch(`${CONFIG.API_BASE_URL}/suppliers/${supplierId}/documents/${documentType}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
         });
-    }
+        return this.handleResponse(response);
+    },
 
-    // ==================== Statistics ====================
+    // ============================================================
+    // CONTRACTS (NEW)
+    // ============================================================
+
+    /**
+     * Get all contracts with optional filtering
+     * @param {Object} params - Optional query parameters
+     * @param {string} params.supplier_id - Filter by supplier ID
+     * @param {string} params.search - Search query
+     * @returns {Promise<{contracts: Array}>}
+     */
+    async getContracts(params = {}) {
+        const queryParams = new URLSearchParams();
+        if (params.supplier_id) queryParams.append('supplier_id', params.supplier_id);
+        if (params.search) queryParams.append('search', params.search);
+
+        const url = `${CONFIG.API_BASE_URL}/contracts${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+        const response = await fetch(url, {
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    },
+
+    /**
+     * Get a single contract by ID
+     * @param {number} id - Contract ID
+     * @returns {Promise<{contract: Object}>}
+     */
+    async getContract(id) {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/contracts/${id}`, {
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    },
+
+    /**
+     * Create a new contract
+     * @param {Object} data - Contract data
+     * @param {string} data.contract_number - Unique contract number
+     * @param {number} data.supplier_id - Supplier ID
+     * @param {string} data.description - Contract description
+     * @param {number} data.amount - Contract amount
+     * @param {string} data.start_date - Start date (YYYY-MM-DD)
+     * @param {string} data.end_date - End date (YYYY-MM-DD)
+     * @param {Array} data.files - Array of file objects with {name, data (base64), size}
+     * @returns {Promise<{success: boolean, id: number}>}
+     */
+    async createContract(data) {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/contracts`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify(data)
+        });
+        return this.handleResponse(response);
+    },
+
+    /**
+     * Update an existing contract
+     * @param {number} id - Contract ID
+     * @param {Object} data - Updated contract data
+     * @returns {Promise<{success: boolean}>}
+     */
+    async updateContract(id, data) {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/contracts/${id}`, {
+            method: 'PUT',
+            headers: this.getHeaders(),
+            body: JSON.stringify(data)
+        });
+        return this.handleResponse(response);
+    },
+
+    /**
+     * Delete a contract
+     * @param {number} id - Contract ID
+     * @returns {Promise<{success: boolean}>}
+     */
+    async deleteContract(id) {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/contracts/${id}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    },
+
+    // ============================================================
+    // CONTRACT FILES (NEW)
+    // ============================================================
+
+    /**
+     * Upload a file to a contract using FormData
+     * @param {number} contractId - Contract ID
+     * @param {File} file - File object to upload
+     * @returns {Promise<{success: boolean, file: Object}>}
+     */
+    async uploadContractFile(contractId, file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`${CONFIG.API_BASE_URL}/contracts/${contractId}/files`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: formData
+        });
+        return this.handleResponse(response);
+    },
+
+    /**
+     * Get URL for viewing/downloading a contract file
+     * @param {number} contractId - Contract ID
+     * @param {number} fileId - File ID
+     * @returns {string} - URL with authentication token
+     */
+    getContractFileUrl(contractId, fileId) {
+        return `${CONFIG.API_BASE_URL}/contracts/${contractId}/files/${fileId}?token=${encodeURIComponent(this.getToken())}`;
+    },
+
+    /**
+     * Get contract file (returns file data)
+     * @param {number} contractId - Contract ID
+     * @param {number} fileId - File ID
+     * @returns {Promise<{url: string, name: string}>}
+     */
+    async getContractFile(contractId, fileId) {
+        // Return the direct URL for download
+        return {
+            url: this.getContractFileUrl(contractId, fileId),
+            name: `contract_${contractId}_file_${fileId}.pdf`
+        };
+    },
+
+    /**
+     * Delete a contract file
+     * @param {number} contractId - Contract ID
+     * @param {number} fileId - File ID
+     * @returns {Promise<{success: boolean}>}
+     */
+    async deleteContractFile(contractId, fileId) {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/contracts/${contractId}/files/${fileId}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    },
+
+    // ============================================================
+    // STATISTICS & ALERTS
+    // ============================================================
 
     /**
      * Get dashboard statistics
+     * @returns {Promise<{statistics: Object}>}
      */
     async getStatistics() {
-        const response = await this.request('/statistics');
-        return response.statistics;
-    }
-}
+        const response = await fetch(`${CONFIG.API_BASE_URL}/statistics`, {
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    },
 
-// Create global API instance
-const api = new SupplierAPI(CONFIG.API_BASE_URL);
+    /**
+     * Get compliance alerts (expiring/expired NIS, GRA, contracts)
+     * @returns {Promise<{alerts: Array}>}
+     */
+    async getAlerts() {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/alerts`, {
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    }
+};
+
+// Make API available globally
+window.API = API;

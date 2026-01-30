@@ -1284,6 +1284,18 @@ function renderContracts() {
         elements.contractsEmptyState?.classList.add('hidden');
         container.classList.remove('hidden');
         
+        // Add header row
+        const headerRow = document.createElement('div');
+        headerRow.className = 'contract-list-header';
+        headerRow.innerHTML = `
+            <span>Contract #</span>
+            <span>Supplier</span>
+            <span>Description</span>
+            <span>Amount</span>
+            <span>Duration</span>
+        `;
+        container.appendChild(headerRow);
+        
         // Apply sorting
         const sortedContracts = sortContracts(state.contracts, state.contractFilters.sort);
         
@@ -1337,23 +1349,17 @@ function createContractCard(contract) {
         <div class="contract-card-header">
             <span class="contract-number">${escapeHtml(contract.contract_number)}</span>
             <span class="contract-file-badge ${hasFiles ? 'has-files' : 'no-files'}">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-                ${contract.file_count || 0} file${contract.file_count !== 1 ? 's' : ''}
+                <svg viewBox="0 0 24 24" width="12" height="12"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                ${contract.file_count || 0}
             </span>
         </div>
         <div class="contract-supplier">${escapeHtml(contract.supplier_name || 'Unknown Supplier')}</div>
         <div class="contract-description">${escapeHtml(contract.description || 'No description')}</div>
-        <div class="contract-meta">
-            <div class="contract-amount">
-                <strong>GYD ${formatCurrency(contract.amount || 0)}</strong>
-            </div>
+        <div class="contract-amount"><strong>GYD ${formatCurrency(contract.amount || 0)}</strong></div>
+        <div class="contract-dates">
             ${contract.start_date || contract.end_date ? `
-                <div class="contract-dates">
-                    ${contract.start_date ? formatDate(contract.start_date) : 'N/A'} 
-                    — 
-                    ${contract.end_date ? formatDate(contract.end_date) : 'N/A'}
-                </div>
-            ` : ''}
+                ${contract.start_date ? formatDate(contract.start_date) : 'N/A'} — ${contract.end_date ? formatDate(contract.end_date) : 'N/A'}
+            ` : '—'}
         </div>
     `;
     

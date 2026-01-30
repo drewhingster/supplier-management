@@ -2661,3 +2661,46 @@ a:hover {
     font-size: 0.8125rem;
     padding: 0.375rem 0.5rem 0.375rem 2rem;
 }
+
+/* ==================== Sort Controls ==================== */
+.grid-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sort-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sort-control label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.sort-select {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.8125rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    min-width: 140px;
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+/* Contracts grid header with sort */
+.contracts-grid .grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}

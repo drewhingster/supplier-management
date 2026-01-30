@@ -8,6 +8,716 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* ========================================
+           CONTRACT MANAGEMENT MODULE STYLES
+           ======================================== */
+        
+        /* Main Navigation Tabs */
+        .main-nav {
+            display: flex;
+            gap: 0;
+            background: var(--color-surface, #fff);
+            border-bottom: 2px solid var(--color-border, #e5e7eb);
+            padding: 0 1.5rem;
+            margin-bottom: 0;
+        }
+        
+        .main-nav-tab {
+            padding: 1rem 1.5rem;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--color-text-secondary, #6b7280);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .main-nav-tab svg {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .main-nav-tab:hover {
+            color: var(--color-text-primary, #111827);
+        }
+        
+        .main-nav-tab.active {
+            color: var(--color-primary, #1e40af);
+        }
+        
+        .main-nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--color-primary, #1e40af);
+        }
+        
+        .main-nav-tab .tab-count {
+            background: var(--color-surface-alt, #f3f4f6);
+            color: var(--color-text-secondary, #6b7280);
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .main-nav-tab.active .tab-count {
+            background: var(--color-primary-light, #dbeafe);
+            color: var(--color-primary, #1e40af);
+        }
+        
+        /* View Sections */
+        .view-section {
+            display: none;
+        }
+        
+        .view-section.active {
+            display: block;
+        }
+        
+        /* Contracts View Styles */
+        .contracts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--color-border, #e5e7eb);
+        }
+        
+        .contracts-header h2 {
+            font-family: 'Source Serif 4', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--color-text-primary, #111827);
+            margin: 0;
+        }
+        
+        .contracts-search {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .contracts-search-input {
+            position: relative;
+        }
+        
+        .contracts-search-input svg {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--color-text-tertiary, #9ca3af);
+        }
+        
+        .contracts-search-input input {
+            padding: 0.625rem 1rem 0.625rem 2.5rem;
+            border: 1px solid var(--color-border, #e5e7eb);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            width: 280px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .contracts-search-input input:focus {
+            outline: none;
+            border-color: var(--color-primary, #1e40af);
+            box-shadow: 0 0 0 3px var(--color-primary-light, rgba(30, 64, 175, 0.1));
+        }
+        
+        /* Contracts Table */
+        .contracts-table-container {
+            overflow-x: auto;
+            padding: 0 1.5rem 1.5rem;
+        }
+        
+        .contracts-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        
+        .contracts-table th {
+            text-align: left;
+            padding: 1rem 0.75rem;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-text-secondary, #6b7280);
+            border-bottom: 2px solid var(--color-border, #e5e7eb);
+            background: var(--color-surface-alt, #f9fafb);
+        }
+        
+        .contracts-table td {
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid var(--color-border, #e5e7eb);
+            color: var(--color-text-primary, #111827);
+            vertical-align: middle;
+        }
+        
+        .contracts-table tr:hover {
+            background: var(--color-surface-alt, #f9fafb);
+            cursor: pointer;
+        }
+        
+        .contract-number {
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            color: var(--color-primary, #1e40af);
+        }
+        
+        .contract-supplier {
+            font-weight: 500;
+        }
+        
+        .contract-amount {
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            color: var(--color-text-primary, #111827);
+        }
+        
+        .contract-dates {
+            font-size: 0.8125rem;
+            color: var(--color-text-secondary, #6b7280);
+        }
+        
+        .contract-file-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .contract-file-indicator.has-files {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .contract-file-indicator.no-files {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .contract-file-indicator svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .contract-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .contract-action-btn {
+            padding: 0.375rem;
+            background: transparent;
+            border: 1px solid var(--color-border, #e5e7eb);
+            border-radius: 0.375rem;
+            cursor: pointer;
+            color: var(--color-text-secondary, #6b7280);
+            transition: all 0.2s;
+        }
+        
+        .contract-action-btn:hover {
+            background: var(--color-surface-alt, #f3f4f6);
+            color: var(--color-text-primary, #111827);
+        }
+        
+        .contract-action-btn.delete:hover {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+        
+        .contract-action-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Empty State for Contracts */
+        .contracts-empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        
+        .contracts-empty-state svg {
+            width: 80px;
+            height: 80px;
+            color: var(--color-text-tertiary, #d1d5db);
+            margin-bottom: 1.5rem;
+        }
+        
+        .contracts-empty-state h3 {
+            font-family: 'Source Serif 4', serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-text-primary, #111827);
+            margin-bottom: 0.5rem;
+        }
+        
+        .contracts-empty-state p {
+            color: var(--color-text-secondary, #6b7280);
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Contract Modal Styles */
+        .contract-modal-content {
+            max-width: 700px;
+            width: 95%;
+        }
+        
+        .contract-form .form-row {
+            margin-bottom: 1.25rem;
+        }
+        
+        .contract-form .form-row.two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .contract-form .form-row.three-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .contract-form label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-text-primary, #111827);
+            margin-bottom: 0.375rem;
+        }
+        
+        .contract-form label .required {
+            color: #dc2626;
+        }
+        
+        .contract-form input,
+        .contract-form select,
+        .contract-form textarea {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--color-border, #e5e7eb);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-family: 'DM Sans', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .contract-form input:focus,
+        .contract-form select:focus,
+        .contract-form textarea:focus {
+            outline: none;
+            border-color: var(--color-primary, #1e40af);
+            box-shadow: 0 0 0 3px var(--color-primary-light, rgba(30, 64, 175, 0.1));
+        }
+        
+        .contract-form textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        /* Contract File Upload Section */
+        .contract-files-section {
+            background: var(--color-surface-alt, #f9fafb);
+            border: 1px solid var(--color-border, #e5e7eb);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .contract-files-section h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--color-text-primary, #111827);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .contract-files-section h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--color-text-secondary, #6b7280);
+        }
+        
+        .contract-file-upload-area {
+            border: 2px dashed var(--color-border, #d1d5db);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+            background: #fff;
+            transition: border-color 0.2s, background-color 0.2s;
+            cursor: pointer;
+        }
+        
+        .contract-file-upload-area:hover,
+        .contract-file-upload-area.dragover {
+            border-color: var(--color-primary, #1e40af);
+            background: var(--color-primary-light, #eff6ff);
+        }
+        
+        .contract-file-upload-area svg {
+            width: 40px;
+            height: 40px;
+            color: var(--color-text-tertiary, #9ca3af);
+            margin-bottom: 0.75rem;
+        }
+        
+        .contract-file-upload-area p {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary, #6b7280);
+            margin: 0;
+        }
+        
+        .contract-file-upload-area span {
+            color: var(--color-primary, #1e40af);
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .contract-files-list {
+            margin-top: 1rem;
+        }
+        
+        .contract-file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.625rem 0.75rem;
+            background: #fff;
+            border: 1px solid var(--color-border, #e5e7eb);
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .contract-file-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .contract-file-info {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+        }
+        
+        .contract-file-info svg {
+            width: 20px;
+            height: 20px;
+            color: #dc2626;
+        }
+        
+        .contract-file-name {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--color-text-primary, #111827);
+        }
+        
+        .contract-file-size {
+            font-size: 0.75rem;
+            color: var(--color-text-tertiary, #9ca3af);
+        }
+        
+        .contract-file-remove {
+            padding: 0.25rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-tertiary, #9ca3af);
+            border-radius: 0.25rem;
+            transition: color 0.2s, background-color 0.2s;
+        }
+        
+        .contract-file-remove:hover {
+            color: #dc2626;
+            background: #fef2f2;
+        }
+        
+        .contract-file-remove svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Contract Detail Modal */
+        .contract-detail-modal-content {
+            max-width: 800px;
+            width: 95%;
+        }
+        
+        .contract-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--color-border, #e5e7eb);
+            margin-bottom: 1.5rem;
+        }
+        
+        .contract-detail-title h2 {
+            font-family: 'Source Serif 4', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--color-text-primary, #111827);
+            margin: 0 0 0.25rem;
+        }
+        
+        .contract-detail-title .contract-supplier-link {
+            font-size: 0.875rem;
+            color: var(--color-primary, #1e40af);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        
+        .contract-detail-title .contract-supplier-link:hover {
+            text-decoration: underline;
+        }
+        
+        .contract-detail-title .contract-supplier-link svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .contract-detail-amount {
+            text-align: right;
+        }
+        
+        .contract-detail-amount .amount-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-text-secondary, #6b7280);
+            margin-bottom: 0.25rem;
+        }
+        
+        .contract-detail-amount .amount-value {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-text-primary, #111827);
+        }
+        
+        .contract-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .contract-detail-item {
+            background: var(--color-surface-alt, #f9fafb);
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        
+        .contract-detail-item .detail-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-text-secondary, #6b7280);
+            margin-bottom: 0.375rem;
+        }
+        
+        .contract-detail-item .detail-value {
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: var(--color-text-primary, #111827);
+        }
+        
+        .contract-description-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .contract-description-section h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--color-text-primary, #111827);
+            margin-bottom: 0.5rem;
+        }
+        
+        .contract-description-section p {
+            font-size: 0.9375rem;
+            color: var(--color-text-secondary, #374151);
+            line-height: 1.6;
+            background: var(--color-surface-alt, #f9fafb);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 0;
+        }
+        
+        .contract-files-section-detail {
+            margin-bottom: 1.5rem;
+        }
+        
+        .contract-files-section-detail h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--color-text-primary, #111827);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .contract-files-section-detail h4 svg {
+            width: 18px;
+            height: 18px;
+            color: var(--color-text-secondary, #6b7280);
+        }
+        
+        .contract-file-download-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--color-surface-alt, #f9fafb);
+            border: 1px solid var(--color-border, #e5e7eb);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .contract-file-download-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .contract-file-download-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .contract-file-download-info .file-icon {
+            width: 40px;
+            height: 40px;
+            background: #fef2f2;
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .contract-file-download-info .file-icon svg {
+            width: 24px;
+            height: 24px;
+            color: #dc2626;
+        }
+        
+        .contract-file-download-info .file-details .file-name {
+            font-weight: 500;
+            color: var(--color-text-primary, #111827);
+            font-size: 0.875rem;
+        }
+        
+        .contract-file-download-info .file-details .file-meta {
+            font-size: 0.75rem;
+            color: var(--color-text-tertiary, #9ca3af);
+        }
+        
+        .contract-file-download-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.5rem 1rem;
+            background: var(--color-primary, #1e40af);
+            color: #fff;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .contract-file-download-btn:hover {
+            background: var(--color-primary-dark, #1e3a8a);
+        }
+        
+        .contract-file-download-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .contract-detail-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--color-border, #e5e7eb);
+        }
+        
+        /* Status Badge Styles */
+        .contract-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .contract-status-badge.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .contract-status-badge.expired {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        
+        .contract-status-badge.expiring {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .contract-form .form-row.two-col,
+            .contract-form .form-row.three-col {
+                grid-template-columns: 1fr;
+            }
+            
+            .contract-detail-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .contracts-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+            
+            .contracts-search {
+                flex-direction: column;
+            }
+            
+            .contracts-search-input input {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Authentication Modal -->
@@ -62,9 +772,13 @@
                     <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     Categories
                 </button>
-                <button id="add-supplier-btn" class="btn btn-primary">
+                <button id="add-supplier-btn" class="btn btn-primary supplier-view-btn">
                     <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     Add Supplier
+                </button>
+                <button id="add-contract-btn" class="btn btn-primary contract-view-btn hidden">
+                    <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Add Contract
                 </button>
                 
                 <!-- Notification Button -->
@@ -81,6 +795,20 @@
                 </button>
             </div>
         </header>
+
+        <!-- Main Navigation Tabs -->
+        <nav class="main-nav">
+            <button class="main-nav-tab active" data-view="suppliers">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                Suppliers
+                <span class="tab-count" id="tab-suppliers-count">0</span>
+            </button>
+            <button class="main-nav-tab" data-view="contracts">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+                Contracts
+                <span class="tab-count" id="tab-contracts-count">0</span>
+            </button>
+        </nav>
 
         <!-- Notification Panel (hidden by default) -->
         <div id="notification-panel" class="notification-panel hidden">
@@ -105,96 +833,154 @@
             </div>
         </div>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Sidebar Filters -->
-            <aside class="sidebar">
-                <div class="search-container">
-                    <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/></svg>
-                    <input type="text" id="search-input" placeholder="Search suppliers...">
-                </div>
-                
-                <div class="filter-section">
-                    <h3 class="filter-title">Filter by Category</h3>
-                    <div id="category-filters" class="category-list">
-                        <label class="category-item active">
-                            <input type="radio" name="category-filter" value="all" checked>
-                            <span class="category-radio"></span>
-                            <span class="category-name">All Categories</span>
-                            <span class="category-count" id="count-all">0</span>
-                        </label>
+        <!-- ==================== SUPPLIERS VIEW ==================== -->
+        <div id="suppliers-view" class="view-section active">
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Sidebar Filters -->
+                <aside class="sidebar">
+                    <div class="search-container">
+                        <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/></svg>
+                        <input type="text" id="search-input" placeholder="Search suppliers...">
                     </div>
-                </div>
+                    
+                    <div class="filter-section">
+                        <h3 class="filter-title">Filter by Category</h3>
+                        <div id="category-filters" class="category-list">
+                            <label class="category-item active">
+                                <input type="radio" name="category-filter" value="all" checked>
+                                <span class="category-radio"></span>
+                                <span class="category-name">All Categories</span>
+                                <span class="category-count" id="count-all">0</span>
+                            </label>
+                        </div>
+                    </div>
 
-                <div class="filter-section">
-                    <h3 class="filter-title">Document Status</h3>
-                    <div class="status-filters">
-                        <label class="status-item">
-                            <input type="checkbox" id="filter-complete" checked>
-                            <span class="status-checkbox"></span>
-                            <span class="status-name">Complete</span>
-                        </label>
-                        <label class="status-item">
-                            <input type="checkbox" id="filter-incomplete" checked>
-                            <span class="status-checkbox"></span>
-                            <span class="status-name">Incomplete</span>
-                        </label>
+                    <div class="filter-section">
+                        <h3 class="filter-title">Document Status</h3>
+                        <div class="status-filters">
+                            <label class="status-item">
+                                <input type="checkbox" id="filter-complete" checked>
+                                <span class="status-checkbox"></span>
+                                <span class="status-name">Complete</span>
+                            </label>
+                            <label class="status-item">
+                                <input type="checkbox" id="filter-incomplete" checked>
+                                <span class="status-checkbox"></span>
+                                <span class="status-name">Incomplete</span>
+                            </label>
+                        </div>
                     </div>
-                </div>
 
-                <div class="sidebar-stats">
-                    <div class="stat-card">
-                        <span class="stat-value" id="total-suppliers">0</span>
-                        <span class="stat-label">Total Suppliers</span>
+                    <div class="sidebar-stats">
+                        <div class="stat-card">
+                            <span class="stat-value" id="total-suppliers">0</span>
+                            <span class="stat-label">Total Suppliers</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="compliant-suppliers">0</span>
+                            <span class="stat-label">Fully Compliant</span>
+                        </div>
+                        <div class="stat-card stat-card-warning" id="needs-attention-card">
+                            <span class="stat-value" id="needs-attention">0</span>
+                            <span class="stat-label">Needs Attention</span>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <span class="stat-value" id="compliant-suppliers">0</span>
-                        <span class="stat-label">Fully Compliant</span>
-                    </div>
-                    <div class="stat-card stat-card-warning" id="needs-attention-card">
-                        <span class="stat-value" id="needs-attention">0</span>
-                        <span class="stat-label">Needs Attention</span>
-                    </div>
-                </div>
-            </aside>
+                </aside>
 
-            <!-- Supplier List -->
-            <section class="supplier-grid">
-                <div class="grid-header">
-                    <h2>Registered Suppliers</h2>
-                    <div class="view-toggle">
-                        <button id="view-grid" class="view-btn active" title="Grid View">
-                            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="3" y="14" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="14" width="7" height="7" rx="1" fill="currentColor"/></svg>
+                <!-- Supplier List -->
+                <section class="supplier-grid">
+                    <div class="grid-header">
+                        <h2>Registered Suppliers</h2>
+                        <div class="view-toggle">
+                            <button id="view-grid" class="view-btn active" title="Grid View">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="3" y="14" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="14" width="7" height="7" rx="1" fill="currentColor"/></svg>
+                            </button>
+                            <button id="view-list" class="view-btn" title="List View">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1" fill="currentColor"/><rect x="3" y="10" width="18" height="4" rx="1" fill="currentColor"/><rect x="3" y="16" width="18" height="4" rx="1" fill="currentColor"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="supplier-list" class="suppliers-container grid-view">
+                        <!-- Suppliers will be populated here -->
+                    </div>
+                    
+                    <div id="empty-state" class="empty-state hidden">
+                        <svg viewBox="0 0 120 120" class="empty-icon">
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="8 4"/>
+                            <path d="M40 45h40M40 60h40M40 75h25" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                        </svg>
+                        <h3>No Suppliers Found</h3>
+                        <p>Add your first supplier to get started, or adjust your filters.</p>
+                        <button class="btn btn-primary" onclick="openSupplierModal()">
+                            <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Add First Supplier
                         </button>
-                        <button id="view-list" class="view-btn" title="List View">
-                            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1" fill="currentColor"/><rect x="3" y="10" width="18" height="4" rx="1" fill="currentColor"/><rect x="3" y="16" width="18" height="4" rx="1" fill="currentColor"/></svg>
-                        </button>
+                    </div>
+
+                    <div id="loading-state" class="loading-state hidden">
+                        <div class="loading-spinner"></div>
+                        <p>Loading suppliers...</p>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- ==================== CONTRACTS VIEW ==================== -->
+        <div id="contracts-view" class="view-section">
+            <div class="contracts-container">
+                <div class="contracts-header">
+                    <h2>Contract Management</h2>
+                    <div class="contracts-search">
+                        <div class="contracts-search-input">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/></svg>
+                            <input type="text" id="contracts-search" placeholder="Search contracts...">
+                        </div>
                     </div>
                 </div>
                 
-                <div id="supplier-list" class="suppliers-container grid-view">
-                    <!-- Suppliers will be populated here -->
+                <div class="contracts-table-container">
+                    <table class="contracts-table" id="contracts-table">
+                        <thead>
+                            <tr>
+                                <th>Contract Number</th>
+                                <th>Supplier</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Period</th>
+                                <th>Status</th>
+                                <th>Files</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contracts-tbody">
+                            <!-- Contracts populated by JS -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="contracts-empty-state" class="contracts-empty-state hidden">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="1.5"/>
+                            <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                        <h3>No Contracts Found</h3>
+                        <p>Add your first contract to start tracking supplier agreements.</p>
+                        <button class="btn btn-primary" onclick="openContractModal()">
+                            <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Add First Contract
+                        </button>
+                    </div>
+                    
+                    <div id="contracts-loading" class="loading-state hidden">
+                        <div class="loading-spinner"></div>
+                        <p>Loading contracts...</p>
+                    </div>
                 </div>
-                
-                <div id="empty-state" class="empty-state hidden">
-                    <svg viewBox="0 0 120 120" class="empty-icon">
-                        <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="8 4"/>
-                        <path d="M40 45h40M40 60h40M40 75h25" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-                    </svg>
-                    <h3>No Suppliers Found</h3>
-                    <p>Add your first supplier to get started, or adjust your filters.</p>
-                    <button class="btn btn-primary" onclick="openSupplierModal()">
-                        <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        Add First Supplier
-                    </button>
-                </div>
-
-                <div id="loading-state" class="loading-state hidden">
-                    <div class="loading-spinner"></div>
-                    <p>Loading suppliers...</p>
-                </div>
-            </section>
-        </main>
+            </div>
+        </div>
     </div>
 
     <!-- Add/Edit Supplier Modal -->
@@ -443,6 +1229,155 @@
         </div>
     </div>
 
+    <!-- ==================== CONTRACT MODALS ==================== -->
+    
+    <!-- Add/Edit Contract Modal -->
+    <div id="contract-modal" class="modal hidden">
+        <div class="modal-content contract-modal-content">
+            <div class="modal-header">
+                <h2 id="contract-modal-title">Add New Contract</h2>
+                <button class="modal-close" onclick="closeContractModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+            
+            <form id="contract-form" class="contract-form">
+                <input type="hidden" id="contract-id">
+                
+                <div class="form-row two-col">
+                    <div class="form-group">
+                        <label for="contract-number">Contract Number <span class="required">*</span></label>
+                        <input type="text" id="contract-number" required placeholder="e.g., BOS-2025-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="contract-supplier">Supplier <span class="required">*</span></label>
+                        <select id="contract-supplier" required>
+                            <option value="">Select a supplier...</option>
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contract-description">Contract Detail / Description <span class="required">*</span></label>
+                        <textarea id="contract-description" required placeholder="Describe the contract scope, deliverables, and terms..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="form-row three-col">
+                    <div class="form-group">
+                        <label for="contract-amount">Contract Amount (G$) <span class="required">*</span></label>
+                        <input type="number" id="contract-amount" required min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="contract-start-date">Start Date</label>
+                        <input type="date" id="contract-start-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="contract-end-date">End Date</label>
+                        <input type="date" id="contract-end-date">
+                    </div>
+                </div>
+                
+                <div class="contract-files-section">
+                    <h4>
+                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                        Contract Documents
+                    </h4>
+                    <p class="form-hint">Upload PDF files only. You can add multiple files.</p>
+                    
+                    <div class="contract-file-upload-area" id="contract-file-dropzone">
+                        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="17,8 12,3 7,8" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+                        <p>Drag and drop PDF files here, or <span onclick="document.getElementById('contract-file-input').click()">browse</span></p>
+                        <input type="file" id="contract-file-input" accept=".pdf" multiple style="display: none;">
+                    </div>
+                    
+                    <div class="contract-files-list" id="contract-files-list">
+                        <!-- Files populated by JS -->
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeContractModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="contract-submit-btn">
+                        <span>Save Contract</span>
+                        <div class="btn-spinner hidden">
+                            <svg class="spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31.416" stroke-dashoffset="10"/></svg>
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Contract Detail Modal -->
+    <div id="contract-detail-modal" class="modal hidden">
+        <div class="modal-content contract-detail-modal-content">
+            <div class="modal-header">
+                <div class="contract-detail-title">
+                    <h2 id="contract-detail-number">Contract Details</h2>
+                    <a href="#" class="contract-supplier-link" id="contract-detail-supplier-link">
+                        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="15,3 21,3 21,9" stroke="currentColor" stroke-width="2" fill="none"/><line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="2"/></svg>
+                        <span id="contract-detail-supplier-name">View Supplier</span>
+                    </a>
+                </div>
+                <button class="modal-close" onclick="closeContractDetailModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+            
+            <div class="contract-detail-header">
+                <div></div>
+                <div class="contract-detail-amount">
+                    <div class="amount-label">Contract Value</div>
+                    <div class="amount-value" id="contract-detail-amount">G$0.00</div>
+                </div>
+            </div>
+            
+            <div class="contract-detail-grid">
+                <div class="contract-detail-item">
+                    <div class="detail-label">Start Date</div>
+                    <div class="detail-value" id="contract-detail-start">-</div>
+                </div>
+                <div class="contract-detail-item">
+                    <div class="detail-label">End Date</div>
+                    <div class="detail-value" id="contract-detail-end">-</div>
+                </div>
+                <div class="contract-detail-item">
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value" id="contract-detail-status">-</div>
+                </div>
+            </div>
+            
+            <div class="contract-description-section">
+                <h4>Contract Description</h4>
+                <p id="contract-detail-description">-</p>
+            </div>
+            
+            <div class="contract-files-section-detail">
+                <h4>
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                    Attached Documents
+                </h4>
+                <div id="contract-detail-files">
+                    <!-- Files populated by JS -->
+                </div>
+            </div>
+            
+            <div class="contract-detail-actions">
+                <button class="btn btn-danger" id="delete-contract-btn">
+                    <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Delete Contract
+                </button>
+                <button class="btn btn-primary" id="edit-contract-btn">
+                    <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Edit Contract
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="toast hidden">
         <div class="toast-content">
@@ -455,5 +1390,799 @@
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>
+    
+    <!-- Enhanced JavaScript for Category Counters & Contract Management -->
+    <script>
+    // ============================================================
+    // FEATURE 1: DYNAMIC SUPPLIER CATEGORY COUNTERS
+    // ============================================================
+    
+    /**
+     * Calculates and updates category counters from the live supplier database.
+     * This function is called after every CRUD operation on suppliers.
+     */
+    function updateCategoryCounts() {
+        const suppliers = state.suppliers || [];
+        const categories = state.categories || [];
+        
+        // Calculate total count for "All Categories"
+        const totalCount = suppliers.length;
+        const allCountEl = document.getElementById('count-all');
+        if (allCountEl) {
+            allCountEl.textContent = totalCount;
+        }
+        
+        // Update tab count
+        const tabSuppliersCount = document.getElementById('tab-suppliers-count');
+        if (tabSuppliersCount) {
+            tabSuppliersCount.textContent = totalCount;
+        }
+        
+        // Calculate count for each category
+        categories.forEach(category => {
+            const categoryName = category.name || category;
+            const count = suppliers.filter(supplier => {
+                // Handle both single category and multi-category suppliers
+                const supplierCategories = supplier.categories || supplier.category || [];
+                if (Array.isArray(supplierCategories)) {
+                    return supplierCategories.includes(categoryName);
+                }
+                return supplierCategories === categoryName;
+            }).length;
+            
+            // Update the count in the sidebar filter
+            const countEl = document.getElementById(`count-${categoryName.toLowerCase().replace(/\s+/g, '-')}`);
+            if (countEl) {
+                countEl.textContent = count;
+            }
+        });
+        
+        // Update sidebar statistics
+        updateSidebarStats();
+    }
+    
+    /**
+     * Updates sidebar statistics (total, compliant, needs attention)
+     */
+    function updateSidebarStats() {
+        const suppliers = state.suppliers || [];
+        
+        // Total suppliers
+        const totalEl = document.getElementById('total-suppliers');
+        if (totalEl) {
+            totalEl.textContent = suppliers.length;
+        }
+        
+        // Count fully compliant suppliers (all documents uploaded and not expired)
+        const compliantCount = suppliers.filter(supplier => {
+            const docs = supplier.documents || {};
+            const hasAllDocs = docs.business_registration && docs.nis_compliance && 
+                              docs.gra_compliance && docs.tin_certificate;
+            // Check compliance expiration dates
+            const now = new Date();
+            const nisValid = !supplier.nis_expiration_date || new Date(supplier.nis_expiration_date) > now;
+            const graValid = !supplier.gra_expiration_date || new Date(supplier.gra_expiration_date) > now;
+            return hasAllDocs && nisValid && graValid;
+        }).length;
+        
+        const compliantEl = document.getElementById('compliant-suppliers');
+        if (compliantEl) {
+            compliantEl.textContent = compliantCount;
+        }
+        
+        // Count suppliers needing attention (missing docs or expired compliance)
+        const needsAttentionCount = suppliers.length - compliantCount;
+        const needsAttentionEl = document.getElementById('needs-attention');
+        if (needsAttentionEl) {
+            needsAttentionEl.textContent = needsAttentionCount;
+        }
+    }
+    
+    /**
+     * Enhanced renderCategoryFilters to include dynamic counts
+     * This overrides/enhances the original function
+     */
+    function renderCategoryFiltersWithCounts() {
+        const container = document.getElementById('category-filters');
+        if (!container) return;
+        
+        const categories = state.categories || [];
+        const suppliers = state.suppliers || [];
+        const currentFilter = state.categoryFilter || 'all';
+        
+        // Calculate total count
+        const totalCount = suppliers.length;
+        
+        let html = `
+            <label class="category-item ${currentFilter === 'all' ? 'active' : ''}">
+                <input type="radio" name="category-filter" value="all" ${currentFilter === 'all' ? 'checked' : ''}>
+                <span class="category-radio"></span>
+                <span class="category-name">All Categories</span>
+                <span class="category-count" id="count-all">${totalCount}</span>
+            </label>
+        `;
+        
+        categories.forEach(category => {
+            const categoryName = category.name || category;
+            const categoryId = categoryName.toLowerCase().replace(/\s+/g, '-');
+            
+            // Count suppliers in this category
+            const count = suppliers.filter(supplier => {
+                const supplierCategories = supplier.categories || supplier.category || [];
+                if (Array.isArray(supplierCategories)) {
+                    return supplierCategories.includes(categoryName);
+                }
+                return supplierCategories === categoryName;
+            }).length;
+            
+            html += `
+                <label class="category-item ${currentFilter === categoryName ? 'active' : ''}">
+                    <input type="radio" name="category-filter" value="${categoryName}" ${currentFilter === categoryName ? 'checked' : ''}>
+                    <span class="category-radio"></span>
+                    <span class="category-name">${categoryName}</span>
+                    <span class="category-count" id="count-${categoryId}">${count}</span>
+                </label>
+            `;
+        });
+        
+        container.innerHTML = html;
+        
+        // Re-attach event listeners
+        container.querySelectorAll('input[name="category-filter"]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                state.categoryFilter = e.target.value;
+                container.querySelectorAll('.category-item').forEach(item => item.classList.remove('active'));
+                e.target.closest('.category-item').classList.add('active');
+                renderSuppliers();
+            });
+        });
+    }
+    
+    // ============================================================
+    // FEATURE 2: CONTRACT MANAGEMENT MODULE
+    // ============================================================
+    
+    // Contract state
+    if (!window.contractState) {
+        window.contractState = {
+            contracts: [],
+            currentContract: null,
+            pendingFiles: [],
+            searchFilter: ''
+        };
+    }
+    
+    /**
+     * Main Navigation Tab Handling
+     */
+    function initNavTabs() {
+        const tabs = document.querySelectorAll('.main-nav-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const view = tab.dataset.view;
+                switchView(view);
+            });
+        });
+    }
+    
+    function switchView(viewName) {
+        // Update tab states
+        document.querySelectorAll('.main-nav-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.view === viewName);
+        });
+        
+        // Update view sections
+        document.querySelectorAll('.view-section').forEach(section => {
+            section.classList.toggle('active', section.id === `${viewName}-view`);
+        });
+        
+        // Update header buttons visibility
+        document.querySelectorAll('.supplier-view-btn').forEach(btn => {
+            btn.classList.toggle('hidden', viewName !== 'suppliers');
+        });
+        document.querySelectorAll('.contract-view-btn').forEach(btn => {
+            btn.classList.toggle('hidden', viewName !== 'contracts');
+        });
+        
+        // Load contracts if switching to contracts view
+        if (viewName === 'contracts') {
+            loadContracts();
+        }
+    }
+    
+    /**
+     * Load contracts from API
+     */
+    async function loadContracts() {
+        const tbody = document.getElementById('contracts-tbody');
+        const emptyState = document.getElementById('contracts-empty-state');
+        const loading = document.getElementById('contracts-loading');
+        const table = document.getElementById('contracts-table');
+        
+        if (loading) loading.classList.remove('hidden');
+        if (table) table.classList.add('hidden');
+        if (emptyState) emptyState.classList.add('hidden');
+        
+        try {
+            // Call API to get contracts
+            const response = await API.getContracts();
+            contractState.contracts = response.contracts || [];
+            
+            // Update contract count in tab
+            const tabCount = document.getElementById('tab-contracts-count');
+            if (tabCount) {
+                tabCount.textContent = contractState.contracts.length;
+            }
+            
+            renderContracts();
+        } catch (error) {
+            console.error('Failed to load contracts:', error);
+            showToast('Failed to load contracts', 'error');
+        } finally {
+            if (loading) loading.classList.add('hidden');
+        }
+    }
+    
+    /**
+     * Render contracts table
+     */
+    function renderContracts() {
+        const tbody = document.getElementById('contracts-tbody');
+        const emptyState = document.getElementById('contracts-empty-state');
+        const table = document.getElementById('contracts-table');
+        
+        let contracts = contractState.contracts || [];
+        
+        // Apply search filter
+        if (contractState.searchFilter) {
+            const filter = contractState.searchFilter.toLowerCase();
+            contracts = contracts.filter(c => 
+                c.contract_number?.toLowerCase().includes(filter) ||
+                c.supplier_name?.toLowerCase().includes(filter) ||
+                c.description?.toLowerCase().includes(filter)
+            );
+        }
+        
+        if (contracts.length === 0) {
+            if (table) table.classList.add('hidden');
+            if (emptyState) emptyState.classList.remove('hidden');
+            return;
+        }
+        
+        if (table) table.classList.remove('hidden');
+        if (emptyState) emptyState.classList.add('hidden');
+        
+        tbody.innerHTML = contracts.map(contract => {
+            const status = getContractStatus(contract);
+            const hasFiles = contract.files && contract.files.length > 0;
+            const fileCount = contract.files?.length || 0;
+            
+            return `
+                <tr onclick="openContractDetail('${contract.id}')">
+                    <td><span class="contract-number">${escapeHtml(contract.contract_number)}</span></td>
+                    <td><span class="contract-supplier">${escapeHtml(contract.supplier_name || 'Unknown')}</span></td>
+                    <td>${escapeHtml(truncateText(contract.description, 50))}</td>
+                    <td><span class="contract-amount">G$${formatNumber(contract.amount)}</span></td>
+                    <td class="contract-dates">
+                        ${contract.start_date ? formatDate(contract.start_date) : '-'} — 
+                        ${contract.end_date ? formatDate(contract.end_date) : '-'}
+                    </td>
+                    <td><span class="contract-status-badge ${status.class}">${status.label}</span></td>
+                    <td>
+                        <span class="contract-file-indicator ${hasFiles ? 'has-files' : 'no-files'}">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                            ${hasFiles ? `${fileCount} file${fileCount > 1 ? 's' : ''}` : 'No files'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="contract-actions" onclick="event.stopPropagation()">
+                            <button class="contract-action-btn" onclick="editContract('${contract.id}')" title="Edit">
+                                <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            </button>
+                            <button class="contract-action-btn delete" onclick="deleteContract('${contract.id}')" title="Delete">
+                                <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    /**
+     * Get contract status based on dates
+     */
+    function getContractStatus(contract) {
+        if (!contract.end_date) {
+            return { label: 'Active', class: 'active' };
+        }
+        
+        const now = new Date();
+        const endDate = new Date(contract.end_date);
+        const daysUntilExpiry = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+        
+        if (daysUntilExpiry < 0) {
+            return { label: 'Expired', class: 'expired' };
+        } else if (daysUntilExpiry <= 30) {
+            return { label: `Expires in ${daysUntilExpiry}d`, class: 'expiring' };
+        }
+        return { label: 'Active', class: 'active' };
+    }
+    
+    /**
+     * Open contract modal for adding
+     */
+    function openContractModal() {
+        const modal = document.getElementById('contract-modal');
+        const form = document.getElementById('contract-form');
+        const title = document.getElementById('contract-modal-title');
+        
+        // Reset form
+        form.reset();
+        document.getElementById('contract-id').value = '';
+        contractState.pendingFiles = [];
+        contractState.currentContract = null;
+        
+        title.textContent = 'Add New Contract';
+        
+        // Populate supplier dropdown
+        populateSupplierDropdown();
+        
+        // Clear files list
+        renderContractFilesList();
+        
+        modal.classList.remove('hidden');
+    }
+    
+    /**
+     * Close contract modal
+     */
+    function closeContractModal() {
+        document.getElementById('contract-modal').classList.add('hidden');
+        contractState.pendingFiles = [];
+    }
+    
+    /**
+     * Populate supplier dropdown in contract form
+     */
+    function populateSupplierDropdown() {
+        const select = document.getElementById('contract-supplier');
+        const suppliers = state.suppliers || [];
+        
+        select.innerHTML = '<option value="">Select a supplier...</option>';
+        suppliers.forEach(supplier => {
+            select.innerHTML += `<option value="${supplier.id}">${escapeHtml(supplier.name)}</option>`;
+        });
+    }
+    
+    /**
+     * Edit contract
+     */
+    async function editContract(contractId) {
+        const contract = contractState.contracts.find(c => c.id === contractId);
+        if (!contract) return;
+        
+        contractState.currentContract = contract;
+        
+        const modal = document.getElementById('contract-modal');
+        const title = document.getElementById('contract-modal-title');
+        
+        title.textContent = 'Edit Contract';
+        
+        // Populate form
+        document.getElementById('contract-id').value = contract.id;
+        document.getElementById('contract-number').value = contract.contract_number;
+        document.getElementById('contract-description').value = contract.description || '';
+        document.getElementById('contract-amount').value = contract.amount;
+        document.getElementById('contract-start-date').value = contract.start_date || '';
+        document.getElementById('contract-end-date').value = contract.end_date || '';
+        
+        // Populate and select supplier
+        populateSupplierDropdown();
+        document.getElementById('contract-supplier').value = contract.supplier_id;
+        
+        // Show existing files
+        contractState.pendingFiles = contract.files ? [...contract.files] : [];
+        renderContractFilesList();
+        
+        modal.classList.remove('hidden');
+    }
+    
+    /**
+     * Handle contract form submission
+     */
+    async function handleContractSubmit(e) {
+        e.preventDefault();
+        
+        const submitBtn = document.getElementById('contract-submit-btn');
+        const spinner = submitBtn.querySelector('.btn-spinner');
+        
+        submitBtn.disabled = true;
+        spinner.classList.remove('hidden');
+        
+        try {
+            const contractId = document.getElementById('contract-id').value;
+            const contractData = {
+                contract_number: document.getElementById('contract-number').value.trim(),
+                supplier_id: document.getElementById('contract-supplier').value,
+                description: document.getElementById('contract-description').value.trim(),
+                amount: parseFloat(document.getElementById('contract-amount').value) || 0,
+                start_date: document.getElementById('contract-start-date').value || null,
+                end_date: document.getElementById('contract-end-date').value || null,
+                files: contractState.pendingFiles
+            };
+            
+            // Validate unique contract number
+            const existingContract = contractState.contracts.find(c => 
+                c.contract_number === contractData.contract_number && c.id !== contractId
+            );
+            if (existingContract) {
+                showToast('Contract number already exists', 'error');
+                return;
+            }
+            
+            if (contractId) {
+                // Update existing contract
+                await API.updateContract(contractId, contractData);
+                showToast('Contract updated successfully', 'success');
+            } else {
+                // Create new contract
+                await API.createContract(contractData);
+                showToast('Contract created successfully', 'success');
+            }
+            
+            closeContractModal();
+            await loadContracts();
+            
+        } catch (error) {
+            console.error('Failed to save contract:', error);
+            showToast(error.message || 'Failed to save contract', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            spinner.classList.add('hidden');
+        }
+    }
+    
+    /**
+     * Delete contract
+     */
+    async function deleteContract(contractId) {
+        if (!confirm('Are you sure you want to delete this contract? This action cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            await API.deleteContract(contractId);
+            showToast('Contract deleted successfully', 'success');
+            closeContractDetailModal();
+            await loadContracts();
+        } catch (error) {
+            console.error('Failed to delete contract:', error);
+            showToast('Failed to delete contract', 'error');
+        }
+    }
+    
+    /**
+     * Open contract detail modal
+     */
+    function openContractDetail(contractId) {
+        const contract = contractState.contracts.find(c => c.id === contractId);
+        if (!contract) return;
+        
+        contractState.currentContract = contract;
+        
+        const modal = document.getElementById('contract-detail-modal');
+        
+        // Populate details
+        document.getElementById('contract-detail-number').textContent = contract.contract_number;
+        document.getElementById('contract-detail-supplier-name').textContent = contract.supplier_name || 'Unknown';
+        document.getElementById('contract-detail-amount').textContent = `G$${formatNumber(contract.amount)}`;
+        document.getElementById('contract-detail-start').textContent = contract.start_date ? formatDate(contract.start_date) : 'Not specified';
+        document.getElementById('contract-detail-end').textContent = contract.end_date ? formatDate(contract.end_date) : 'Not specified';
+        document.getElementById('contract-detail-description').textContent = contract.description || 'No description provided.';
+        
+        // Status
+        const status = getContractStatus(contract);
+        document.getElementById('contract-detail-status').innerHTML = `<span class="contract-status-badge ${status.class}">${status.label}</span>`;
+        
+        // Files
+        const filesContainer = document.getElementById('contract-detail-files');
+        if (contract.files && contract.files.length > 0) {
+            filesContainer.innerHTML = contract.files.map(file => `
+                <div class="contract-file-download-item">
+                    <div class="contract-file-download-info">
+                        <div class="file-icon">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                        </div>
+                        <div class="file-details">
+                            <div class="file-name">${escapeHtml(file.name)}</div>
+                            <div class="file-meta">PDF • ${file.size ? formatFileSize(file.size) : 'Unknown size'}</div>
+                        </div>
+                    </div>
+                    <button class="contract-file-download-btn" onclick="downloadContractFile('${contract.id}', '${file.id}')">
+                        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2"/></svg>
+                        Download
+                    </button>
+                </div>
+            `).join('');
+        } else {
+            filesContainer.innerHTML = '<p style="color: var(--color-text-tertiary); font-size: 0.875rem;">No documents attached to this contract.</p>';
+        }
+        
+        // Set up action buttons
+        document.getElementById('edit-contract-btn').onclick = () => {
+            closeContractDetailModal();
+            editContract(contractId);
+        };
+        document.getElementById('delete-contract-btn').onclick = () => deleteContract(contractId);
+        
+        modal.classList.remove('hidden');
+    }
+    
+    /**
+     * Close contract detail modal
+     */
+    function closeContractDetailModal() {
+        document.getElementById('contract-detail-modal').classList.add('hidden');
+    }
+    
+    /**
+     * Handle file upload for contracts
+     */
+    function initContractFileUpload() {
+        const dropzone = document.getElementById('contract-file-dropzone');
+        const fileInput = document.getElementById('contract-file-input');
+        
+        if (!dropzone || !fileInput) return;
+        
+        // Drag and drop events
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+        
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            handleContractFiles(e.dataTransfer.files);
+        });
+        
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            handleContractFiles(e.target.files);
+            fileInput.value = ''; // Reset input
+        });
+    }
+    
+    /**
+     * Handle contract files
+     */
+    async function handleContractFiles(files) {
+        for (const file of files) {
+            if (file.type !== 'application/pdf') {
+                showToast(`${file.name} is not a PDF file`, 'error');
+                continue;
+            }
+            
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                showToast(`${file.name} exceeds 10MB limit`, 'error');
+                continue;
+            }
+            
+            // Convert to base64 for storage
+            const base64 = await fileToBase64(file);
+            
+            contractState.pendingFiles.push({
+                id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                name: file.name,
+                size: file.size,
+                data: base64,
+                isNew: true
+            });
+        }
+        
+        renderContractFilesList();
+    }
+    
+    /**
+     * Render contract files list in modal
+     */
+    function renderContractFilesList() {
+        const container = document.getElementById('contract-files-list');
+        if (!container) return;
+        
+        if (contractState.pendingFiles.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        
+        container.innerHTML = contractState.pendingFiles.map(file => `
+            <div class="contract-file-item">
+                <div class="contract-file-info">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                    <div>
+                        <div class="contract-file-name">${escapeHtml(file.name)}</div>
+                        <div class="contract-file-size">${formatFileSize(file.size)}</div>
+                    </div>
+                </div>
+                <button type="button" class="contract-file-remove" onclick="removeContractFile('${file.id}')">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    /**
+     * Remove file from pending list
+     */
+    function removeContractFile(fileId) {
+        contractState.pendingFiles = contractState.pendingFiles.filter(f => f.id !== fileId);
+        renderContractFilesList();
+    }
+    
+    /**
+     * Download contract file
+     */
+    async function downloadContractFile(contractId, fileId) {
+        try {
+            const response = await API.getContractFile(contractId, fileId);
+            // Handle file download
+            const link = document.createElement('a');
+            link.href = response.url || `data:application/pdf;base64,${response.data}`;
+            link.download = response.name || 'contract.pdf';
+            link.click();
+        } catch (error) {
+            console.error('Failed to download file:', error);
+            showToast('Failed to download file', 'error');
+        }
+    }
+    
+    // ============================================================
+    // UTILITY FUNCTIONS
+    // ============================================================
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+    
+    function truncateText(str, maxLength) {
+        if (!str) return '';
+        if (str.length <= maxLength) return str;
+        return str.substring(0, maxLength) + '...';
+    }
+    
+    function formatNumber(num) {
+        if (!num) return '0.00';
+        return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    
+    function formatDate(dateStr) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    
+    function formatFileSize(bytes) {
+        if (!bytes) return '0 B';
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+    }
+    
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    // ============================================================
+    // INITIALIZATION & EVENT LISTENERS
+    // ============================================================
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize navigation tabs
+        initNavTabs();
+        
+        // Initialize contract file upload
+        initContractFileUpload();
+        
+        // Contract form submission
+        const contractForm = document.getElementById('contract-form');
+        if (contractForm) {
+            contractForm.addEventListener('submit', handleContractSubmit);
+        }
+        
+        // Contract search
+        const contractSearch = document.getElementById('contracts-search');
+        if (contractSearch) {
+            contractSearch.addEventListener('input', (e) => {
+                contractState.searchFilter = e.target.value;
+                renderContracts();
+            });
+        }
+        
+        // Add contract button
+        const addContractBtn = document.getElementById('add-contract-btn');
+        if (addContractBtn) {
+            addContractBtn.addEventListener('click', openContractModal);
+        }
+        
+        // Override the original renderCategoryFilters to use our enhanced version
+        const originalInit = window.init || function(){};
+        window.init = async function() {
+            await originalInit();
+            
+            // After suppliers are loaded, update category counts
+            if (typeof renderCategoryFiltersWithCounts === 'function') {
+                renderCategoryFiltersWithCounts();
+            }
+            updateCategoryCounts();
+        };
+        
+        // Hook into supplier CRUD operations to update counts
+        const originalCreateSupplier = window.createSupplier;
+        if (originalCreateSupplier) {
+            window.createSupplier = async function(...args) {
+                const result = await originalCreateSupplier.apply(this, args);
+                renderCategoryFiltersWithCounts();
+                updateCategoryCounts();
+                return result;
+            };
+        }
+        
+        const originalUpdateSupplier = window.updateSupplier;
+        if (originalUpdateSupplier) {
+            window.updateSupplier = async function(...args) {
+                const result = await originalUpdateSupplier.apply(this, args);
+                renderCategoryFiltersWithCounts();
+                updateCategoryCounts();
+                return result;
+            };
+        }
+        
+        const originalDeleteSupplier = window.deleteSupplier;
+        if (originalDeleteSupplier) {
+            window.deleteSupplier = async function(...args) {
+                const result = await originalDeleteSupplier.apply(this, args);
+                renderCategoryFiltersWithCounts();
+                updateCategoryCounts();
+                return result;
+            };
+        }
+        
+        // Hook into loadSuppliers to update counts after load
+        const originalLoadSuppliers = window.loadSuppliers;
+        if (originalLoadSuppliers) {
+            window.loadSuppliers = async function(...args) {
+                const result = await originalLoadSuppliers.apply(this, args);
+                renderCategoryFiltersWithCounts();
+                updateCategoryCounts();
+                return result;
+            };
+        }
+    });
+    
+    // Make functions globally available
+    window.openContractModal = openContractModal;
+    window.closeContractModal = closeContractModal;
+    window.editContract = editContract;
+    window.deleteContract = deleteContract;
+    window.openContractDetail = openContractDetail;
+    window.closeContractDetailModal = closeContractDetailModal;
+    window.removeContractFile = removeContractFile;
+    window.downloadContractFile = downloadContractFile;
+    window.updateCategoryCounts = updateCategoryCounts;
+    window.renderCategoryFiltersWithCounts = renderCategoryFiltersWithCounts;
+    </script>
 </body>
 </html>

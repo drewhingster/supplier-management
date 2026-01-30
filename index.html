@@ -175,13 +175,26 @@
                 <section class="supplier-grid">
                     <div class="grid-header">
                         <h2>Registered Suppliers</h2>
-                        <div class="view-toggle">
-                            <button id="view-grid" class="view-btn active" title="Grid View">
-                                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="3" y="14" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="14" width="7" height="7" rx="1" fill="currentColor"/></svg>
-                            </button>
-                            <button id="view-list" class="view-btn" title="List View">
-                                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1" fill="currentColor"/><rect x="3" y="10" width="18" height="4" rx="1" fill="currentColor"/><rect x="3" y="16" width="18" height="4" rx="1" fill="currentColor"/></svg>
-                            </button>
+                        <div class="grid-header-controls">
+                            <div class="sort-control">
+                                <label for="supplier-sort">Sort by:</label>
+                                <select id="supplier-sort" class="sort-select">
+                                    <option value="name-asc">Name (A-Z)</option>
+                                    <option value="name-desc">Name (Z-A)</option>
+                                    <option value="date-desc">Date Added (Newest)</option>
+                                    <option value="date-asc">Date Added (Oldest)</option>
+                                    <option value="category-asc">Category (A-Z)</option>
+                                    <option value="category-desc">Category (Z-A)</option>
+                                </select>
+                            </div>
+                            <div class="view-toggle">
+                                <button id="view-grid" class="view-btn active" title="Grid View">
+                                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="3" width="7" height="7" rx="1" fill="currentColor"/><rect x="3" y="14" width="7" height="7" rx="1" fill="currentColor"/><rect x="14" y="14" width="7" height="7" rx="1" fill="currentColor"/></svg>
+                                </button>
+                                <button id="view-list" class="view-btn" title="List View">
+                                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1" fill="currentColor"/><rect x="3" y="10" width="18" height="4" rx="1" fill="currentColor"/><rect x="3" y="16" width="18" height="4" rx="1" fill="currentColor"/></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -241,6 +254,19 @@
                 <section class="contracts-grid">
                     <div class="grid-header">
                         <h2>Contract Records</h2>
+                        <div class="sort-control">
+                            <label for="contract-sort">Sort by:</label>
+                            <select id="contract-sort" class="sort-select">
+                                <option value="date-desc">Date Added (Newest)</option>
+                                <option value="date-asc">Date Added (Oldest)</option>
+                                <option value="number-asc">Contract # (A-Z)</option>
+                                <option value="number-desc">Contract # (Z-A)</option>
+                                <option value="amount-desc">Amount (High-Low)</option>
+                                <option value="amount-asc">Amount (Low-High)</option>
+                                <option value="supplier-asc">Supplier (A-Z)</option>
+                                <option value="supplier-desc">Supplier (Z-A)</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <div id="contracts-list" class="contracts-container"></div>

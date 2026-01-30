@@ -1,14 +1,14 @@
 /**
  * Supplier Document Management System
- * Cloudflare Worker API Backend - VERSION 3
+ * Cloudflare Worker API Backend - VERSION 4
  * 
  * Bureau of Statistics — Procurement Unit
  * 
- * UPDATES:
+ * FEATURES:
  * 1. Multi-category support via supplier_categories junction table
  * 2. NIS/GRA expiration dates with automatic compliance calculation
- * 3. Token auth via query parameter for document viewing
- * 4. Compliance alert system with days remaining calculations
+ * 3. Compliance alert system with days remaining calculations
+ * 4. CONTRACT MANAGEMENT MODULE (NEW)
  */
 
 const corsHeaders = {
@@ -25,9 +25,8 @@ const DOCUMENT_TYPES = [
     'tin_certificate'
 ];
 
-// Alert configuration
 const ALERT_CONFIG = {
-    WARNING_THRESHOLD_DAYS: 30,  // Days before expiration to show warning
+    WARNING_THRESHOLD_DAYS: 30,
 };
 
 export default {
@@ -89,6 +88,33 @@ export default {
                 if (request.method === 'DELETE') return await deleteDocument(supplierId, docType, env);
             }
 
+            // ==================== CONTRACT ROUTES ====================
+            if (path === '/api/contracts') {
+                if (request.method === 'GET') return await getContracts(request, env);
+                if (request.method === 'POST') return await createContract(request, env);
+            }
+
+            if (path.match(/^\/api\/contracts\/\d+$/)) {
+                const id = parseInt(path.split('/').pop());
+                if (request.method === 'GET') return await getContract(id, env);
+                if (request.method === 'PUT') return await updateContract(id, request, env);
+                if (request.method === 'DELETE') return await deleteContract(id, env);
+            }
+
+            // Contract file routes
+            if (path.match(/^\/api\/contracts\/\d+\/files$/)) {
+                const contractId = parseInt(path.split('/')[3]);
+                if (request.method === 'POST') return await uploadContractFile(contractId, request, env);
+            }
+
+            if (path.match(/^\/api\/contracts\/\d+\/files\/\d+$/)) {
+                const parts = path.split('/');
+                const contractId = parseInt(parts[3]);
+                const fileId = parseInt(parts[5]);
+                if (request.method === 'GET') return await getContractFile(contractId, fileId, env);
+                if (request.method === 'DELETE') return await deleteContractFile(contractId, fileId, env);
+            }
+
             // Statistics route
             if (path === '/api/statistics' && request.method === 'GET') {
                 return await getStatistics(env);
@@ -102,6 +128,11 @@ export default {
             // Seed routes
             if (path === '/api/seed/categories' && request.method === 'POST') {
                 return await seedCategories(request, env);
+            }
+
+            // Database setup route (for initial setup)
+            if (path === '/api/setup/contracts' && request.method === 'POST') {
+                return await setupContractsTables(env);
             }
 
             return jsonResponse({ error: 'Not found' }, 404);
@@ -127,7 +158,6 @@ async function handleAuth(request, env) {
 }
 
 async function verifyAuth(request, env) {
-    // Check Authorization header first
     const authHeader = request.headers.get('Authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
@@ -136,7 +166,6 @@ async function verifyAuth(request, env) {
         }
     }
 
-    // Also check query parameter (for direct document access)
     const url = new URL(request.url);
     const queryToken = url.searchParams.get('token');
     if (queryToken && queryToken === env.AUTH_TOKEN) {
@@ -148,10 +177,6 @@ async function verifyAuth(request, env) {
 
 // ==================== Alert Calculations ====================
 
-/**
- * Calculate days remaining until a date
- * Returns negative number if date has passed
- */
 function calculateDaysRemaining(dateString) {
     if (!dateString) return null;
     
@@ -167,40 +192,26 @@ function calculateDaysRemaining(dateString) {
     return diffDays;
 }
 
-/**
- * Determine alert level for a supplier
- * Returns: 'critical', 'warning', 'action_needed', or null
- */
 function calculateAlertLevel(supplier, missingDocs, nisDaysRemaining, graDaysRemaining) {
-    // Critical: Any compliance expired
     if (nisDaysRemaining !== null && nisDaysRemaining < 0) return 'critical';
     if (graDaysRemaining !== null && graDaysRemaining < 0) return 'critical';
     
-    // Warning: Expiring within threshold
     if (nisDaysRemaining !== null && nisDaysRemaining >= 0 && nisDaysRemaining <= ALERT_CONFIG.WARNING_THRESHOLD_DAYS) return 'warning';
     if (graDaysRemaining !== null && graDaysRemaining >= 0 && graDaysRemaining <= ALERT_CONFIG.WARNING_THRESHOLD_DAYS) return 'warning';
     
-    // Action needed: Missing documents
     if (missingDocs.length > 0) return 'action_needed';
     
     return null;
 }
 
-/**
- * Get list of missing documents for a supplier
- */
 function getMissingDocuments(documents) {
     const uploadedTypes = documents.map(d => d.document_type);
     return DOCUMENT_TYPES.filter(type => !uploadedTypes.includes(type));
 }
 
-/**
- * Build alert details for a supplier
- */
 function buildAlertDetails(supplier, missingDocs, nisDaysRemaining, graDaysRemaining) {
     const alerts = [];
     
-    // Expired compliance
     if (nisDaysRemaining !== null && nisDaysRemaining < 0) {
         alerts.push({
             type: 'expired',
@@ -218,7 +229,6 @@ function buildAlertDetails(supplier, missingDocs, nisDaysRemaining, graDaysRemai
         });
     }
     
-    // Expiring soon
     if (nisDaysRemaining !== null && nisDaysRemaining >= 0 && nisDaysRemaining <= ALERT_CONFIG.WARNING_THRESHOLD_DAYS) {
         alerts.push({
             type: 'expiring',
@@ -236,7 +246,6 @@ function buildAlertDetails(supplier, missingDocs, nisDaysRemaining, graDaysRemai
         });
     }
     
-    // Missing documents
     if (missingDocs.length > 0) {
         const docNames = {
             'business_registration': 'Business Registration',
@@ -292,7 +301,6 @@ async function createCategory(request, env) {
 }
 
 async function deleteCategory(id, env) {
-    // Check if category has suppliers (via junction table)
     const supplierCount = await env.DB.prepare(
         'SELECT COUNT(*) as count FROM supplier_categories WHERE category_id = ?'
     ).bind(id).first();
@@ -348,7 +356,6 @@ async function getSuppliers(request, env) {
 
     const bindings = [];
 
-    // Join with supplier_categories if filtering by category
     if (categoryFilter) {
         query += ' INNER JOIN supplier_categories sc ON s.id = sc.supplier_id WHERE sc.category_id = ?';
         bindings.push(parseInt(categoryFilter));
@@ -369,14 +376,11 @@ async function getSuppliers(request, env) {
         ? await stmt.bind(...bindings).all()
         : await stmt.all();
 
-    // Get documents and categories for each supplier
     const suppliers = await Promise.all(result.results.map(async (supplier) => {
-        // Get documents
         const docs = await env.DB.prepare(
             'SELECT document_type, file_name, uploaded_at FROM documents WHERE supplier_id = ?'
         ).bind(supplier.id).all();
 
-        // Get categories via junction table
         const cats = await env.DB.prepare(`
             SELECT c.id, c.name 
             FROM categories c 
@@ -384,22 +388,15 @@ async function getSuppliers(request, env) {
             WHERE sc.supplier_id = ?
         `).bind(supplier.id).all();
 
-        // Calculate compliance status and days remaining
         const today = new Date().toISOString().split('T')[0];
         const nisCompliant = supplier.nis_expiration_date ? supplier.nis_expiration_date >= today : null;
         const graCompliant = supplier.gra_expiration_date ? supplier.gra_expiration_date >= today : null;
         
-        // Calculate days remaining
         const nisDaysRemaining = calculateDaysRemaining(supplier.nis_expiration_date);
         const graDaysRemaining = calculateDaysRemaining(supplier.gra_expiration_date);
         
-        // Get missing documents
         const missingDocuments = getMissingDocuments(docs.results);
-        
-        // Calculate alert level
         const alertLevel = calculateAlertLevel(supplier, missingDocuments, nisDaysRemaining, graDaysRemaining);
-        
-        // Build alert details
         const alertDetails = buildAlertDetails(supplier, missingDocuments, nisDaysRemaining, graDaysRemaining);
 
         return {
@@ -432,12 +429,10 @@ async function getSupplier(id, env) {
         return jsonResponse({ error: 'Supplier not found' }, 404);
     }
 
-    // Get documents
     const docs = await env.DB.prepare(
         'SELECT document_type, file_name, uploaded_at FROM documents WHERE supplier_id = ?'
     ).bind(id).all();
 
-    // Get categories
     const cats = await env.DB.prepare(`
         SELECT c.id, c.name 
         FROM categories c 
@@ -445,7 +440,6 @@ async function getSupplier(id, env) {
         WHERE sc.supplier_id = ?
     `).bind(id).all();
 
-    // Calculate compliance and alerts
     const today = new Date().toISOString().split('T')[0];
     const nisCompliant = supplier.nis_expiration_date ? supplier.nis_expiration_date >= today : null;
     const graCompliant = supplier.gra_expiration_date ? supplier.gra_expiration_date >= today : null;
@@ -481,7 +475,6 @@ async function createSupplier(request, env) {
         return jsonResponse({ error: errors.join(', ') }, 400);
     }
 
-    // Insert supplier
     const result = await env.DB.prepare(`
         INSERT INTO suppliers (name, address, telephone, email, contact_person, 
                               category_id, nis_expiration_date, gra_expiration_date, 
@@ -500,7 +493,6 @@ async function createSupplier(request, env) {
 
     const supplierId = result.meta.last_row_id;
 
-    // Insert category relationships
     const categoryIds = body.category_ids || (body.category_id ? [body.category_id] : []);
     if (categoryIds.length > 0) {
         const catStmt = env.DB.prepare(
@@ -510,7 +502,6 @@ async function createSupplier(request, env) {
         await env.DB.batch(catBatch);
     }
 
-    // Get the created supplier
     const supplier = await env.DB.prepare('SELECT * FROM suppliers WHERE id = ?').bind(supplierId).first();
 
     return jsonResponse({ success: true, supplier }, 201);
@@ -529,7 +520,6 @@ async function updateSupplier(id, request, env) {
         return jsonResponse({ error: errors.join(', ') }, 400);
     }
 
-    // Update supplier
     await env.DB.prepare(`
         UPDATE suppliers 
         SET name = ?, address = ?, telephone = ?, email = ?, 
@@ -549,11 +539,8 @@ async function updateSupplier(id, request, env) {
         id
     ).run();
 
-    // Update category relationships
-    // First delete existing
     await env.DB.prepare('DELETE FROM supplier_categories WHERE supplier_id = ?').bind(id).run();
 
-    // Then insert new ones
     const categoryIds = body.category_ids || (body.category_id ? [body.category_id] : []);
     if (categoryIds.length > 0) {
         const catStmt = env.DB.prepare(
@@ -569,12 +556,21 @@ async function updateSupplier(id, request, env) {
 }
 
 async function deleteSupplier(id, env) {
-    // Get documents for R2 cleanup
+    // Check if supplier has contracts
+    const contractCount = await env.DB.prepare(
+        'SELECT COUNT(*) as count FROM contracts WHERE supplier_id = ?'
+    ).bind(id).first();
+
+    if (contractCount && contractCount.count > 0) {
+        return jsonResponse({
+            error: `Cannot delete supplier with ${contractCount.count} active contract(s). Delete or reassign contracts first.`
+        }, 400);
+    }
+
     const docs = await env.DB.prepare(
         'SELECT r2_key FROM documents WHERE supplier_id = ?'
     ).bind(id).all();
 
-    // Delete from R2
     for (const doc of docs.results) {
         try {
             await env.DOCUMENTS.delete(doc.r2_key);
@@ -583,7 +579,6 @@ async function deleteSupplier(id, env) {
         }
     }
 
-    // Delete from database (cascade will handle supplier_categories and documents)
     await env.DB.prepare('DELETE FROM supplier_categories WHERE supplier_id = ?').bind(id).run();
     await env.DB.prepare('DELETE FROM documents WHERE supplier_id = ?').bind(id).run();
     await env.DB.prepare('DELETE FROM suppliers WHERE id = ?').bind(id).run();
@@ -598,7 +593,6 @@ function validateSupplier(data) {
     if (!data.address?.trim()) errors.push('Address is required');
     if (!data.telephone?.trim()) errors.push('Telephone is required');
     
-    // Categories can be empty or provided
     const categoryIds = data.category_ids || (data.category_id ? [data.category_id] : []);
     if (categoryIds.length === 0) {
         errors.push('At least one category is required');
@@ -642,7 +636,6 @@ async function uploadDocument(supplierId, request, env) {
     const sanitizedName = supplier.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
     const r2Key = `suppliers/${supplierId}/${sanitizedName}/${documentType}_${timestamp}.pdf`;
 
-    // Upload to R2
     await env.DOCUMENTS.put(r2Key, file.stream(), {
         httpMetadata: { contentType: 'application/pdf' },
         customMetadata: {
@@ -652,7 +645,6 @@ async function uploadDocument(supplierId, request, env) {
         }
     });
 
-    // Delete old document if exists
     const oldDoc = await env.DB.prepare(
         'SELECT r2_key FROM documents WHERE supplier_id = ? AND document_type = ?'
     ).bind(supplierId, documentType).first();
@@ -668,13 +660,11 @@ async function uploadDocument(supplierId, request, env) {
         ).bind(supplierId, documentType).run();
     }
 
-    // Save document metadata
     await env.DB.prepare(`
         INSERT INTO documents (supplier_id, document_type, file_name, r2_key, uploaded_at)
         VALUES (?, ?, ?, ?, datetime("now"))
     `).bind(supplierId, documentType, file.name, r2Key).run();
 
-    // Update supplier timestamp
     await env.DB.prepare(
         'UPDATE suppliers SET updated_at = datetime("now") WHERE id = ?'
     ).bind(supplierId).run();
@@ -737,6 +727,390 @@ async function deleteDocument(supplierId, docType, env) {
     return jsonResponse({ success: true });
 }
 
+// ==================== CONTRACTS MODULE ====================
+
+async function setupContractsTables(env) {
+    try {
+        // Create contracts table
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS contracts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contract_number TEXT UNIQUE NOT NULL,
+                supplier_id INTEGER NOT NULL,
+                description TEXT,
+                amount REAL,
+                start_date DATE,
+                end_date DATE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+            )
+        `).run();
+
+        // Create contract_files table
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS contract_files (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contract_id INTEGER NOT NULL,
+                file_name TEXT NOT NULL,
+                r2_key TEXT NOT NULL,
+                uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+            )
+        `).run();
+
+        // Create index for faster lookups
+        await env.DB.prepare(`
+            CREATE INDEX IF NOT EXISTS idx_contracts_supplier ON contracts(supplier_id)
+        `).run();
+
+        await env.DB.prepare(`
+            CREATE INDEX IF NOT EXISTS idx_contracts_number ON contracts(contract_number)
+        `).run();
+
+        return jsonResponse({ success: true, message: 'Contract tables created successfully' });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function getContracts(request, env) {
+    const url = new URL(request.url);
+    const supplierFilter = url.searchParams.get('supplier_id');
+    const searchFilter = url.searchParams.get('search');
+
+    let query = `
+        SELECT 
+            c.id, c.contract_number, c.supplier_id, c.description, 
+            c.amount, c.start_date, c.end_date, c.created_at, c.updated_at,
+            s.name as supplier_name
+        FROM contracts c
+        LEFT JOIN suppliers s ON c.supplier_id = s.id
+        WHERE 1=1
+    `;
+
+    const bindings = [];
+
+    if (supplierFilter) {
+        query += ' AND c.supplier_id = ?';
+        bindings.push(parseInt(supplierFilter));
+    }
+
+    if (searchFilter) {
+        query += ' AND (c.contract_number LIKE ? OR c.description LIKE ? OR s.name LIKE ?)';
+        const searchTerm = `%${searchFilter}%`;
+        bindings.push(searchTerm, searchTerm, searchTerm);
+    }
+
+    query += ' ORDER BY c.created_at DESC';
+
+    const stmt = env.DB.prepare(query);
+    const result = bindings.length > 0
+        ? await stmt.bind(...bindings).all()
+        : await stmt.all();
+
+    // Get file counts for each contract
+    const contracts = await Promise.all(result.results.map(async (contract) => {
+        const files = await env.DB.prepare(
+            'SELECT id, file_name, uploaded_at FROM contract_files WHERE contract_id = ?'
+        ).bind(contract.id).all();
+
+        return {
+            ...contract,
+            files: files.results,
+            file_count: files.results.length
+        };
+    }));
+
+    return jsonResponse({ contracts });
+}
+
+async function getContract(id, env) {
+    const contract = await env.DB.prepare(`
+        SELECT 
+            c.id, c.contract_number, c.supplier_id, c.description, 
+            c.amount, c.start_date, c.end_date, c.created_at, c.updated_at,
+            s.name as supplier_name
+        FROM contracts c
+        LEFT JOIN suppliers s ON c.supplier_id = s.id
+        WHERE c.id = ?
+    `).bind(id).first();
+
+    if (!contract) {
+        return jsonResponse({ error: 'Contract not found' }, 404);
+    }
+
+    const files = await env.DB.prepare(
+        'SELECT id, file_name, uploaded_at FROM contract_files WHERE contract_id = ?'
+    ).bind(id).all();
+
+    return jsonResponse({
+        contract: {
+            ...contract,
+            files: files.results
+        }
+    });
+}
+
+async function createContract(request, env) {
+    const body = await request.json();
+
+    // Validate required fields
+    const errors = validateContract(body);
+    if (errors.length > 0) {
+        return jsonResponse({ error: errors.join(', ') }, 400);
+    }
+
+    // Check if contract number is unique
+    const existing = await env.DB.prepare(
+        'SELECT id FROM contracts WHERE contract_number = ?'
+    ).bind(body.contract_number.trim()).first();
+
+    if (existing) {
+        return jsonResponse({ error: 'Contract number already exists' }, 400);
+    }
+
+    // Verify supplier exists
+    const supplier = await env.DB.prepare(
+        'SELECT id FROM suppliers WHERE id = ?'
+    ).bind(body.supplier_id).first();
+
+    if (!supplier) {
+        return jsonResponse({ error: 'Supplier not found' }, 400);
+    }
+
+    const result = await env.DB.prepare(`
+        INSERT INTO contracts (
+            contract_number, supplier_id, description, amount, 
+            start_date, end_date, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, datetime("now"), datetime("now"))
+    `).bind(
+        body.contract_number.trim(),
+        body.supplier_id,
+        body.description?.trim() || null,
+        body.amount || null,
+        body.start_date || null,
+        body.end_date || null
+    ).run();
+
+    const contractId = result.meta.last_row_id;
+
+    const contract = await env.DB.prepare(
+        'SELECT * FROM contracts WHERE id = ?'
+    ).bind(contractId).first();
+
+    return jsonResponse({ success: true, contract }, 201);
+}
+
+async function updateContract(id, request, env) {
+    const body = await request.json();
+
+    const existing = await env.DB.prepare(
+        'SELECT id FROM contracts WHERE id = ?'
+    ).bind(id).first();
+
+    if (!existing) {
+        return jsonResponse({ error: 'Contract not found' }, 404);
+    }
+
+    // Validate
+    const errors = validateContract(body);
+    if (errors.length > 0) {
+        return jsonResponse({ error: errors.join(', ') }, 400);
+    }
+
+    // Check uniqueness of contract number (excluding self)
+    const duplicate = await env.DB.prepare(
+        'SELECT id FROM contracts WHERE contract_number = ? AND id != ?'
+    ).bind(body.contract_number.trim(), id).first();
+
+    if (duplicate) {
+        return jsonResponse({ error: 'Contract number already exists' }, 400);
+    }
+
+    // Verify supplier exists
+    const supplier = await env.DB.prepare(
+        'SELECT id FROM suppliers WHERE id = ?'
+    ).bind(body.supplier_id).first();
+
+    if (!supplier) {
+        return jsonResponse({ error: 'Supplier not found' }, 400);
+    }
+
+    await env.DB.prepare(`
+        UPDATE contracts 
+        SET contract_number = ?, supplier_id = ?, description = ?, 
+            amount = ?, start_date = ?, end_date = ?, updated_at = datetime("now")
+        WHERE id = ?
+    `).bind(
+        body.contract_number.trim(),
+        body.supplier_id,
+        body.description?.trim() || null,
+        body.amount || null,
+        body.start_date || null,
+        body.end_date || null,
+        id
+    ).run();
+
+    const contract = await env.DB.prepare(
+        'SELECT * FROM contracts WHERE id = ?'
+    ).bind(id).first();
+
+    return jsonResponse({ success: true, contract });
+}
+
+async function deleteContract(id, env) {
+    const contract = await env.DB.prepare(
+        'SELECT id FROM contracts WHERE id = ?'
+    ).bind(id).first();
+
+    if (!contract) {
+        return jsonResponse({ error: 'Contract not found' }, 404);
+    }
+
+    // Delete associated files from R2
+    const files = await env.DB.prepare(
+        'SELECT r2_key FROM contract_files WHERE contract_id = ?'
+    ).bind(id).all();
+
+    for (const file of files.results) {
+        try {
+            await env.DOCUMENTS.delete(file.r2_key);
+        } catch (e) {
+            console.error('Failed to delete R2 object:', e);
+        }
+    }
+
+    // Delete files records
+    await env.DB.prepare(
+        'DELETE FROM contract_files WHERE contract_id = ?'
+    ).bind(id).run();
+
+    // Delete contract
+    await env.DB.prepare(
+        'DELETE FROM contracts WHERE id = ?'
+    ).bind(id).run();
+
+    return jsonResponse({ success: true });
+}
+
+function validateContract(data) {
+    const errors = [];
+
+    if (!data.contract_number?.trim()) {
+        errors.push('Contract number is required');
+    }
+
+    if (!data.supplier_id) {
+        errors.push('Supplier is required');
+    }
+
+    if (data.amount !== undefined && data.amount !== null && isNaN(parseFloat(data.amount))) {
+        errors.push('Amount must be a valid number');
+    }
+
+    return errors;
+}
+
+// ==================== Contract Files ====================
+
+async function uploadContractFile(contractId, request, env) {
+    const contract = await env.DB.prepare(
+        'SELECT id, contract_number FROM contracts WHERE id = ?'
+    ).bind(contractId).first();
+
+    if (!contract) {
+        return jsonResponse({ error: 'Contract not found' }, 404);
+    }
+
+    const formData = await request.formData();
+    const file = formData.get('file');
+
+    if (!file || !(file instanceof File)) {
+        return jsonResponse({ error: 'No file provided' }, 400);
+    }
+
+    if (file.type !== 'application/pdf') {
+        return jsonResponse({ error: 'Only PDF files are allowed' }, 400);
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        return jsonResponse({ error: 'File size exceeds 10MB limit' }, 400);
+    }
+
+    const timestamp = Date.now();
+    const sanitizedNumber = contract.contract_number.replace(/[^a-zA-Z0-9]/g, '_');
+    const r2Key = `contracts/${contractId}/${sanitizedNumber}/${timestamp}_${file.name}`;
+
+    await env.DOCUMENTS.put(r2Key, file.stream(), {
+        httpMetadata: { contentType: 'application/pdf' },
+        customMetadata: {
+            contractId: contractId.toString(),
+            originalName: file.name
+        }
+    });
+
+    const result = await env.DB.prepare(`
+        INSERT INTO contract_files (contract_id, file_name, r2_key, uploaded_at)
+        VALUES (?, ?, ?, datetime("now"))
+    `).bind(contractId, file.name, r2Key).run();
+
+    return jsonResponse({
+        success: true,
+        file: {
+            id: result.meta.last_row_id,
+            file_name: file.name
+        }
+    });
+}
+
+async function getContractFile(contractId, fileId, env) {
+    const file = await env.DB.prepare(
+        'SELECT r2_key, file_name FROM contract_files WHERE id = ? AND contract_id = ?'
+    ).bind(fileId, contractId).first();
+
+    if (!file) {
+        return jsonResponse({ error: 'File not found' }, 404);
+    }
+
+    const object = await env.DOCUMENTS.get(file.r2_key);
+
+    if (!object) {
+        return jsonResponse({ error: 'File not found in storage' }, 404);
+    }
+
+    return new Response(object.body, {
+        headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `inline; filename="${file.file_name}"`,
+            'Cache-Control': 'private, max-age=3600'
+        }
+    });
+}
+
+async function deleteContractFile(contractId, fileId, env) {
+    const file = await env.DB.prepare(
+        'SELECT r2_key FROM contract_files WHERE id = ? AND contract_id = ?'
+    ).bind(fileId, contractId).first();
+
+    if (!file) {
+        return jsonResponse({ error: 'File not found' }, 404);
+    }
+
+    try {
+        await env.DOCUMENTS.delete(file.r2_key);
+    } catch (e) {
+        console.error('Failed to delete R2 object:', e);
+    }
+
+    await env.DB.prepare(
+        'DELETE FROM contract_files WHERE id = ?'
+    ).bind(fileId).run();
+
+    return jsonResponse({ success: true });
+}
+
 // ==================== Statistics ====================
 
 async function getStatistics(env) {
@@ -757,7 +1131,6 @@ async function getStatistics(env) {
         WHERE (SELECT COUNT(*) FROM documents d WHERE d.supplier_id = s.id) = ?
     `).bind(DOCUMENT_TYPES.length).first();
 
-    // Get compliance stats based on expiration dates
     const today = new Date().toISOString().split('T')[0];
     
     const nisExpired = await env.DB.prepare(
@@ -768,7 +1141,6 @@ async function getStatistics(env) {
         'SELECT COUNT(*) as count FROM suppliers WHERE gra_expiration_date IS NOT NULL AND gra_expiration_date < ?'
     ).bind(today).first();
 
-    // Count suppliers needing attention
     const warningDate = new Date();
     warningDate.setDate(warningDate.getDate() + ALERT_CONFIG.WARNING_THRESHOLD_DAYS);
     const warningDateStr = warningDate.toISOString().split('T')[0];
@@ -782,6 +1154,21 @@ async function getStatistics(env) {
             OR (SELECT COUNT(*) FROM documents WHERE supplier_id = s.id) < ?
     `).bind(warningDateStr, warningDateStr, DOCUMENT_TYPES.length).first();
 
+    // Contract statistics
+    let totalContracts = { count: 0 };
+    let totalContractValue = { total: 0 };
+    try {
+        totalContracts = await env.DB.prepare(
+            'SELECT COUNT(*) as count FROM contracts'
+        ).first() || { count: 0 };
+
+        totalContractValue = await env.DB.prepare(
+            'SELECT COALESCE(SUM(amount), 0) as total FROM contracts'
+        ).first() || { total: 0 };
+    } catch (e) {
+        // Tables might not exist yet
+    }
+
     return jsonResponse({
         statistics: {
             totalSuppliers: totalSuppliers.count,
@@ -790,7 +1177,9 @@ async function getStatistics(env) {
             compliantSuppliers: compliantSuppliers.count,
             nisExpired: nisExpired.count,
             graExpired: graExpired.count,
-            needsAttention: needsAttention.count
+            needsAttention: needsAttention.count,
+            totalContracts: totalContracts.count,
+            totalContractValue: totalContractValue.total
         }
     });
 }
@@ -803,7 +1192,6 @@ async function getAlerts(env) {
     warningDate.setDate(warningDate.getDate() + ALERT_CONFIG.WARNING_THRESHOLD_DAYS);
     const warningDateStr = warningDate.toISOString().split('T')[0];
 
-    // Get all suppliers that need attention
     const result = await env.DB.prepare(`
         SELECT DISTINCT s.id, s.name, s.nis_expiration_date, s.gra_expiration_date
         FROM suppliers s
@@ -820,7 +1208,6 @@ async function getAlerts(env) {
             s.name ASC
     `).bind(warningDateStr, warningDateStr, DOCUMENT_TYPES.length, today, today, warningDateStr, warningDateStr).all();
 
-    // Build detailed alerts for each supplier
     const alerts = await Promise.all(result.results.map(async (supplier) => {
         const docs = await env.DB.prepare(
             'SELECT document_type FROM documents WHERE supplier_id = ?'

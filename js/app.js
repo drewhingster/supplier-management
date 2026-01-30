@@ -1,29 +1,38 @@
 /**
  * Supplier Document Management System
- * Main Application - VERSION 3
+ * Main Application - VERSION 4
  * 
  * Bureau of Statistics — Procurement Unit
  * 
  * FEATURES:
- * 1. Edit Supplier properly loads existing data with isEditMode flag
- * 2. NIS/GRA Expiration dates with automatic compliance status
- * 3. Multi-category support with checkboxes
- * 4. In-app compliance notification system
+ * 1. Fixed category counters (render after suppliers load)
+ * 2. Multi-category support
+ * 3. Compliance notifications
+ * 4. CONTRACT MANAGEMENT MODULE
  */
 
 // ==================== State ====================
 const state = {
     suppliers: [],
     categories: [],
+    contracts: [],
     currentSupplier: null,
+    currentContract: null,
     pendingDocuments: {},
+    pendingContractFiles: [],
     isEditMode: false,
+    isContractEditMode: false,
     notificationPanelOpen: false,
+    currentView: 'suppliers', // 'suppliers' or 'contracts'
     filters: {
         search: '',
         category: 'all',
         showComplete: true,
         showIncomplete: true
+    },
+    contractFilters: {
+        search: '',
+        supplier_id: ''
     },
     viewMode: 'grid'
 };
@@ -38,9 +47,16 @@ const elements = {
     // App
     app: document.getElementById('app'),
     
+    // Navigation
+    navSuppliers: document.getElementById('nav-suppliers'),
+    navContracts: document.getElementById('nav-contracts'),
+    suppliersView: document.getElementById('suppliers-view'),
+    contractsView: document.getElementById('contracts-view'),
+    
     // Buttons
     addSupplierBtn: document.getElementById('add-supplier-btn'),
     addCategoryBtn: document.getElementById('add-category-btn'),
+    addContractBtn: document.getElementById('add-contract-btn'),
     logoutBtn: document.getElementById('logout-btn'),
     
     // Notifications
@@ -52,7 +68,7 @@ const elements = {
     needsAttention: document.getElementById('needs-attention'),
     needsAttentionCard: document.getElementById('needs-attention-card'),
     
-    // Search & Filters
+    // Supplier Search & Filters
     searchInput: document.getElementById('search-input'),
     categoryFilters: document.getElementById('category-filters'),
     filterComplete: document.getElementById('filter-complete'),
@@ -67,7 +83,7 @@ const elements = {
     emptyState: document.getElementById('empty-state'),
     loadingState: document.getElementById('loading-state'),
     
-    // Stats
+    // Supplier Stats
     totalSuppliers: document.getElementById('total-suppliers'),
     compliantSuppliers: document.getElementById('compliant-suppliers'),
     
@@ -79,16 +95,14 @@ const elements = {
     supplierName: document.getElementById('supplier-name'),
     supplierAddress: document.getElementById('supplier-address'),
     supplierTelephone: document.getElementById('supplier-telephone'),
-    supplierCategory: document.getElementById('supplier-category'),
     supplierCategoryCheckboxes: document.getElementById('supplier-category-checkboxes'),
     supplierEmail: document.getElementById('supplier-email'),
     supplierContact: document.getElementById('supplier-contact'),
     nisExpirationDate: document.getElementById('nis-expiration-date'),
     graExpirationDate: document.getElementById('gra-expiration-date'),
     supplierSubmitBtn: document.getElementById('supplier-submit-btn'),
-    documentsSection: document.getElementById('documents-section'),
     
-    // Detail Modal
+    // Supplier Detail Modal
     detailModal: document.getElementById('supplier-detail-modal'),
     detailName: document.getElementById('detail-supplier-name'),
     detailAddress: document.getElementById('detail-address'),
@@ -107,6 +121,45 @@ const elements = {
     categoryForm: document.getElementById('category-form'),
     newCategoryName: document.getElementById('new-category-name'),
     categoryList: document.getElementById('category-list'),
+    
+    // Contract elements
+    contractSearchInput: document.getElementById('contract-search-input'),
+    contractSupplierFilter: document.getElementById('contract-supplier-filter'),
+    contractsList: document.getElementById('contracts-list'),
+    contractsEmptyState: document.getElementById('contracts-empty-state'),
+    contractsLoadingState: document.getElementById('contracts-loading-state'),
+    totalContracts: document.getElementById('total-contracts'),
+    totalContractValue: document.getElementById('total-contract-value'),
+    
+    // Contract Modal
+    contractModal: document.getElementById('contract-modal'),
+    contractModalTitle: document.getElementById('contract-modal-title'),
+    contractForm: document.getElementById('contract-form'),
+    contractId: document.getElementById('contract-id'),
+    contractNumber: document.getElementById('contract-number'),
+    contractSupplier: document.getElementById('contract-supplier'),
+    contractDescription: document.getElementById('contract-description'),
+    contractAmount: document.getElementById('contract-amount'),
+    contractStartDate: document.getElementById('contract-start-date'),
+    contractEndDate: document.getElementById('contract-end-date'),
+    contractFileInput: document.getElementById('contract-file-input'),
+    existingContractFiles: document.getElementById('existing-contract-files'),
+    pendingFilesCount: document.getElementById('pending-files-count'),
+    contractSubmitBtn: document.getElementById('contract-submit-btn'),
+    
+    // Contract Detail Modal
+    contractDetailModal: document.getElementById('contract-detail-modal'),
+    contractDetailTitle: document.getElementById('contract-detail-title'),
+    contractDetailNumber: document.getElementById('contract-detail-number'),
+    contractDetailSupplier: document.getElementById('contract-detail-supplier'),
+    contractDetailDescription: document.getElementById('contract-detail-description'),
+    contractDetailAmount: document.getElementById('contract-detail-amount'),
+    contractDetailStart: document.getElementById('contract-detail-start'),
+    contractDetailEnd: document.getElementById('contract-detail-end'),
+    contractDetailCreated: document.getElementById('contract-detail-created'),
+    contractDetailFiles: document.getElementById('contract-detail-files'),
+    editContractBtn: document.getElementById('edit-contract-btn'),
+    deleteContractBtn: document.getElementById('delete-contract-btn'),
     
     // Toast
     toast: document.getElementById('toast')
@@ -135,16 +188,13 @@ function setupEventListeners() {
     // Navigation
     elements.addSupplierBtn.addEventListener('click', () => openSupplierModal(null));
     elements.addCategoryBtn.addEventListener('click', openCategoryModal);
+    elements.addContractBtn?.addEventListener('click', () => openContractModal(null));
     
     // Notifications
-    if (elements.notificationBtn) {
-        elements.notificationBtn.addEventListener('click', toggleNotificationPanel);
-    }
-    if (elements.needsAttentionCard) {
-        elements.needsAttentionCard.addEventListener('click', openNotificationPanel);
-    }
+    elements.notificationBtn?.addEventListener('click', toggleNotificationPanel);
+    elements.needsAttentionCard?.addEventListener('click', openNotificationPanel);
     
-    // Search & Filters
+    // Supplier Search & Filters
     elements.searchInput.addEventListener('input', debounce(handleSearch, 300));
     elements.filterComplete.addEventListener('change', handleFilterChange);
     elements.filterIncomplete.addEventListener('change', handleFilterChange);
@@ -156,12 +206,24 @@ function setupEventListeners() {
     // Supplier Form
     elements.supplierForm.addEventListener('submit', handleSupplierSubmit);
     
-    // Detail Modal Actions
+    // Supplier Detail Actions
     elements.editSupplierBtn.addEventListener('click', handleEditSupplier);
     elements.deleteSupplierBtn.addEventListener('click', handleDeleteSupplier);
     
     // Category Form
     elements.categoryForm.addEventListener('submit', handleCategorySubmit);
+    
+    // Contract Search & Filters
+    elements.contractSearchInput?.addEventListener('input', debounce(handleContractSearch, 300));
+    elements.contractSupplierFilter?.addEventListener('change', handleContractSupplierFilter);
+    
+    // Contract Form
+    elements.contractForm?.addEventListener('submit', handleContractSubmit);
+    elements.contractFileInput?.addEventListener('change', handleContractFileSelect);
+    
+    // Contract Detail Actions
+    elements.editContractBtn?.addEventListener('click', handleEditContract);
+    elements.deleteContractBtn?.addEventListener('click', handleDeleteContract);
     
     // Document file inputs
     CONFIG.DOCUMENT_TYPES.forEach(docType => {
@@ -171,12 +233,14 @@ function setupEventListeners() {
         }
     });
     
-    // Close modals and panels on escape
+    // Close on escape
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeSupplierModal();
             closeDetailModal();
             closeCategoryModal();
+            closeContractModal();
+            closeContractDetailModal();
             closeNotificationPanel();
         }
     });
@@ -191,19 +255,30 @@ function setupEventListeners() {
             closeNotificationPanel();
         }
     });
+}
+
+// ==================== View Navigation ====================
+
+function switchView(view) {
+    state.currentView = view;
     
-    // Modal backdrop clicks
-    [elements.supplierModal, elements.detailModal, elements.categoryModal].forEach(modal => {
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    closeSupplierModal();
-                    closeDetailModal();
-                    closeCategoryModal();
-                }
-            });
-        }
-    });
+    // Update nav tabs
+    elements.navSuppliers.classList.toggle('active', view === 'suppliers');
+    elements.navContracts.classList.toggle('active', view === 'contracts');
+    
+    // Show/hide views
+    elements.suppliersView.classList.toggle('hidden', view !== 'suppliers');
+    elements.contractsView.classList.toggle('hidden', view !== 'contracts');
+    
+    // Show/hide action buttons
+    elements.addSupplierBtn.classList.toggle('hidden', view !== 'suppliers');
+    elements.addCategoryBtn.classList.toggle('hidden', view !== 'suppliers');
+    elements.addContractBtn?.classList.toggle('hidden', view !== 'contracts');
+    
+    // Load data if needed
+    if (view === 'contracts' && state.contracts.length === 0) {
+        loadContracts();
+    }
 }
 
 // ==================== Authentication ====================
@@ -229,12 +304,9 @@ async function handleAuth(e) {
     }
     
     try {
-        // Use verifyToken instead of authenticate
-        const response = await api.verifyToken(token);
+        const response = await api.authenticate(token);
         
         if (response.success) {
-            // Store the token
-            api.setToken(token);
             showApp();
             await loadInitialData();
             showToast('Authentication successful');
@@ -260,16 +332,36 @@ async function loadInitialData() {
     showLoading(true);
     
     try {
-        await loadCategories();
+        // Load categories first (without rendering)
+        state.categories = await api.getCategories();
         
         if (state.categories.length === 0) {
             await api.seedCategories();
-            await loadCategories();
+            state.categories = await api.getCategories();
         }
         
-        await loadSuppliers();
+        // Load suppliers
+        state.suppliers = await api.getSuppliers();
+        
+        // NOW render categories with accurate counts
+        renderCategoryFilters();
+        populateCategoryCheckboxes();
+        renderCategoryManageList();
+        
+        // Render suppliers
+        renderSuppliers();
+        
+        // Update stats and notifications
         updateStatistics();
         updateNotifications();
+        
+        // Setup contracts tables if needed (silent fail is OK)
+        try {
+            await api.setupContractsTables();
+        } catch (e) {
+            // Tables might already exist
+        }
+        
     } catch (error) {
         console.error('Failed to load initial data:', error);
         showToast('Failed to load data. Please refresh the page.', 'error');
@@ -293,9 +385,35 @@ async function loadSuppliers() {
     try {
         state.suppliers = await api.getSuppliers();
         renderSuppliers();
+        // Re-render category filters to update counts
+        renderCategoryFilters();
+        renderCategoryManageList();
         updateNotifications();
     } catch (error) {
         console.error('Failed to load suppliers:', error);
+    }
+}
+
+async function loadContracts() {
+    showContractsLoading(true);
+    
+    try {
+        const filters = {};
+        if (state.contractFilters.supplier_id) {
+            filters.supplier_id = state.contractFilters.supplier_id;
+        }
+        if (state.contractFilters.search) {
+            filters.search = state.contractFilters.search;
+        }
+        
+        state.contracts = await api.getContracts(filters);
+        renderContracts();
+        updateContractStatistics();
+    } catch (error) {
+        console.error('Failed to load contracts:', error);
+        showToast('Failed to load contracts', 'error');
+    } finally {
+        showContractsLoading(false);
     }
 }
 
@@ -321,27 +439,22 @@ function closeNotificationPanel() {
 }
 
 function updateNotifications() {
-    // Get suppliers needing attention
     const alertSuppliers = state.suppliers.filter(s => s.alert_level !== null);
     const alertCount = alertSuppliers.length;
     
-    // Update badge
     if (elements.notificationBadge) {
         elements.notificationBadge.textContent = alertCount;
         elements.notificationBadge.classList.toggle('hidden', alertCount === 0);
     }
     
-    // Update sidebar stat
     if (elements.needsAttention) {
         elements.needsAttention.textContent = alertCount;
     }
     
-    // Update card styling based on alerts
     if (elements.needsAttentionCard) {
         elements.needsAttentionCard.classList.toggle('no-alerts', alertCount === 0);
     }
     
-    // If panel is open, refresh it
     if (state.notificationPanelOpen) {
         renderNotificationPanel();
     }
@@ -350,7 +463,6 @@ function updateNotifications() {
 function renderNotificationPanel() {
     if (!elements.notificationList || !elements.notificationSummary) return;
     
-    // Get suppliers with alerts, sorted by severity
     const alertSuppliers = state.suppliers
         .filter(s => s.alert_level !== null)
         .sort((a, b) => {
@@ -358,21 +470,18 @@ function renderNotificationPanel() {
             return (priority[a.alert_level] || 99) - (priority[b.alert_level] || 99);
         });
     
-    // Count by severity
     const counts = {
         critical: alertSuppliers.filter(s => s.alert_level === 'critical').length,
         warning: alertSuppliers.filter(s => s.alert_level === 'warning').length,
         action_needed: alertSuppliers.filter(s => s.alert_level === 'action_needed').length
     };
     
-    // Render summary badges
     elements.notificationSummary.innerHTML = `
         ${counts.critical > 0 ? `<span class="summary-badge critical">${counts.critical} Expired</span>` : ''}
         ${counts.warning > 0 ? `<span class="summary-badge warning">${counts.warning} Expiring Soon</span>` : ''}
         ${counts.action_needed > 0 ? `<span class="summary-badge action-needed">${counts.action_needed} Incomplete</span>` : ''}
     `;
     
-    // Render notification list
     if (alertSuppliers.length === 0) {
         elements.notificationList.innerHTML = `
             <div class="notification-empty">
@@ -428,7 +537,7 @@ function openSupplierFromNotification(supplierId) {
     }
 }
 
-// ==================== Rendering ====================
+// ==================== Supplier Rendering ====================
 
 function renderSuppliers() {
     const filtered = getFilteredSuppliers();
@@ -459,15 +568,10 @@ function createSupplierCard(supplier) {
     const docsCount = countDocuments(supplier.documents);
     const isDocComplete = docsCount === CONFIG.DOCUMENT_TYPES.length;
     
-    // Check compliance expiration
     const complianceStatus = getComplianceStatus(supplier);
     const isFullyCompliant = isDocComplete && complianceStatus.allCompliant;
     
-    // Get category names
     const categoryNames = (supplier.categories || []).map(c => c.name).join(', ') || 'Uncategorized';
-    
-    // Determine if needs attention
-    const alertClass = supplier.alert_level ? `has-alert alert-${supplier.alert_level}` : '';
     
     card.innerHTML = `
         <div class="supplier-card-header">
@@ -529,28 +633,40 @@ function getComplianceStatus(supplier) {
         message = 'GRA Expired';
     }
     
-    return {
-        nisExpired,
-        graExpired,
-        allCompliant,
-        message
-    };
+    return { nisExpired, graExpired, allCompliant, message };
 }
 
+// ==================== Category Rendering ====================
+
 function renderCategoryFilters() {
+    // Keep the "All" option
     const allOption = elements.categoryFilters.querySelector('.category-item');
     elements.categoryFilters.innerHTML = '';
-    if (allOption) elements.categoryFilters.appendChild(allOption);
     
+    // Recreate "All Categories" option
+    const allLabel = document.createElement('label');
+    allLabel.className = 'category-item' + (state.filters.category === 'all' ? ' active' : '');
+    allLabel.innerHTML = `
+        <input type="radio" name="category-filter" value="all" ${state.filters.category === 'all' ? 'checked' : ''}>
+        <span class="category-radio"></span>
+        <span class="category-name">All Categories</span>
+        <span class="category-count" id="count-all">${state.suppliers.length}</span>
+    `;
+    allLabel.querySelector('input').addEventListener('change', () => handleCategoryFilter('all'));
+    elements.categoryFilters.appendChild(allLabel);
+    
+    // Add category items with ACCURATE counts from state.suppliers
     state.categories.forEach(category => {
-        const supplierCount = state.suppliers.filter(s => 
-            (s.category_ids || []).includes(category.id) || s.category_id === category.id
-        ).length;
+        // Count suppliers that have this category
+        const supplierCount = state.suppliers.filter(s => {
+            const catIds = s.category_ids || (s.category_id ? [s.category_id] : []);
+            return catIds.includes(category.id);
+        }).length;
         
         const item = document.createElement('label');
-        item.className = 'category-item';
+        item.className = 'category-item' + (state.filters.category === category.id.toString() ? ' active' : '');
         item.innerHTML = `
-            <input type="radio" name="category-filter" value="${category.id}">
+            <input type="radio" name="category-filter" value="${category.id}" ${state.filters.category === category.id.toString() ? 'checked' : ''}>
             <span class="category-radio"></span>
             <span class="category-name">${escapeHtml(category.name)}</span>
             <span class="category-count">${supplierCount}</span>
@@ -562,14 +678,6 @@ function renderCategoryFilters() {
         
         elements.categoryFilters.appendChild(item);
     });
-    
-    const countAll = document.getElementById('count-all');
-    if (countAll) countAll.textContent = state.suppliers.length;
-    
-    const allInput = elements.categoryFilters.querySelector('input[value="all"]');
-    if (allInput) {
-        allInput.addEventListener('change', () => handleCategoryFilter('all'));
-    }
 }
 
 function populateCategoryCheckboxes() {
@@ -610,9 +718,10 @@ function renderCategoryManageList() {
     }
     
     state.categories.forEach(category => {
-        const supplierCount = state.suppliers.filter(s => 
-            (s.category_ids || []).includes(category.id) || s.category_id === category.id
-        ).length;
+        const supplierCount = state.suppliers.filter(s => {
+            const catIds = s.category_ids || (s.category_id ? [s.category_id] : []);
+            return catIds.includes(category.id);
+        }).length;
         
         const item = document.createElement('div');
         item.className = 'category-manage-item';
@@ -665,9 +774,8 @@ function getFilteredSuppliers() {
         
         if (state.filters.category !== 'all') {
             const catId = parseInt(state.filters.category);
-            const hasCategory = (supplier.category_ids || []).includes(catId) || 
-                               supplier.category_id === catId;
-            if (!hasCategory) {
+            const catIds = supplier.category_ids || (supplier.category_id ? [supplier.category_id] : []);
+            if (!catIds.includes(catId)) {
                 return false;
             }
         }
@@ -693,7 +801,7 @@ function handleCategoryFilter(category) {
     
     document.querySelectorAll('.category-item').forEach(item => {
         const input = item.querySelector('input');
-        item.classList.toggle('active', input.value === category || (input.value === 'all' && category === 'all'));
+        item.classList.toggle('active', input.value === category);
     });
     
     renderSuppliers();
@@ -741,12 +849,8 @@ function openSupplierModal(supplier = null) {
             statusEl.textContent = 'Not uploaded';
             statusEl.classList.remove('uploaded');
         }
-        if (fileInput) {
-            fileInput.value = '';
-        }
-        if (existingBtns) {
-            existingBtns.remove();
-        }
+        if (fileInput) fileInput.value = '';
+        if (existingBtns) existingBtns.remove();
     });
     
     if (state.isEditMode && supplier) {
@@ -826,8 +930,8 @@ async function handleSupplierSubmit(e) {
     const btnText = submitBtn.querySelector('span');
     
     submitBtn.disabled = true;
-    spinner.classList.remove('hidden');
-    btnText.textContent = 'Saving...';
+    spinner?.classList.remove('hidden');
+    if (btnText) btnText.textContent = 'Saving...';
     
     try {
         const categoryIds = getSelectedCategoryIds();
@@ -873,8 +977,8 @@ async function handleSupplierSubmit(e) {
         showToast(error.message || 'Failed to save supplier', 'error');
     } finally {
         submitBtn.disabled = false;
-        spinner.classList.add('hidden');
-        btnText.textContent = 'Save Supplier';
+        spinner?.classList.add('hidden');
+        if (btnText) btnText.textContent = 'Save Supplier';
     }
 }
 
@@ -905,7 +1009,7 @@ function handleFileSelect(e, docType) {
     }
 }
 
-// ==================== Detail Modal ====================
+// ==================== Supplier Detail Modal ====================
 
 async function openDetailModal(supplier) {
     state.currentSupplier = supplier;
@@ -921,7 +1025,6 @@ async function openDetailModal(supplier) {
     
     elements.detailCreated.textContent = formatDate(supplier.created_at);
     
-    // Show compliance status with expiration dates
     const complianceContainer = elements.detailCompliance;
     if (complianceContainer) {
         const compStatus = getComplianceStatus(supplier);
@@ -965,7 +1068,6 @@ async function openDetailModal(supplier) {
         `;
     }
     
-    // Populate documents
     elements.detailDocuments.innerHTML = '';
     
     CONFIG.DOCUMENT_TYPES.forEach(docType => {
@@ -1119,6 +1221,424 @@ async function deleteCategory(id) {
     }
 }
 
+// ==================== CONTRACT MODULE ====================
+
+function renderContracts() {
+    const container = elements.contractsList;
+    
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (state.contracts.length === 0) {
+        elements.contractsEmptyState?.classList.remove('hidden');
+        container.classList.add('hidden');
+    } else {
+        elements.contractsEmptyState?.classList.add('hidden');
+        container.classList.remove('hidden');
+        
+        state.contracts.forEach(contract => {
+            container.appendChild(createContractCard(contract));
+        });
+    }
+}
+
+function createContractCard(contract) {
+    const card = document.createElement('div');
+    card.className = 'contract-card';
+    card.onclick = () => openContractDetailModal(contract);
+    
+    const hasFiles = contract.file_count > 0;
+    
+    card.innerHTML = `
+        <div class="contract-card-header">
+            <span class="contract-number">${escapeHtml(contract.contract_number)}</span>
+            <span class="contract-file-badge ${hasFiles ? 'has-files' : 'no-files'}">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                ${contract.file_count || 0} file${contract.file_count !== 1 ? 's' : ''}
+            </span>
+        </div>
+        <div class="contract-supplier">${escapeHtml(contract.supplier_name || 'Unknown Supplier')}</div>
+        <div class="contract-description">${escapeHtml(contract.description || 'No description')}</div>
+        <div class="contract-meta">
+            <div class="contract-amount">
+                <strong>GYD ${formatCurrency(contract.amount || 0)}</strong>
+            </div>
+            ${contract.start_date || contract.end_date ? `
+                <div class="contract-dates">
+                    ${contract.start_date ? formatDate(contract.start_date) : 'N/A'} 
+                    — 
+                    ${contract.end_date ? formatDate(contract.end_date) : 'N/A'}
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    return card;
+}
+
+function updateContractStatistics() {
+    const total = state.contracts.length;
+    const totalValue = state.contracts.reduce((sum, c) => sum + (c.amount || 0), 0);
+    
+    if (elements.totalContracts) {
+        elements.totalContracts.textContent = total;
+    }
+    
+    if (elements.totalContractValue) {
+        elements.totalContractValue.textContent = 'GYD ' + formatCurrency(totalValue);
+    }
+}
+
+function handleContractSearch(e) {
+    state.contractFilters.search = e.target.value.trim();
+    loadContracts();
+}
+
+function handleContractSupplierFilter() {
+    state.contractFilters.supplier_id = elements.contractSupplierFilter.value;
+    loadContracts();
+}
+
+function populateContractSupplierDropdown() {
+    const select = elements.contractSupplier;
+    const filter = elements.contractSupplierFilter;
+    
+    if (select) {
+        select.innerHTML = '<option value="">Select Supplier</option>';
+        state.suppliers.forEach(supplier => {
+            select.innerHTML += `<option value="${supplier.id}">${escapeHtml(supplier.name)}</option>`;
+        });
+    }
+    
+    if (filter) {
+        filter.innerHTML = '<option value="">All Suppliers</option>';
+        state.suppliers.forEach(supplier => {
+            filter.innerHTML += `<option value="${supplier.id}">${escapeHtml(supplier.name)}</option>`;
+        });
+    }
+}
+
+function openContractModal(contract = null) {
+    state.isContractEditMode = contract !== null;
+    state.currentContract = contract;
+    state.pendingContractFiles = [];
+    
+    elements.contractForm?.reset();
+    if (elements.contractId) elements.contractId.value = '';
+    
+    // Populate supplier dropdown
+    populateContractSupplierDropdown();
+    
+    // Clear pending files display
+    if (elements.pendingFilesCount) {
+        elements.pendingFilesCount.textContent = '';
+    }
+    
+    // Hide existing files section
+    if (elements.existingContractFiles) {
+        elements.existingContractFiles.innerHTML = '';
+        elements.existingContractFiles.classList.add('hidden');
+    }
+    
+    if (state.isContractEditMode && contract) {
+        elements.contractModalTitle.textContent = 'Edit Contract';
+        elements.contractId.value = contract.id;
+        
+        elements.contractNumber.value = contract.contract_number || '';
+        elements.contractSupplier.value = contract.supplier_id || '';
+        elements.contractDescription.value = contract.description || '';
+        elements.contractAmount.value = contract.amount || '';
+        elements.contractStartDate.value = contract.start_date || '';
+        elements.contractEndDate.value = contract.end_date || '';
+        
+        // Show existing files
+        if (contract.files && contract.files.length > 0) {
+            elements.existingContractFiles.classList.remove('hidden');
+            elements.existingContractFiles.innerHTML = contract.files.map(file => `
+                <div class="existing-file-item">
+                    <div class="file-info">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                        <span>${escapeHtml(file.file_name)}</span>
+                    </div>
+                    <div class="file-actions">
+                        <button type="button" class="btn btn-ghost btn-sm" onclick="viewContractFile(${contract.id}, ${file.id})" title="View">
+                            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="removeContractFile(${contract.id}, ${file.id})" title="Delete">
+                            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } else {
+        elements.contractModalTitle.textContent = 'Add New Contract';
+        state.isContractEditMode = false;
+    }
+    
+    elements.contractModal?.classList.remove('hidden');
+    elements.contractNumber?.focus();
+}
+
+function closeContractModal() {
+    elements.contractModal?.classList.add('hidden');
+    state.currentContract = null;
+    state.isContractEditMode = false;
+    state.pendingContractFiles = [];
+}
+
+function handleContractFileSelect(e) {
+    const files = Array.from(e.target.files);
+    
+    files.forEach(file => {
+        if (file.type !== 'application/pdf') {
+            showToast('Only PDF files are allowed', 'error');
+            return;
+        }
+        
+        const maxSizeBytes = 10 * 1024 * 1024;
+        if (file.size > maxSizeBytes) {
+            showToast('File size must be less than 10MB', 'error');
+            return;
+        }
+        
+        state.pendingContractFiles.push(file);
+    });
+    
+    if (elements.pendingFilesCount) {
+        elements.pendingFilesCount.textContent = state.pendingContractFiles.length > 0 
+            ? `${state.pendingContractFiles.length} file(s) selected` 
+            : '';
+    }
+    
+    e.target.value = '';
+}
+
+async function handleContractSubmit(e) {
+    e.preventDefault();
+    
+    const submitBtn = elements.contractSubmitBtn;
+    const spinner = submitBtn?.querySelector('.btn-spinner');
+    const btnText = submitBtn?.querySelector('span');
+    
+    if (submitBtn) submitBtn.disabled = true;
+    spinner?.classList.remove('hidden');
+    if (btnText) btnText.textContent = 'Saving...';
+    
+    try {
+        const contractData = {
+            contract_number: elements.contractNumber.value.trim(),
+            supplier_id: parseInt(elements.contractSupplier.value),
+            description: elements.contractDescription.value.trim() || null,
+            amount: elements.contractAmount.value ? parseFloat(elements.contractAmount.value) : null,
+            start_date: elements.contractStartDate.value || null,
+            end_date: elements.contractEndDate.value || null
+        };
+        
+        if (!contractData.contract_number) {
+            showToast('Contract number is required', 'error');
+            return;
+        }
+        
+        if (!contractData.supplier_id) {
+            showToast('Please select a supplier', 'error');
+            return;
+        }
+        
+        let contractId;
+        
+        if (state.isContractEditMode && elements.contractId.value) {
+            contractId = parseInt(elements.contractId.value);
+            await api.updateContract(contractId, contractData);
+            showToast('Contract updated successfully');
+        } else {
+            const response = await api.createContract(contractData);
+            contractId = response.contract.id;
+            showToast('Contract created successfully');
+        }
+        
+        // Upload pending files
+        for (const file of state.pendingContractFiles) {
+            await api.uploadContractFile(contractId, file);
+        }
+        
+        await loadContracts();
+        closeContractModal();
+        
+    } catch (error) {
+        showToast(error.message || 'Failed to save contract', 'error');
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+        spinner?.classList.add('hidden');
+        if (btnText) btnText.textContent = 'Save Contract';
+    }
+}
+
+function openContractDetailModal(contract) {
+    state.currentContract = contract;
+    
+    if (elements.contractDetailTitle) {
+        elements.contractDetailTitle.textContent = `Contract: ${contract.contract_number}`;
+    }
+    
+    if (elements.contractDetailNumber) {
+        elements.contractDetailNumber.textContent = contract.contract_number;
+    }
+    
+    if (elements.contractDetailSupplier) {
+        elements.contractDetailSupplier.textContent = contract.supplier_name || 'Unknown';
+    }
+    
+    if (elements.contractDetailDescription) {
+        elements.contractDetailDescription.textContent = contract.description || 'No description';
+    }
+    
+    if (elements.contractDetailAmount) {
+        elements.contractDetailAmount.textContent = contract.amount 
+            ? 'GYD ' + formatCurrency(contract.amount) 
+            : '-';
+    }
+    
+    if (elements.contractDetailStart) {
+        elements.contractDetailStart.textContent = contract.start_date 
+            ? formatDate(contract.start_date) 
+            : '-';
+    }
+    
+    if (elements.contractDetailEnd) {
+        elements.contractDetailEnd.textContent = contract.end_date 
+            ? formatDate(contract.end_date) 
+            : '-';
+    }
+    
+    if (elements.contractDetailCreated) {
+        elements.contractDetailCreated.textContent = formatDate(contract.created_at);
+    }
+    
+    // Render files
+    if (elements.contractDetailFiles) {
+        if (contract.files && contract.files.length > 0) {
+            elements.contractDetailFiles.innerHTML = contract.files.map(file => `
+                <div class="contract-file-card">
+                    <svg viewBox="0 0 24 24" class="file-icon">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    <div class="file-details">
+                        <span class="file-name">${escapeHtml(file.file_name)}</span>
+                        <span class="file-date">${formatDate(file.uploaded_at)}</span>
+                    </div>
+                    <div class="file-actions">
+                        <button type="button" class="btn btn-sm btn-outline" onclick="viewContractFile(${contract.id}, ${file.id})">
+                            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                            View
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            elements.contractDetailFiles.innerHTML = `
+                <div class="no-files-message">
+                    <svg viewBox="0 0 24 24" width="32" height="32">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    <p>No files uploaded for this contract</p>
+                </div>
+            `;
+        }
+    }
+    
+    elements.contractDetailModal?.classList.remove('hidden');
+}
+
+function closeContractDetailModal() {
+    elements.contractDetailModal?.classList.add('hidden');
+    state.currentContract = null;
+}
+
+function handleEditContract() {
+    if (state.currentContract) {
+        const contractToEdit = { ...state.currentContract };
+        closeContractDetailModal();
+        openContractModal(contractToEdit);
+    }
+}
+
+async function handleDeleteContract() {
+    if (!state.currentContract) return;
+    
+    const confirmed = confirm(`Are you sure you want to delete contract "${state.currentContract.contract_number}"?\n\nThis will also delete all associated files.`);
+    
+    if (!confirmed) return;
+    
+    try {
+        await api.deleteContract(state.currentContract.id);
+        closeContractDetailModal();
+        await loadContracts();
+        showToast('Contract deleted successfully');
+    } catch (error) {
+        showToast(error.message || 'Failed to delete contract', 'error');
+    }
+}
+
+function viewContractFile(contractId, fileId) {
+    const url = api.getContractFileUrl(contractId, fileId);
+    window.open(url, '_blank');
+}
+
+async function removeContractFile(contractId, fileId) {
+    const confirmed = confirm('Are you sure you want to delete this file?');
+    
+    if (!confirmed) return;
+    
+    try {
+        await api.deleteContractFile(contractId, fileId);
+        
+        // Refresh the contract in modal
+        const updatedContract = await api.getContract(contractId);
+        state.currentContract = updatedContract;
+        
+        // Re-render the existing files in the edit modal
+        if (elements.existingContractFiles && updatedContract.files) {
+            if (updatedContract.files.length > 0) {
+                elements.existingContractFiles.innerHTML = updatedContract.files.map(file => `
+                    <div class="existing-file-item">
+                        <div class="file-info">
+                            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                            <span>${escapeHtml(file.file_name)}</span>
+                        </div>
+                        <div class="file-actions">
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="viewContractFile(${contractId}, ${file.id})" title="View">
+                                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="removeContractFile(${contractId}, ${file.id})" title="Delete">
+                                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                elements.existingContractFiles.classList.add('hidden');
+            }
+        }
+        
+        showToast('File deleted successfully');
+    } catch (error) {
+        showToast(error.message || 'Failed to delete file', 'error');
+    }
+}
+
+function showContractsLoading(show) {
+    if (elements.contractsLoadingState) {
+        elements.contractsLoadingState.classList.toggle('hidden', !show);
+    }
+    if (elements.contractsList) {
+        elements.contractsList.classList.toggle('hidden', show);
+    }
+}
+
 // ==================== Utility Functions ====================
 
 function showLoading(show) {
@@ -1163,6 +1683,13 @@ function formatDate(dateString) {
         month: 'long',
         year: 'numeric'
     });
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-GY', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(amount);
 }
 
 function escapeHtml(text) {

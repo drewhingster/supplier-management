@@ -60,7 +60,7 @@ const API = {
     return token !== null && token !== undefined && token !== '';
 },
 
-async verifyToken(token) {
+async authenticate(token) {
     const response = await fetch(`${CONFIG.API_BASE_URL}/auth/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,7 +69,7 @@ async verifyToken(token) {
     return this.handleResponse(response);
 },
     
-    async verifyToken(token) {
+    async authenticate(token) {
         const response = await fetch(`${CONFIG.API_BASE_URL}/auth/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

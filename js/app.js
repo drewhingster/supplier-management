@@ -229,9 +229,12 @@ async function handleAuth(e) {
     }
     
     try {
-        const response = await api.authenticate(token);
+        // Use verifyToken instead of authenticate
+        const response = await api.verifyToken(token);
         
         if (response.success) {
+            // Store the token
+            api.setToken(token);
             showApp();
             await loadInitialData();
             showToast('Authentication successful');

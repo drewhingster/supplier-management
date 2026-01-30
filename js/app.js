@@ -117,7 +117,7 @@ const elements = {
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-    if (API.isAuthenticated()) {
+    if (api.isAuthenticated()) {
         showApp();
         await loadInitialData();
     } else {
@@ -1180,6 +1180,3 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
-// Make API available globally (both cases for compatibility)
-window.API = API;
-window.api = API;  // Add this line for lowercase compatibility

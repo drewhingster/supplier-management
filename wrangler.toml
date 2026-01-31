@@ -1,0 +1,19 @@
+name = "supplier-management"
+main = "worker/index.js"
+compatibility_date = "2024-01-31"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "supplier-management-db"
+database_id = "ca6177ba-3f4a-4dd8-bb38-753a70de22e9"
+
+# R2 Storage binding
+[[r2_buckets]]
+binding = "DOCUMENTS"
+bucket_name = "supplier-documents"
+
+# Environment variables (if needed)
+[vars]
+# Add any public environment variables here
+

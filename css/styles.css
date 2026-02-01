@@ -10,11 +10,11 @@
 
 /* CSS Custom Properties */
 :root {
-    /* Primary Colors - Bureau of Statistics Teal/Blue */
-    --color-primary: #1a6b7c;
-    --color-primary-light: #2a8a9e;
-    --color-primary-dark: #0f4a56;
-    --color-primary-fade: rgba(26, 107, 124, 0.1);
+    /* Primary Colors - Bureau of Statistics Blue */
+    --color-primary: #05668D;
+    --color-primary-light: #0a7ba8;
+    --color-primary-dark: #044d6a;
+    --color-primary-fade: rgba(5, 102, 141, 0.1);
 
     /* Accent Colors - Bureau of Statistics Orange */
     --color-accent: #e87722;
@@ -311,13 +311,13 @@ a:hover {
 .btn-primary {
     background-color: var(--color-primary);
     color: var(--color-text-inverse);
-    box-shadow: 0 2px 4px rgba(26, 107, 124, 0.2);
+    box-shadow: 0 2px 4px rgba(5, 102, 141, 0.2);
 }
 
 .btn-primary:hover {
     background-color: var(--color-primary-dark);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(26, 107, 124, 0.3);
+    box-shadow: 0 4px 12px rgba(5, 102, 141, 0.3);
 }
 
 .btn-accent {
@@ -414,7 +414,7 @@ a:hover {
     align-items: center;
     justify-content: space-between;
     padding: var(--space-md) var(--space-xl);
-    background: linear-gradient(to right, var(--color-surface), rgba(26, 107, 124, 0.03));
+    background: linear-gradient(to right, var(--color-surface), rgba(5, 102, 141, 0.03));
     border-bottom: 3px solid var(--color-primary);
     position: sticky;
     top: 0;
@@ -661,11 +661,11 @@ a:hover {
 }
 
 .stat-card {
-    background: linear-gradient(135deg, var(--color-bg-secondary), rgba(26, 107, 124, 0.05));
+    background: linear-gradient(135deg, var(--color-bg-secondary), rgba(5, 102, 141, 0.05));
     padding: var(--space-md);
     border-radius: var(--radius-md);
     text-align: center;
-    border: 1px solid rgba(26, 107, 124, 0.1);
+    border: 1px solid rgba(5, 102, 141, 0.1);
 }
 
 .stat-value {
@@ -1526,7 +1526,7 @@ a:hover {
     align-items: center;
     padding: 0.125rem 0.5rem;
     font-size: 0.75rem;
-    background: rgba(26, 107, 124, 0.12);
+    background: rgba(5, 102, 141, 0.12);
     color: var(--color-primary);
     border-radius: 9999px;
     font-weight: 500;
@@ -1665,7 +1665,7 @@ a:hover {
 #detail-category .category-badge {
     display: inline-flex;
     padding: 0.25rem 0.625rem;
-    background: rgba(26, 107, 124, 0.12);
+    background: rgba(5, 102, 141, 0.12);
     color: var(--color-primary);
     border-radius: 9999px;
     font-size: 0.8125rem;
@@ -2234,7 +2234,7 @@ a:hover {
 .nav-tab.active {
     background: var(--color-primary);
     color: white;
-    box-shadow: 0 2px 6px rgba(26, 107, 124, 0.3);
+    box-shadow: 0 2px 6px rgba(5, 102, 141, 0.3);
 }
 
 .nav-tab svg {

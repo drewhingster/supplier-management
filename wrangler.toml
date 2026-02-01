@@ -6,7 +6,7 @@ compatibility_date = "2024-01-31"
 [[d1_databases]]
 binding = "DB"
 database_name = "supplier-management-db"
-database_id = "ca6177ba-3f4a-4dd8-bb38-753a70de22e9"
+database_id = "ca6177ba-3f4a-4dd8-bb38-753a704e22e9"
 
 # R2 Storage binding
 [[r2_buckets]]

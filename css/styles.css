@@ -1,25 +1,25 @@
 /* ==========================================================================
    Supplier Document Management System
    Bureau of Statistics — Procurement Unit
-   
+
    Design: Official Government Aesthetic
-   - Color Palette: Deep forest green, gold accents, warm neutrals
+   - Color Palette: Teal/Blue primary, Orange accents, warm neutrals
    - Typography: Source Serif 4 for headings, DM Sans for body
    - Style: Professional, trustworthy, functional
    ========================================================================== */
 
 /* CSS Custom Properties */
 :root {
-    /* Primary Colors */
-    --color-primary: #1a472a;
-    --color-primary-light: #2d5a3a;
-    --color-primary-dark: #0f2d1a;
-    --color-primary-fade: rgba(26, 71, 42, 0.1);
-    
-    /* Accent Colors */
-    --color-accent: #c9a227;
-    --color-accent-light: #e6c452;
-    --color-accent-dark: #9a7c1c;
+    /* Primary Colors - Bureau of Statistics Teal/Blue */
+    --color-primary: #1a6b7c;
+    --color-primary-light: #2a8a9e;
+    --color-primary-dark: #0f4a56;
+    --color-primary-fade: rgba(26, 107, 124, 0.1);
+
+    /* Accent Colors - Bureau of Statistics Orange */
+    --color-accent: #e87722;
+    --color-accent-light: #f59549;
+    --color-accent-dark: #c45f12;
     
     /* Status Colors */
     --color-success: #2e7d32;
@@ -136,7 +136,7 @@ a:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(15, 45, 26, 0.85);
+    background-color: rgba(15, 74, 86, 0.85);
     backdrop-filter: blur(8px);
     z-index: 1000;
     padding: var(--space-lg);
@@ -311,12 +311,25 @@ a:hover {
 .btn-primary {
     background-color: var(--color-primary);
     color: var(--color-text-inverse);
+    box-shadow: 0 2px 4px rgba(26, 107, 124, 0.2);
 }
 
 .btn-primary:hover {
-    background-color: var(--color-primary-light);
+    background-color: var(--color-primary-dark);
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 12px rgba(26, 107, 124, 0.3);
+}
+
+.btn-accent {
+    background-color: var(--color-accent);
+    color: var(--color-text-inverse);
+    box-shadow: 0 2px 4px rgba(232, 119, 34, 0.2);
+}
+
+.btn-accent:hover {
+    background-color: var(--color-accent-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(232, 119, 34, 0.3);
 }
 
 .btn-secondary {
@@ -401,8 +414,8 @@ a:hover {
     align-items: center;
     justify-content: space-between;
     padding: var(--space-md) var(--space-xl);
-    background-color: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
+    background: linear-gradient(to right, var(--color-surface), rgba(26, 107, 124, 0.03));
+    border-bottom: 3px solid var(--color-primary);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -648,10 +661,11 @@ a:hover {
 }
 
 .stat-card {
-    background-color: var(--color-bg-secondary);
+    background: linear-gradient(135deg, var(--color-bg-secondary), rgba(26, 107, 124, 0.05));
     padding: var(--space-md);
     border-radius: var(--radius-md);
     text-align: center;
+    border: 1px solid rgba(26, 107, 124, 0.1);
 }
 
 .stat-value {
@@ -659,7 +673,7 @@ a:hover {
     font-family: var(--font-display);
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--color-primary);
+    color: var(--color-accent);
 }
 
 .stat-label {
@@ -768,9 +782,9 @@ a:hover {
 }
 
 .supplier-card:hover {
-    border-color: var(--color-primary);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    border-color: var(--color-accent);
+    box-shadow: 0 8px 24px rgba(232, 119, 34, 0.15);
+    transform: translateY(-3px);
 }
 
 .supplier-card-header {
@@ -1512,9 +1526,10 @@ a:hover {
     align-items: center;
     padding: 0.125rem 0.5rem;
     font-size: 0.75rem;
-    background: var(--color-primary-light);
+    background: rgba(26, 107, 124, 0.12);
     color: var(--color-primary);
     border-radius: 9999px;
+    font-weight: 500;
 }
 
 /* ==================== Compliance Status Styles ==================== */
@@ -1650,7 +1665,7 @@ a:hover {
 #detail-category .category-badge {
     display: inline-flex;
     padding: 0.25rem 0.625rem;
-    background: var(--color-primary-light);
+    background: rgba(26, 107, 124, 0.12);
     color: var(--color-primary);
     border-radius: 9999px;
     font-size: 0.8125rem;
@@ -1721,15 +1736,7 @@ a:hover {
     gap: 0.25rem;
 }
 
-.category-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.125rem 0.5rem;
-    font-size: 0.75rem;
-    background: var(--color-primary-light, #e8f4f0);
-    color: var(--color-primary);
-    border-radius: 9999px;
-}
+/* Note: .category-badge is defined above - this is a duplicate that can be removed */
 
 /* ==================== Compliance Expiration Dates ==================== */
 .compliance-info {
@@ -2225,9 +2232,9 @@ a:hover {
 }
 
 .nav-tab.active {
-    background: white;
-    color: var(--color-primary);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: var(--color-primary);
+    color: white;
+    box-shadow: 0 2px 6px rgba(26, 107, 124, 0.3);
 }
 
 .nav-tab svg {
@@ -2236,6 +2243,7 @@ a:hover {
 
 .nav-tab.active svg {
     opacity: 1;
+    color: white;
 }
 
 /* ==================== View Container ==================== */
@@ -2284,8 +2292,8 @@ a:hover {
 }
 
 .contract-card:hover {
-    border-color: var(--color-primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-color: var(--color-accent);
+    box-shadow: 0 4px 16px rgba(232, 119, 34, 0.12);
 }
 
 .contract-card-header {

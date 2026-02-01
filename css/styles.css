@@ -654,7 +654,7 @@ a:hover {
 
 /* Sidebar Stats */
 .sidebar-stats {
-    margin-top: auto;
+    margin-top: var(--space-lg);
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-md);

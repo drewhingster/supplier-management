@@ -1,9 +1,9 @@
 /**
  * Supplier Document Management System
  * Main Application - VERSION 4
- * 
+ *
  * Bureau of Statistics — Procurement Unit
- * 
+ *
  * FEATURES:
  * 1. Fixed category counters (render after suppliers load)
  * 2. Multi-category support
@@ -16,14 +16,17 @@ const state = {
     suppliers: [],
     categories: [],
     contracts: [],
+    tasks: [],
     currentSupplier: null,
     currentContract: null,
+    currentTask: null,
     pendingDocuments: {},
     pendingContractFiles: [],
     isEditMode: false,
     isContractEditMode: false,
+    isTaskEditMode: false,
     notificationPanelOpen: false,
-    currentView: 'suppliers', // 'suppliers' or 'contracts'
+    currentView: 'suppliers', // 'suppliers', 'contracts', or 'tasks'
     filters: {
         search: '',
         category: 'all',
@@ -36,6 +39,11 @@ const state = {
         supplier_id: '',
         sort: 'date-desc'
     },
+    taskFilters: {
+        archived: 'active', // 'active', 'archived', 'all'
+        status: '',
+        assigned_unit: ''
+    },
     viewMode: 'grid'
 };
 
@@ -45,22 +53,25 @@ const elements = {
     authModal: document.getElementById('auth-modal'),
     authForm: document.getElementById('auth-form'),
     authToken: document.getElementById('auth-token'),
-    
+
     // App
     app: document.getElementById('app'),
-    
+
     // Navigation
     navSuppliers: document.getElementById('nav-suppliers'),
     navContracts: document.getElementById('nav-contracts'),
+    navTasks: document.getElementById('nav-tasks'),
     suppliersView: document.getElementById('suppliers-view'),
     contractsView: document.getElementById('contracts-view'),
-    
+    tasksView: document.getElementById('tasks-view'),
+
     // Buttons
     addSupplierBtn: document.getElementById('add-supplier-btn'),
     addCategoryBtn: document.getElementById('add-category-btn'),
     addContractBtn: document.getElementById('add-contract-btn'),
+    addTaskBtn: document.getElementById('add-task-btn'),
     logoutBtn: document.getElementById('logout-btn'),
-    
+
     // Notifications
     notificationBtn: document.getElementById('notification-btn'),
     notificationBadge: document.getElementById('notification-badge'),
@@ -69,30 +80,30 @@ const elements = {
     notificationList: document.getElementById('notification-list'),
     needsAttention: document.getElementById('needs-attention'),
     needsAttentionCard: document.getElementById('needs-attention-card'),
-    
+
     // Supplier Search & Filters
     searchInput: document.getElementById('search-input'),
     categoryFilters: document.getElementById('category-filters'),
     filterComplete: document.getElementById('filter-complete'),
     filterIncomplete: document.getElementById('filter-incomplete'),
-    
+
     // View Toggle
     viewGrid: document.getElementById('view-grid'),
     viewList: document.getElementById('view-list'),
-    
+
     // Sort Controls
     supplierSort: document.getElementById('supplier-sort'),
     contractSort: document.getElementById('contract-sort'),
-    
+
     // Supplier List
     supplierList: document.getElementById('supplier-list'),
     emptyState: document.getElementById('empty-state'),
     loadingState: document.getElementById('loading-state'),
-    
+
     // Supplier Stats
     totalSuppliers: document.getElementById('total-suppliers'),
     compliantSuppliers: document.getElementById('compliant-suppliers'),
-    
+
     // Supplier Modal
     supplierModal: document.getElementById('supplier-modal'),
     supplierModalTitle: document.getElementById('supplier-modal-title'),
@@ -107,7 +118,7 @@ const elements = {
     nisExpirationDate: document.getElementById('nis-expiration-date'),
     graExpirationDate: document.getElementById('gra-expiration-date'),
     supplierSubmitBtn: document.getElementById('supplier-submit-btn'),
-    
+
     // Supplier Detail Modal
     detailModal: document.getElementById('supplier-detail-modal'),
     detailName: document.getElementById('detail-supplier-name'),
@@ -121,13 +132,13 @@ const elements = {
     detailCompliance: document.getElementById('detail-compliance'),
     editSupplierBtn: document.getElementById('edit-supplier-btn'),
     deleteSupplierBtn: document.getElementById('delete-supplier-btn'),
-    
+
     // Category Modal
     categoryModal: document.getElementById('category-modal'),
     categoryForm: document.getElementById('category-form'),
     newCategoryName: document.getElementById('new-category-name'),
     categoryList: document.getElementById('category-list'),
-    
+
     // Contract elements
     contractSearchInput: document.getElementById('contract-search-input'),
     contractSupplierFilter: document.getElementById('contract-supplier-filter'),
@@ -136,7 +147,7 @@ const elements = {
     contractsLoadingState: document.getElementById('contracts-loading-state'),
     totalContracts: document.getElementById('total-contracts'),
     totalContractValue: document.getElementById('total-contract-value'),
-    
+
     // Contract Modal
     contractModal: document.getElementById('contract-modal'),
     contractModalTitle: document.getElementById('contract-modal-title'),
@@ -152,7 +163,7 @@ const elements = {
     existingContractFiles: document.getElementById('existing-contract-files'),
     pendingFilesCount: document.getElementById('pending-files-count'),
     contractSubmitBtn: document.getElementById('contract-submit-btn'),
-    
+
     // Contract Detail Modal
     contractDetailModal: document.getElementById('contract-detail-modal'),
     contractDetailTitle: document.getElementById('contract-detail-title'),
@@ -166,7 +177,35 @@ const elements = {
     contractDetailFiles: document.getElementById('contract-detail-files'),
     editContractBtn: document.getElementById('edit-contract-btn'),
     deleteContractBtn: document.getElementById('delete-contract-btn'),
-    
+
+    // Task elements
+    taskStatusFilter: document.getElementById('task-status-filter'),
+    taskUnitFilter: document.getElementById('task-unit-filter'),
+    tasksTableBody: document.getElementById('tasks-table-body'),
+    tasksEmptyState: document.getElementById('tasks-empty-state'),
+    tasksLoadingState: document.getElementById('tasks-loading-state'),
+    tasksViewTitle: document.getElementById('tasks-view-title'),
+    totalTasks: document.getElementById('total-tasks'),
+    activeTasks: document.getElementById('active-tasks'),
+    archivedTasks: document.getElementById('archived-tasks'),
+
+    // Task Modal
+    taskModal: document.getElementById('task-modal'),
+    taskModalTitle: document.getElementById('task-modal-title'),
+    taskForm: document.getElementById('task-form'),
+    taskId: document.getElementById('task-id'),
+    taskSupplierName: document.getElementById('task-supplier-name'),
+    taskSummary: document.getElementById('task-summary'),
+    taskContractAmount: document.getElementById('task-contract-amount'),
+    taskStatus: document.getElementById('task-status'),
+    taskAssignedUnit: document.getElementById('task-assigned-unit'),
+    taskExpectedCompletion: document.getElementById('task-expected-completion'),
+    taskPriority: document.getElementById('task-priority'),
+    taskCategory: document.getElementById('task-category'),
+    taskDependency: document.getElementById('task-dependency'),
+    taskNotes: document.getElementById('task-notes'),
+    taskSubmitBtn: document.getElementById('task-submit-btn'),
+
     // Toast
     toast: document.getElementById('toast')
 };
@@ -182,7 +221,7 @@ async function init() {
     } else {
         showAuth();
     }
-    
+
     setupEventListeners();
 }
 
@@ -190,51 +229,62 @@ function setupEventListeners() {
     // Authentication
     elements.authForm.addEventListener('submit', handleAuth);
     elements.logoutBtn.addEventListener('click', handleLogout);
-    
+
     // Navigation
     elements.addSupplierBtn.addEventListener('click', () => openSupplierModal(null));
     elements.addCategoryBtn.addEventListener('click', openCategoryModal);
     elements.addContractBtn?.addEventListener('click', () => openContractModal(null));
-    
+    elements.addTaskBtn?.addEventListener('click', () => openTaskModal(null));
+
     // Notifications
     elements.notificationBtn?.addEventListener('click', toggleNotificationPanel);
     elements.needsAttentionCard?.addEventListener('click', openNotificationPanel);
-    
+
     // Supplier Search & Filters
     elements.searchInput.addEventListener('input', debounce(handleSearch, 300));
     elements.filterComplete.addEventListener('change', handleFilterChange);
     elements.filterIncomplete.addEventListener('change', handleFilterChange);
-    
+
     // View Toggle
     elements.viewGrid.addEventListener('click', () => setViewMode('grid'));
     elements.viewList.addEventListener('click', () => setViewMode('list'));
-    
+
     // Sort Controls
     elements.supplierSort?.addEventListener('change', handleSupplierSort);
     elements.contractSort?.addEventListener('change', handleContractSort);
-    
+
     // Supplier Form
     elements.supplierForm.addEventListener('submit', handleSupplierSubmit);
-    
+
     // Supplier Detail Actions
     elements.editSupplierBtn.addEventListener('click', handleEditSupplier);
     elements.deleteSupplierBtn.addEventListener('click', handleDeleteSupplier);
-    
+
     // Category Form
     elements.categoryForm.addEventListener('submit', handleCategorySubmit);
-    
+
     // Contract Search & Filters
     elements.contractSearchInput?.addEventListener('input', debounce(handleContractSearch, 300));
     elements.contractSupplierFilter?.addEventListener('change', handleContractSupplierFilter);
-    
+
     // Contract Form
     elements.contractForm?.addEventListener('submit', handleContractSubmit);
     elements.contractFileInput?.addEventListener('change', handleContractFileSelect);
-    
+
     // Contract Detail Actions
     elements.editContractBtn?.addEventListener('click', handleEditContract);
     elements.deleteContractBtn?.addEventListener('click', handleDeleteContract);
-    
+
+    // Task Filters
+    elements.taskStatusFilter?.addEventListener('change', handleTaskFilterChange);
+    elements.taskUnitFilter?.addEventListener('change', handleTaskFilterChange);
+    document.querySelectorAll('input[name="task-archive-filter"]').forEach(radio => {
+        radio.addEventListener('change', handleTaskArchiveFilterChange);
+    });
+
+    // Task Form
+    elements.taskForm?.addEventListener('submit', handleTaskSubmit);
+
     // Document file inputs
     CONFIG.DOCUMENT_TYPES.forEach(docType => {
         const fileInput = document.getElementById(`file-${docType.id}`);
@@ -242,7 +292,7 @@ function setupEventListeners() {
             fileInput.addEventListener('change', (e) => handleFileSelect(e, docType.id));
         }
     });
-    
+
     // Close on escape
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
@@ -254,11 +304,11 @@ function setupEventListeners() {
             closeNotificationPanel();
         }
     });
-    
+
     // Close notification panel when clicking outside
     document.addEventListener('click', (e) => {
-        if (state.notificationPanelOpen && 
-            elements.notificationPanel && 
+        if (state.notificationPanelOpen &&
+            elements.notificationPanel &&
             !elements.notificationPanel.contains(e.target) &&
             !elements.notificationBtn.contains(e.target) &&
             !elements.needsAttentionCard?.contains(e.target)) {
@@ -271,23 +321,29 @@ function setupEventListeners() {
 
 function switchView(view) {
     state.currentView = view;
-    
+
     // Update nav tabs
     elements.navSuppliers.classList.toggle('active', view === 'suppliers');
     elements.navContracts.classList.toggle('active', view === 'contracts');
-    
+    elements.navTasks?.classList.toggle('active', view === 'tasks');
+
     // Show/hide views
     elements.suppliersView.classList.toggle('hidden', view !== 'suppliers');
     elements.contractsView.classList.toggle('hidden', view !== 'contracts');
-    
+    elements.tasksView?.classList.toggle('hidden', view !== 'tasks');
+
     // Show/hide action buttons
     elements.addSupplierBtn.classList.toggle('hidden', view !== 'suppliers');
     elements.addCategoryBtn.classList.toggle('hidden', view !== 'suppliers');
     elements.addContractBtn?.classList.toggle('hidden', view !== 'contracts');
-    
+    elements.addTaskBtn?.classList.toggle('hidden', view !== 'tasks');
+
     // Load data if needed
     if (view === 'contracts' && state.contracts.length === 0) {
         loadContracts();
+    }
+    if (view === 'tasks' && state.tasks.length === 0) {
+        loadTasks();
     }
 }
 
@@ -305,17 +361,17 @@ function showApp() {
 
 async function handleAuth(e) {
     e.preventDefault();
-    
+
     const token = elements.authToken.value.trim();
-    
+
     if (!token) {
         showToast('Please enter an access token', 'error');
         return;
     }
-    
+
     try {
         const response = await api.authenticate(token);
-        
+
         if (response.success) {
             showApp();
             await loadInitialData();
@@ -340,38 +396,45 @@ function handleLogout() {
 
 async function loadInitialData() {
     showLoading(true);
-    
+
     try {
         // Load categories first (without rendering)
         state.categories = await api.getCategories();
-        
+
         if (state.categories.length === 0) {
             await api.seedCategories();
             state.categories = await api.getCategories();
         }
-        
+
         // Load suppliers
         state.suppliers = await api.getSuppliers();
-        
+
         // NOW render categories with accurate counts
         renderCategoryFilters();
         populateCategoryCheckboxes();
         renderCategoryManageList();
-        
+
         // Render suppliers
         renderSuppliers();
-        
+
         // Update stats and notifications
         updateStatistics();
         updateNotifications();
-        
+
         // Setup contracts tables if needed (silent fail is OK)
         try {
             await api.setupContractsTables();
         } catch (e) {
             // Tables might already exist
         }
-        
+
+        // Setup tasks table if needed (silent fail is OK)
+        try {
+            await api.setupTasksTable();
+        } catch (e) {
+            // Table might already exist
+        }
+
     } catch (error) {
         console.error('Failed to load initial data:', error);
         showToast('Failed to load data. Please refresh the page.', 'error');
@@ -406,7 +469,7 @@ async function loadSuppliers() {
 
 async function loadContracts() {
     showContractsLoading(true);
-    
+
     try {
         const filters = {};
         if (state.contractFilters.supplier_id) {
@@ -415,7 +478,7 @@ async function loadContracts() {
         if (state.contractFilters.search) {
             filters.search = state.contractFilters.search;
         }
-        
+
         state.contracts = await api.getContracts(filters);
         renderContracts();
         updateContractStatistics();
@@ -451,20 +514,20 @@ function closeNotificationPanel() {
 function updateNotifications() {
     const alertSuppliers = state.suppliers.filter(s => s.alert_level !== null);
     const alertCount = alertSuppliers.length;
-    
+
     if (elements.notificationBadge) {
         elements.notificationBadge.textContent = alertCount;
         elements.notificationBadge.classList.toggle('hidden', alertCount === 0);
     }
-    
+
     if (elements.needsAttention) {
         elements.needsAttention.textContent = alertCount;
     }
-    
+
     if (elements.needsAttentionCard) {
         elements.needsAttentionCard.classList.toggle('no-alerts', alertCount === 0);
     }
-    
+
     if (state.notificationPanelOpen) {
         renderNotificationPanel();
     }
@@ -472,26 +535,26 @@ function updateNotifications() {
 
 function renderNotificationPanel() {
     if (!elements.notificationList || !elements.notificationSummary) return;
-    
+
     const alertSuppliers = state.suppliers
         .filter(s => s.alert_level !== null)
         .sort((a, b) => {
             const priority = { 'critical': 1, 'warning': 2, 'action_needed': 3 };
             return (priority[a.alert_level] || 99) - (priority[b.alert_level] || 99);
         });
-    
+
     const counts = {
         critical: alertSuppliers.filter(s => s.alert_level === 'critical').length,
         warning: alertSuppliers.filter(s => s.alert_level === 'warning').length,
         action_needed: alertSuppliers.filter(s => s.alert_level === 'action_needed').length
     };
-    
+
     elements.notificationSummary.innerHTML = `
         ${counts.critical > 0 ? `<span class="summary-badge critical">${counts.critical} Expired</span>` : ''}
         ${counts.warning > 0 ? `<span class="summary-badge warning">${counts.warning} Expiring Soon</span>` : ''}
         ${counts.action_needed > 0 ? `<span class="summary-badge action-needed">${counts.action_needed} Incomplete</span>` : ''}
     `;
-    
+
     if (alertSuppliers.length === 0) {
         elements.notificationList.innerHTML = `
             <div class="notification-empty">
@@ -505,13 +568,13 @@ function renderNotificationPanel() {
         `;
         return;
     }
-    
+
     elements.notificationList.innerHTML = alertSuppliers.map(supplier => {
         const iconSvg = getAlertIcon(supplier.alert_level);
-        const messages = (supplier.alert_details || []).map(alert => 
+        const messages = (supplier.alert_details || []).map(alert =>
             `<span class="notification-message-item">• ${alert.message}</span>`
         ).join('');
-        
+
         return `
             <div class="notification-item" onclick="openSupplierFromNotification(${supplier.id})">
                 <div class="notification-icon ${supplier.alert_level}">
@@ -551,21 +614,21 @@ function openSupplierFromNotification(supplierId) {
 
 function renderSuppliers() {
     const filtered = getFilteredSuppliers();
-    
+
     elements.supplierList.innerHTML = '';
-    
+
     if (filtered.length === 0) {
         elements.emptyState.classList.remove('hidden');
         elements.supplierList.classList.add('hidden');
     } else {
         elements.emptyState.classList.add('hidden');
         elements.supplierList.classList.remove('hidden');
-        
+
         filtered.forEach(supplier => {
             elements.supplierList.appendChild(createSupplierCard(supplier));
         });
     }
-    
+
     updateStatistics();
 }
 
@@ -574,15 +637,15 @@ function createSupplierCard(supplier) {
     card.className = 'supplier-card';
     card.dataset.id = supplier.id;
     card.onclick = () => openDetailModal(supplier);
-    
+
     const docsCount = countDocuments(supplier.documents);
     const isDocComplete = docsCount === CONFIG.DOCUMENT_TYPES.length;
-    
+
     const complianceStatus = getComplianceStatus(supplier);
     const isFullyCompliant = isDocComplete && complianceStatus.allCompliant;
-    
+
     const categoryNames = (supplier.categories || []).map(c => c.name).join(', ') || 'Uncategorized';
-    
+
     card.innerHTML = `
         <div class="supplier-card-header">
             <span class="supplier-name">${escapeHtml(supplier.name)}</span>
@@ -622,18 +685,18 @@ function createSupplierCard(supplier) {
             `).join('')}
         </div>
     `;
-    
+
     return card;
 }
 
 function getComplianceStatus(supplier) {
     const today = new Date().toISOString().split('T')[0];
-    
+
     const nisExpired = supplier.nis_expiration_date && supplier.nis_expiration_date < today;
     const graExpired = supplier.gra_expiration_date && supplier.gra_expiration_date < today;
-    
+
     const allCompliant = !nisExpired && !graExpired;
-    
+
     let message = '';
     if (nisExpired && graExpired) {
         message = 'NIS & GRA Expired';
@@ -642,7 +705,7 @@ function getComplianceStatus(supplier) {
     } else if (graExpired) {
         message = 'GRA Expired';
     }
-    
+
     return { nisExpired, graExpired, allCompliant, message };
 }
 
@@ -652,7 +715,7 @@ function renderCategoryFilters() {
     // Keep the "All" option
     const allOption = elements.categoryFilters.querySelector('.category-item');
     elements.categoryFilters.innerHTML = '';
-    
+
     // Recreate "All Categories" option
     const allLabel = document.createElement('label');
     allLabel.className = 'category-item' + (state.filters.category === 'all' ? ' active' : '');
@@ -664,7 +727,7 @@ function renderCategoryFilters() {
     `;
     allLabel.querySelector('input').addEventListener('change', () => handleCategoryFilter('all'));
     elements.categoryFilters.appendChild(allLabel);
-    
+
     // Add category items with ACCURATE counts from state.suppliers
     state.categories.forEach(category => {
         // Count suppliers that have this category
@@ -672,7 +735,7 @@ function renderCategoryFilters() {
             const catIds = s.category_ids || (s.category_id ? [s.category_id] : []);
             return catIds.includes(category.id);
         }).length;
-        
+
         const item = document.createElement('label');
         item.className = 'category-item' + (state.filters.category === category.id.toString() ? ' active' : '');
         item.innerHTML = `
@@ -681,11 +744,11 @@ function renderCategoryFilters() {
             <span class="category-name">${escapeHtml(category.name)}</span>
             <span class="category-count">${supplierCount}</span>
         `;
-        
+
         item.querySelector('input').addEventListener('change', () => {
             handleCategoryFilter(category.id.toString());
         });
-        
+
         elements.categoryFilters.appendChild(item);
     });
 }
@@ -693,9 +756,9 @@ function renderCategoryFilters() {
 function populateCategoryCheckboxes() {
     const container = elements.supplierCategoryCheckboxes;
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
+
     state.categories.forEach(category => {
         const item = document.createElement('label');
         item.className = 'category-checkbox-item';
@@ -721,18 +784,18 @@ function setSelectedCategoryIds(categoryIds) {
 
 function renderCategoryManageList() {
     elements.categoryList.innerHTML = '';
-    
+
     if (state.categories.length === 0) {
         elements.categoryList.innerHTML = '<p style="color: var(--color-text-muted); text-align: center;">No categories yet</p>';
         return;
     }
-    
+
     state.categories.forEach(category => {
         const supplierCount = state.suppliers.filter(s => {
             const catIds = s.category_ids || (s.category_id ? [s.category_id] : []);
             return catIds.includes(category.id);
         }).length;
-        
+
         const item = document.createElement('div');
         item.className = 'category-manage-item';
         item.innerHTML = `
@@ -744,7 +807,7 @@ function renderCategoryManageList() {
                 <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
             </button>
         `;
-        
+
         elements.categoryList.appendChild(item);
     });
 }
@@ -756,12 +819,12 @@ function updateStatistics() {
         const compStatus = getComplianceStatus(s);
         return docsCount === CONFIG.DOCUMENT_TYPES.length && compStatus.allCompliant;
     }).length;
-    
+
     const needsAttention = state.suppliers.filter(s => s.alert_level !== null).length;
-    
+
     elements.totalSuppliers.textContent = total;
     elements.compliantSuppliers.textContent = compliant;
-    
+
     if (elements.needsAttention) {
         elements.needsAttention.textContent = needsAttention;
     }
@@ -776,12 +839,12 @@ function getFilteredSuppliers() {
             const nameMatch = supplier.name.toLowerCase().includes(searchLower);
             const addressMatch = supplier.address.toLowerCase().includes(searchLower);
             const telephoneMatch = supplier.telephone.includes(state.filters.search);
-            
+
             if (!nameMatch && !addressMatch && !telephoneMatch) {
                 return false;
             }
         }
-        
+
         if (state.filters.category !== 'all') {
             const catId = parseInt(state.filters.category);
             const catIds = supplier.category_ids || (supplier.category_id ? [supplier.category_id] : []);
@@ -789,30 +852,30 @@ function getFilteredSuppliers() {
                 return false;
             }
         }
-        
+
         const docsCount = countDocuments(supplier.documents);
         const compStatus = getComplianceStatus(supplier);
         const isComplete = docsCount === CONFIG.DOCUMENT_TYPES.length && compStatus.allCompliant;
-        
+
         if (!state.filters.showComplete && isComplete) return false;
         if (!state.filters.showIncomplete && !isComplete) return false;
-        
+
         return true;
     });
-    
+
     // Apply sorting
     filtered = sortSuppliers(filtered, state.filters.sort);
-    
+
     return filtered;
 }
 
 function sortSuppliers(suppliers, sortOption) {
     const [field, direction] = sortOption.split('-');
     const multiplier = direction === 'asc' ? 1 : -1;
-    
+
     return [...suppliers].sort((a, b) => {
         let comparison = 0;
-        
+
         switch (field) {
             case 'name':
                 comparison = a.name.localeCompare(b.name);
@@ -828,7 +891,7 @@ function sortSuppliers(suppliers, sortOption) {
             default:
                 comparison = 0;
         }
-        
+
         return comparison * multiplier;
     });
 }
@@ -845,12 +908,12 @@ function handleSearch(e) {
 
 function handleCategoryFilter(category) {
     state.filters.category = category;
-    
+
     document.querySelectorAll('.category-item').forEach(item => {
         const input = item.querySelector('input');
         item.classList.toggle('active', input.value === category);
     });
-    
+
     renderSuppliers();
 }
 
@@ -862,10 +925,10 @@ function handleFilterChange() {
 
 function setViewMode(mode) {
     state.viewMode = mode;
-    
+
     elements.viewGrid.classList.toggle('active', mode === 'grid');
     elements.viewList.classList.toggle('active', mode === 'list');
-    
+
     elements.supplierList.classList.toggle('grid-view', mode === 'grid');
     elements.supplierList.classList.toggle('list-view', mode === 'list');
 }
@@ -876,22 +939,22 @@ function openSupplierModal(supplier = null) {
     state.isEditMode = supplier !== null;
     state.currentSupplier = supplier;
     state.pendingDocuments = {};
-    
+
     elements.supplierForm.reset();
     elements.supplierId.value = '';
-    
+
     if (elements.nisExpirationDate) elements.nisExpirationDate.value = '';
     if (elements.graExpirationDate) elements.graExpirationDate.value = '';
-    
+
     document.querySelectorAll('input[name="supplier-categories"]').forEach(cb => {
         cb.checked = false;
     });
-    
+
     CONFIG.DOCUMENT_TYPES.forEach(docType => {
         const statusEl = document.getElementById(`status-${docType.id}`);
         const fileInput = document.getElementById(`file-${docType.id}`);
         const existingBtns = document.getElementById(`doc-btns-${docType.id}`);
-        
+
         if (statusEl) {
             statusEl.textContent = 'Not uploaded';
             statusEl.classList.remove('uploaded');
@@ -899,38 +962,38 @@ function openSupplierModal(supplier = null) {
         if (fileInput) fileInput.value = '';
         if (existingBtns) existingBtns.remove();
     });
-    
+
     if (state.isEditMode && supplier) {
         elements.supplierModalTitle.textContent = 'Edit Supplier';
         elements.supplierId.value = supplier.id;
-        
+
         elements.supplierName.value = supplier.name || '';
         elements.supplierAddress.value = supplier.address || '';
         elements.supplierTelephone.value = supplier.telephone || '';
         elements.supplierEmail.value = supplier.email || '';
         elements.supplierContact.value = supplier.contact_person || '';
-        
+
         if (elements.nisExpirationDate && supplier.nis_expiration_date) {
             elements.nisExpirationDate.value = supplier.nis_expiration_date;
         }
         if (elements.graExpirationDate && supplier.gra_expiration_date) {
             elements.graExpirationDate.value = supplier.gra_expiration_date;
         }
-        
+
         const categoryIds = supplier.category_ids || (supplier.category_id ? [supplier.category_id] : []);
         setSelectedCategoryIds(categoryIds);
-        
+
         if (supplier.documents && supplier.documents.length > 0) {
             CONFIG.DOCUMENT_TYPES.forEach(docType => {
                 const doc = supplier.documents.find(d => d.document_type === docType.id);
                 if (doc) {
                     const statusEl = document.getElementById(`status-${docType.id}`);
-                    
+
                     if (statusEl) {
                         statusEl.textContent = doc.file_name || 'Uploaded';
                         statusEl.classList.add('uploaded');
                     }
-                    
+
                     const btnContainer = document.createElement('div');
                     btnContainer.id = `doc-btns-${docType.id}`;
                     btnContainer.className = 'doc-existing-btns';
@@ -942,7 +1005,7 @@ function openSupplierModal(supplier = null) {
                             <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
                         </button>
                     `;
-                    
+
                     const uploadItem = document.getElementById(`file-${docType.id}`)?.closest('.document-upload-item');
                     if (uploadItem) {
                         const docActionsDiv = uploadItem.querySelector('.doc-actions');
@@ -957,7 +1020,7 @@ function openSupplierModal(supplier = null) {
         elements.supplierModalTitle.textContent = 'Add New Supplier';
         state.isEditMode = false;
     }
-    
+
     elements.supplierModal.classList.remove('hidden');
     elements.supplierName.focus();
 }
@@ -971,23 +1034,23 @@ function closeSupplierModal() {
 
 async function handleSupplierSubmit(e) {
     e.preventDefault();
-    
+
     const submitBtn = elements.supplierSubmitBtn;
     const spinner = submitBtn.querySelector('.btn-spinner');
     const btnText = submitBtn.querySelector('span');
-    
+
     submitBtn.disabled = true;
     spinner?.classList.remove('hidden');
     if (btnText) btnText.textContent = 'Saving...';
-    
+
     try {
         const categoryIds = getSelectedCategoryIds();
-        
+
         if (categoryIds.length === 0) {
             showToast('Please select at least one category', 'error');
             return;
         }
-        
+
         const supplierData = {
             name: elements.supplierName.value.trim(),
             address: elements.supplierAddress.value.trim(),
@@ -998,9 +1061,9 @@ async function handleSupplierSubmit(e) {
             nis_expiration_date: elements.nisExpirationDate?.value || null,
             gra_expiration_date: elements.graExpirationDate?.value || null
         };
-        
+
         let supplierId;
-        
+
         if (state.isEditMode && elements.supplierId.value) {
             supplierId = parseInt(elements.supplierId.value);
             await api.updateSupplier(supplierId, supplierData);
@@ -1010,16 +1073,16 @@ async function handleSupplierSubmit(e) {
             supplierId = response.supplier.id;
             showToast('Supplier created successfully');
         }
-        
+
         for (const [docType, file] of Object.entries(state.pendingDocuments)) {
             await api.uploadDocument(supplierId, docType, file);
         }
-        
+
         await loadSuppliers();
         await loadCategories();
-        
+
         closeSupplierModal();
-        
+
     } catch (error) {
         showToast(error.message || 'Failed to save supplier', 'error');
     } finally {
@@ -1031,24 +1094,24 @@ async function handleSupplierSubmit(e) {
 
 function handleFileSelect(e, docType) {
     const file = e.target.files[0];
-    
+
     if (!file) return;
-    
+
     if (!CONFIG.UPLOAD.ALLOWED_TYPES.includes(file.type)) {
         showToast('Only PDF files are allowed', 'error');
         e.target.value = '';
         return;
     }
-    
+
     const maxSizeBytes = CONFIG.UPLOAD.MAX_SIZE_MB * 1024 * 1024;
     if (file.size > maxSizeBytes) {
         showToast(`File size must be less than ${CONFIG.UPLOAD.MAX_SIZE_MB}MB`, 'error');
         e.target.value = '';
         return;
     }
-    
+
     state.pendingDocuments[docType] = file;
-    
+
     const statusEl = document.getElementById(`status-${docType}`);
     if (statusEl) {
         statusEl.textContent = file.name;
@@ -1060,29 +1123,29 @@ function handleFileSelect(e, docType) {
 
 async function openDetailModal(supplier) {
     state.currentSupplier = supplier;
-    
+
     elements.detailName.textContent = supplier.name;
     elements.detailAddress.textContent = supplier.address;
     elements.detailTelephone.textContent = supplier.telephone;
     elements.detailEmail.textContent = supplier.email || '-';
     elements.detailContact.textContent = supplier.contact_person || '-';
-    
+
     const categoryNames = (supplier.categories || []).map(c => c.name).join(', ') || 'Uncategorized';
     elements.detailCategory.textContent = categoryNames;
-    
+
     elements.detailCreated.textContent = formatDate(supplier.created_at);
-    
+
     const complianceContainer = elements.detailCompliance;
     if (complianceContainer) {
         const compStatus = getComplianceStatus(supplier);
-        
-        const nisStatusClass = supplier.nis_expiration_date 
-            ? (compStatus.nisExpired ? 'expired' : 'valid') 
+
+        const nisStatusClass = supplier.nis_expiration_date
+            ? (compStatus.nisExpired ? 'expired' : 'valid')
             : 'not-set';
-        const graStatusClass = supplier.gra_expiration_date 
-            ? (compStatus.graExpired ? 'expired' : 'valid') 
+        const graStatusClass = supplier.gra_expiration_date
+            ? (compStatus.graExpired ? 'expired' : 'valid')
             : 'not-set';
-        
+
         complianceContainer.innerHTML = `
             <div class="compliance-status-item ${nisStatusClass}">
                 <div class="compliance-header">
@@ -1092,7 +1155,7 @@ async function openDetailModal(supplier) {
                     </span>
                 </div>
                 <div class="compliance-details">
-                    ${supplier.nis_expiration_date 
+                    ${supplier.nis_expiration_date
                         ? `<span class="compliance-expiry">Expires: ${formatDate(supplier.nis_expiration_date)}${supplier.nis_days_remaining !== null ? ` (${supplier.nis_days_remaining < 0 ? Math.abs(supplier.nis_days_remaining) + ' days ago' : supplier.nis_days_remaining + ' days remaining'})` : ''}</span>`
                         : '<span class="compliance-expiry">No expiration date set</span>'
                     }
@@ -1106,7 +1169,7 @@ async function openDetailModal(supplier) {
                     </span>
                 </div>
                 <div class="compliance-details">
-                    ${supplier.gra_expiration_date 
+                    ${supplier.gra_expiration_date
                         ? `<span class="compliance-expiry">Expires: ${formatDate(supplier.gra_expiration_date)}${supplier.gra_days_remaining !== null ? ` (${supplier.gra_days_remaining < 0 ? Math.abs(supplier.gra_days_remaining) + ' days ago' : supplier.gra_days_remaining + ' days remaining'})` : ''}</span>`
                         : '<span class="compliance-expiry">No expiration date set</span>'
                     }
@@ -1114,16 +1177,16 @@ async function openDetailModal(supplier) {
             </div>
         `;
     }
-    
+
     elements.detailDocuments.innerHTML = '';
-    
+
     CONFIG.DOCUMENT_TYPES.forEach(docType => {
         const doc = supplier.documents ? supplier.documents.find(d => d.document_type === docType.id) : null;
         const isUploaded = !!doc;
-        
+
         const card = document.createElement('div');
         card.className = `document-card ${isUploaded ? 'uploaded' : 'missing'}`;
-        
+
         if (isUploaded) {
             card.innerHTML = `
                 <svg viewBox="0 0 24 24" class="doc-icon">
@@ -1158,10 +1221,10 @@ async function openDetailModal(supplier) {
                 </div>
             `;
         }
-        
+
         elements.detailDocuments.appendChild(card);
     });
-    
+
     elements.detailModal.classList.remove('hidden');
 }
 
@@ -1180,11 +1243,11 @@ function handleEditSupplier() {
 
 async function handleDeleteSupplier() {
     if (!state.currentSupplier) return;
-    
+
     const confirmed = confirm(`Are you sure you want to delete "${state.currentSupplier.name}"?\n\nThis action cannot be undone and will also delete all associated documents.`);
-    
+
     if (!confirmed) return;
-    
+
     try {
         await api.deleteSupplier(state.currentSupplier.id);
         closeDetailModal();
@@ -1227,19 +1290,19 @@ function closeCategoryModal() {
 
 async function handleCategorySubmit(e) {
     e.preventDefault();
-    
+
     const name = elements.newCategoryName.value.trim();
-    
+
     if (!name) {
         showToast('Please enter a category name', 'error');
         return;
     }
-    
+
     if (state.categories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
         showToast('Category already exists', 'error');
         return;
     }
-    
+
     try {
         await api.createCategory(name);
         await loadCategories();
@@ -1252,13 +1315,13 @@ async function handleCategorySubmit(e) {
 
 async function deleteCategory(id) {
     const category = state.categories.find(c => c.id === id);
-    
+
     if (!category) return;
-    
+
     const confirmed = confirm(`Are you sure you want to delete the category "${category.name}"?`);
-    
+
     if (!confirmed) return;
-    
+
     try {
         await api.deleteCategory(id);
         await loadCategories();
@@ -1272,18 +1335,18 @@ async function deleteCategory(id) {
 
 function renderContracts() {
     const container = elements.contractsList;
-    
+
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
+
     if (state.contracts.length === 0) {
         elements.contractsEmptyState?.classList.remove('hidden');
         container.classList.add('hidden');
     } else {
         elements.contractsEmptyState?.classList.add('hidden');
         container.classList.remove('hidden');
-        
+
         // Add header row
         const headerRow = document.createElement('div');
         headerRow.className = 'contract-list-header';
@@ -1295,10 +1358,10 @@ function renderContracts() {
             <span>Duration</span>
         `;
         container.appendChild(headerRow);
-        
+
         // Apply sorting
         const sortedContracts = sortContracts(state.contracts, state.contractFilters.sort);
-        
+
         sortedContracts.forEach(contract => {
             container.appendChild(createContractCard(contract));
         });
@@ -1308,10 +1371,10 @@ function renderContracts() {
 function sortContracts(contracts, sortOption) {
     const [field, direction] = sortOption.split('-');
     const multiplier = direction === 'asc' ? 1 : -1;
-    
+
     return [...contracts].sort((a, b) => {
         let comparison = 0;
-        
+
         switch (field) {
             case 'number':
                 comparison = (a.contract_number || '').localeCompare(b.contract_number || '');
@@ -1328,7 +1391,7 @@ function sortContracts(contracts, sortOption) {
             default:
                 comparison = 0;
         }
-        
+
         return comparison * multiplier;
     });
 }
@@ -1342,9 +1405,9 @@ function createContractCard(contract) {
     const card = document.createElement('div');
     card.className = 'contract-card';
     card.onclick = () => openContractDetailModal(contract);
-    
+
     const hasFiles = contract.file_count > 0;
-    
+
     card.innerHTML = `
         <div class="contract-card-header">
             <span class="contract-number">${escapeHtml(contract.contract_number)}</span>
@@ -1362,18 +1425,18 @@ function createContractCard(contract) {
             ` : '—'}
         </div>
     `;
-    
+
     return card;
 }
 
 function updateContractStatistics() {
     const total = state.contracts.length;
     const totalValue = state.contracts.reduce((sum, c) => sum + (c.amount || 0), 0);
-    
+
     if (elements.totalContracts) {
         elements.totalContracts.textContent = total;
     }
-    
+
     if (elements.totalContractValue) {
         elements.totalContractValue.textContent = 'GYD ' + formatCurrency(totalValue);
     }
@@ -1392,14 +1455,14 @@ function handleContractSupplierFilter() {
 function populateContractSupplierDropdown() {
     const select = elements.contractSupplier;
     const filter = elements.contractSupplierFilter;
-    
+
     if (select) {
         select.innerHTML = '<option value="">Select Supplier</option>';
         state.suppliers.forEach(supplier => {
             select.innerHTML += `<option value="${supplier.id}">${escapeHtml(supplier.name)}</option>`;
         });
     }
-    
+
     if (filter) {
         filter.innerHTML = '<option value="">All Suppliers</option>';
         state.suppliers.forEach(supplier => {
@@ -1412,35 +1475,35 @@ function openContractModal(contract = null) {
     state.isContractEditMode = contract !== null;
     state.currentContract = contract;
     state.pendingContractFiles = [];
-    
+
     elements.contractForm?.reset();
     if (elements.contractId) elements.contractId.value = '';
-    
+
     // Populate supplier dropdown
     populateContractSupplierDropdown();
-    
+
     // Clear pending files display
     if (elements.pendingFilesCount) {
         elements.pendingFilesCount.textContent = '';
     }
-    
+
     // Hide existing files section
     if (elements.existingContractFiles) {
         elements.existingContractFiles.innerHTML = '';
         elements.existingContractFiles.classList.add('hidden');
     }
-    
+
     if (state.isContractEditMode && contract) {
         elements.contractModalTitle.textContent = 'Edit Contract';
         elements.contractId.value = contract.id;
-        
+
         elements.contractNumber.value = contract.contract_number || '';
         elements.contractSupplier.value = contract.supplier_id || '';
         elements.contractDescription.value = contract.description || '';
         elements.contractAmount.value = contract.amount || '';
         elements.contractStartDate.value = contract.start_date || '';
         elements.contractEndDate.value = contract.end_date || '';
-        
+
         // Show existing files
         if (contract.files && contract.files.length > 0) {
             elements.existingContractFiles.classList.remove('hidden');
@@ -1465,7 +1528,7 @@ function openContractModal(contract = null) {
         elements.contractModalTitle.textContent = 'Add New Contract';
         state.isContractEditMode = false;
     }
-    
+
     elements.contractModal?.classList.remove('hidden');
     elements.contractNumber?.focus();
 }
@@ -1479,42 +1542,42 @@ function closeContractModal() {
 
 function handleContractFileSelect(e) {
     const files = Array.from(e.target.files);
-    
+
     files.forEach(file => {
         if (file.type !== 'application/pdf') {
             showToast('Only PDF files are allowed', 'error');
             return;
         }
-        
+
         const maxSizeBytes = 10 * 1024 * 1024;
         if (file.size > maxSizeBytes) {
             showToast('File size must be less than 10MB', 'error');
             return;
         }
-        
+
         state.pendingContractFiles.push(file);
     });
-    
+
     if (elements.pendingFilesCount) {
-        elements.pendingFilesCount.textContent = state.pendingContractFiles.length > 0 
-            ? `${state.pendingContractFiles.length} file(s) selected` 
+        elements.pendingFilesCount.textContent = state.pendingContractFiles.length > 0
+            ? `${state.pendingContractFiles.length} file(s) selected`
             : '';
     }
-    
+
     e.target.value = '';
 }
 
 async function handleContractSubmit(e) {
     e.preventDefault();
-    
+
     const submitBtn = elements.contractSubmitBtn;
     const spinner = submitBtn?.querySelector('.btn-spinner');
     const btnText = submitBtn?.querySelector('span');
-    
+
     if (submitBtn) submitBtn.disabled = true;
     spinner?.classList.remove('hidden');
     if (btnText) btnText.textContent = 'Saving...';
-    
+
     try {
         const contractData = {
             contract_number: elements.contractNumber.value.trim(),
@@ -1524,19 +1587,19 @@ async function handleContractSubmit(e) {
             start_date: elements.contractStartDate.value || null,
             end_date: elements.contractEndDate.value || null
         };
-        
+
         if (!contractData.contract_number) {
             showToast('Contract number is required', 'error');
             return;
         }
-        
+
         if (!contractData.supplier_id) {
             showToast('Please select a supplier', 'error');
             return;
         }
-        
+
         let contractId;
-        
+
         if (state.isContractEditMode && elements.contractId.value) {
             contractId = parseInt(elements.contractId.value);
             await api.updateContract(contractId, contractData);
@@ -1546,15 +1609,15 @@ async function handleContractSubmit(e) {
             contractId = response.contract.id;
             showToast('Contract created successfully');
         }
-        
+
         // Upload pending files
         for (const file of state.pendingContractFiles) {
             await api.uploadContractFile(contractId, file);
         }
-        
+
         await loadContracts();
         closeContractModal();
-        
+
     } catch (error) {
         showToast(error.message || 'Failed to save contract', 'error');
     } finally {
@@ -1566,45 +1629,45 @@ async function handleContractSubmit(e) {
 
 function openContractDetailModal(contract) {
     state.currentContract = contract;
-    
+
     if (elements.contractDetailTitle) {
         elements.contractDetailTitle.textContent = `Contract: ${contract.contract_number}`;
     }
-    
+
     if (elements.contractDetailNumber) {
         elements.contractDetailNumber.textContent = contract.contract_number;
     }
-    
+
     if (elements.contractDetailSupplier) {
         elements.contractDetailSupplier.textContent = contract.supplier_name || 'Unknown';
     }
-    
+
     if (elements.contractDetailDescription) {
         elements.contractDetailDescription.textContent = contract.description || 'No description';
     }
-    
+
     if (elements.contractDetailAmount) {
-        elements.contractDetailAmount.textContent = contract.amount 
-            ? 'GYD ' + formatCurrency(contract.amount) 
+        elements.contractDetailAmount.textContent = contract.amount
+            ? 'GYD ' + formatCurrency(contract.amount)
             : '-';
     }
-    
+
     if (elements.contractDetailStart) {
-        elements.contractDetailStart.textContent = contract.start_date 
-            ? formatDate(contract.start_date) 
+        elements.contractDetailStart.textContent = contract.start_date
+            ? formatDate(contract.start_date)
             : '-';
     }
-    
+
     if (elements.contractDetailEnd) {
-        elements.contractDetailEnd.textContent = contract.end_date 
-            ? formatDate(contract.end_date) 
+        elements.contractDetailEnd.textContent = contract.end_date
+            ? formatDate(contract.end_date)
             : '-';
     }
-    
+
     if (elements.contractDetailCreated) {
         elements.contractDetailCreated.textContent = formatDate(contract.created_at);
     }
-    
+
     // Render files
     if (elements.contractDetailFiles) {
         if (contract.files && contract.files.length > 0) {
@@ -1638,7 +1701,7 @@ function openContractDetailModal(contract) {
             `;
         }
     }
-    
+
     elements.contractDetailModal?.classList.remove('hidden');
 }
 
@@ -1657,11 +1720,11 @@ function handleEditContract() {
 
 async function handleDeleteContract() {
     if (!state.currentContract) return;
-    
+
     const confirmed = confirm(`Are you sure you want to delete contract "${state.currentContract.contract_number}"?\n\nThis will also delete all associated files.`);
-    
+
     if (!confirmed) return;
-    
+
     try {
         await api.deleteContract(state.currentContract.id);
         closeContractDetailModal();
@@ -1679,16 +1742,16 @@ function viewContractFile(contractId, fileId) {
 
 async function removeContractFile(contractId, fileId) {
     const confirmed = confirm('Are you sure you want to delete this file?');
-    
+
     if (!confirmed) return;
-    
+
     try {
         await api.deleteContractFile(contractId, fileId);
-        
+
         // Refresh the contract in modal
         const updatedContract = await api.getContract(contractId);
         state.currentContract = updatedContract;
-        
+
         // Re-render the existing files in the edit modal
         if (elements.existingContractFiles && updatedContract.files) {
             if (updatedContract.files.length > 0) {
@@ -1712,7 +1775,7 @@ async function removeContractFile(contractId, fileId) {
                 elements.existingContractFiles.classList.add('hidden');
             }
         }
-        
+
         showToast('File deleted successfully');
     } catch (error) {
         showToast(error.message || 'Failed to delete file', 'error');
@@ -1740,15 +1803,15 @@ function showToast(message, type = 'success') {
     const messageEl = toast.querySelector('.toast-message');
     const successIcon = toast.querySelector('.toast-success');
     const errorIcon = toast.querySelector('.toast-error');
-    
+
     messageEl.textContent = message;
-    
+
     toast.classList.toggle('error', type === 'error');
     successIcon.classList.toggle('hidden', type !== 'success');
     errorIcon.classList.toggle('hidden', type !== 'error');
-    
+
     toast.classList.remove('hidden');
-    
+
     setTimeout(() => {
         toast.classList.add('hidden');
     }, 4000);
@@ -1799,3 +1862,244 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+
+// ==================== OUTSTANDING TASKS MODULE ====================
+
+async function loadTasks() {
+    showTasksLoading(true);
+
+    try {
+        const filters = {
+            archived: state.taskFilters.archived === 'all' ? undefined : (state.taskFilters.archived === 'archived'),
+            status: state.taskFilters.status || undefined,
+            assigned_unit: state.taskFilters.assigned_unit || undefined
+        };
+
+        state.tasks = await api.getTasks(filters);
+        renderTasks();
+        updateTaskStatistics();
+    } catch (error) {
+        console.error('Failed to load tasks:', error);
+        showToast('Failed to load tasks', 'error');
+    } finally {
+        showTasksLoading(false);
+    }
+}
+
+function renderTasks() {
+    const tbody = elements.tasksTableBody;
+
+    if (!state.tasks || state.tasks.length === 0) {
+        elements.tasksEmptyState.classList.remove('hidden');
+        document.getElementById('tasks-table-container').classList.add('hidden');
+        return;
+    }
+
+    elements.tasksEmptyState.classList.add('hidden');
+    document.getElementById('tasks-table-container').classList.remove('hidden');
+
+    tbody.innerHTML = state.tasks.map(task => createTaskRow(task)).join('');
+}
+
+function createTaskRow(task) {
+    const amount = task.contract_amount ? `$${formatCurrency(task.contract_amount)}` : 'N/A';
+    const expectedDate = task.expected_completion_date
+        ? new Date(task.expected_completion_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+        : 'Not set';
+
+    const statusClass = task.status.toLowerCase().replace(/\s+/g, '-');
+    const archivedBadge = task.archived ? '<span class="badge badge-archived">Archived</span>' : '';
+
+    return `
+        <tr data-task-id="${task.id}">
+            <td>${escapeHtml(task.supplier_name)}</td>
+            <td>
+                <div class="task-summary">${escapeHtml(task.summary)}</div>
+                ${task.notes ? `<div class="task-notes-preview">${escapeHtml(task.notes.substring(0, 100))}${task.notes.length > 100 ? '...' : ''}</div>` : ''}
+            </td>
+            <td>${amount}</td>
+            <td>
+                <span class="badge badge-${statusClass}">${escapeHtml(task.status)}</span>
+                ${archivedBadge}
+            </td>
+            <td>${escapeHtml(task.assigned_unit || 'Unassigned')}</td>
+            <td>${expectedDate}</td>
+            <td>
+                <div class="task-actions">
+                    <button class="btn-icon" onclick="handleTaskEdit(${task.id})" title="Edit Task">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    </button>
+                    <button class="btn-icon" onclick="handleTaskArchive(${task.id}, ${task.archived ? 0 : 1})" title="${task.archived ? 'Unarchive' : 'Archive'} Task">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    </button>
+                    <button class="btn-icon btn-danger" onclick="handleTaskDelete(${task.id})" title="Delete Task">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function openTaskModal(task = null) {
+    state.currentTask = task;
+    state.isTaskEditMode = !!task;
+
+    elements.taskModalTitle.textContent = task ? 'Edit Task' : 'Add New Task';
+
+    if (task) {
+        elements.taskId.value = task.id;
+        elements.taskSupplierName.value = task.supplier_name || '';
+        elements.taskSummary.value = task.summary || '';
+        elements.taskContractAmount.value = task.contract_amount || '';
+        elements.taskStatus.value = task.status || 'Pending';
+        elements.taskAssignedUnit.value = task.assigned_unit || '';
+        elements.taskExpectedCompletion.value = task.expected_completion_date || '';
+        elements.taskPriority.value = task.priority || 'Medium';
+        elements.taskCategory.value = task.category || '';
+        elements.taskDependency.value = task.dependency || '';
+        elements.taskNotes.value = task.notes || '';
+    } else {
+        elements.taskForm.reset();
+        elements.taskId.value = '';
+        elements.taskPriority.value = 'Medium';
+        elements.taskStatus.value = 'Pending';
+    }
+
+    elements.taskModal.classList.remove('hidden');
+}
+
+function closeTaskModal() {
+    elements.taskModal.classList.add('hidden');
+    elements.taskForm.reset();
+    state.currentTask = null;
+    state.isTaskEditMode = false;
+}
+
+async function handleTaskSubmit(e) {
+    e.preventDefault();
+
+    const submitBtn = elements.taskSubmitBtn;
+    const spinner = submitBtn.querySelector('.btn-spinner');
+    const btnText = submitBtn.querySelector('span');
+
+    submitBtn.disabled = true;
+    spinner?.classList.remove('hidden');
+    btnText.textContent = state.isTaskEditMode ? 'Updating...' : 'Creating...';
+
+    try {
+        const taskData = {
+            supplier_name: elements.taskSupplierName.value.trim(),
+            summary: elements.taskSummary.value.trim(),
+            contract_amount: elements.taskContractAmount.value ? parseFloat(elements.taskContractAmount.value) : null,
+            status: elements.taskStatus.value,
+            assigned_unit: elements.taskAssignedUnit.value || null,
+            expected_completion_date: elements.taskExpectedCompletion.value || null,
+            priority: elements.taskPriority.value,
+            category: elements.taskCategory.value || null,
+            dependency: elements.taskDependency.value || null,
+            notes: elements.taskNotes.value.trim() || null,
+            archived: state.currentTask?.archived || 0
+        };
+
+        if (state.isTaskEditMode) {
+            await api.updateTask(state.currentTask.id, taskData);
+            showToast('Task updated successfully', 'success');
+        } else {
+            await api.createTask(taskData);
+            showToast('Task created successfully', 'success');
+        }
+
+        closeTaskModal();
+        await loadTasks();
+
+    } catch (error) {
+        console.error('Failed to save task:', error);
+        showToast(error.message || 'Failed to save task', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        spinner?.classList.add('hidden');
+        btnText.textContent = 'Save Task';
+    }
+}
+
+async function handleTaskEdit(taskId) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (task) {
+        openTaskModal(task);
+    }
+}
+
+async function handleTaskDelete(taskId) {
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        await api.deleteTask(taskId);
+        showToast('Task deleted successfully', 'success');
+        await loadTasks();
+    } catch (error) {
+        console.error('Failed to delete task:', error);
+        showToast('Failed to delete task', 'error');
+    }
+}
+
+async function handleTaskArchive(taskId, archived) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    try {
+        await api.updateTask(taskId, { ...task, archived });
+        showToast(archived ? 'Task archived successfully' : 'Task unarchived successfully', 'success');
+        await loadTasks();
+    } catch (error) {
+        console.error('Failed to archive task:', error);
+        showToast('Failed to update task', 'error');
+    }
+}
+
+function handleTaskFilterChange() {
+    state.taskFilters.status = elements.taskStatusFilter.value;
+    state.taskFilters.assigned_unit = elements.taskUnitFilter.value;
+    loadTasks();
+}
+
+function handleTaskArchiveFilterChange(e) {
+    state.taskFilters.archived = e.target.value;
+
+    // Update view title
+    const titles = {
+        'active': 'Active Tasks',
+        'archived': 'Archived Tasks',
+        'all': 'All Tasks'
+    };
+    elements.tasksViewTitle.textContent = titles[e.target.value] || 'Tasks';
+
+    loadTasks();
+}
+
+function updateTaskStatistics() {
+    const total = state.tasks.length;
+    const active = state.tasks.filter(t => !t.archived).length;
+    const archived = state.tasks.filter(t => t.archived).length;
+
+    elements.totalTasks.textContent = total;
+    elements.activeTasks.textContent = active;
+    elements.archivedTasks.textContent = archived;
+}
+
+function showTasksLoading(show) {
+    elements.tasksLoadingState?.classList.toggle('hidden', !show);
+    elements.tasksEmptyState?.classList.add('hidden');
+    if (show) {
+        document.getElementById('tasks-table-container')?.classList.add('hidden');
+    }
+}
+
+// Make task functions globally accessible
+window.openTaskModal = openTaskModal;
+window.closeTaskModal = closeTaskModal;
+window.handleTaskEdit = handleTaskEdit;
+window.handleTaskDelete = handleTaskDelete;
+window.handleTaskArchive = handleTaskArchive;

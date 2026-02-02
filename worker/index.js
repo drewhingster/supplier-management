@@ -135,6 +135,24 @@ export default {
                 return await setupContractsTables(env);
             }
 
+            // ==================== OUTSTANDING TASKS ROUTES ====================
+            if (path === '/api/tasks') {
+                if (request.method === 'GET') return await getTasks(request, env);
+                if (request.method === 'POST') return await createTask(request, env);
+            }
+
+            if (path.match(/^\/api\/tasks\/\d+$/)) {
+                const id = parseInt(path.split('/').pop());
+                if (request.method === 'GET') return await getTask(id, env);
+                if (request.method === 'PUT') return await updateTask(id, request, env);
+                if (request.method === 'DELETE') return await deleteTask(id, env);
+            }
+
+            // Setup tasks table
+            if (path === '/api/setup/tasks' && request.method === 'POST') {
+                return await setupTasksTable(env);
+            }
+
             return jsonResponse({ error: 'Not found' }, 404);
 
         } catch (error) {
@@ -1236,6 +1254,198 @@ async function getAlerts(env) {
             total: alerts.length
         }
     });
+}
+
+// ==================== OUTSTANDING TASKS MODULE ====================
+
+async function setupTasksTable(env) {
+    try {
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                supplier_name TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                contract_amount REAL,
+                status TEXT NOT NULL DEFAULT 'Pending',
+                assigned_unit TEXT,
+                priority TEXT DEFAULT 'Medium',
+                category TEXT,
+                notes TEXT,
+                dependency TEXT,
+                expected_completion_date DATE,
+                archived INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `).run();
+
+        await env.DB.prepare(`
+            CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)
+        `).run();
+
+        await env.DB.prepare(`
+            CREATE INDEX IF NOT EXISTS idx_tasks_archived ON tasks(archived)
+        `).run();
+
+        return jsonResponse({ success: true, message: 'Tasks table created successfully' });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function getTasks(request, env) {
+    const url = new URL(request.url);
+    const archivedFilter = url.searchParams.get('archived');
+    const statusFilter = url.searchParams.get('status');
+    const supplierFilter = url.searchParams.get('supplier');
+    const assignedUnitFilter = url.searchParams.get('assigned_unit');
+
+    let query = 'SELECT * FROM tasks WHERE 1=1';
+    const bindings = [];
+
+    if (archivedFilter !== null) {
+        query += ' AND archived = ?';
+        bindings.push(archivedFilter === 'true' ? 1 : 0);
+    }
+
+    if (statusFilter) {
+        query += ' AND status = ?';
+        bindings.push(statusFilter);
+    }
+
+    if (supplierFilter) {
+        query += ' AND supplier_name LIKE ?';
+        bindings.push(`%${supplierFilter}%`);
+    }
+
+    if (assignedUnitFilter) {
+        query += ' AND assigned_unit = ?';
+        bindings.push(assignedUnitFilter);
+    }
+
+    query += ' ORDER BY created_at DESC';
+
+    const stmt = env.DB.prepare(query);
+    const result = bindings.length > 0
+        ? await stmt.bind(...bindings).all()
+        : await stmt.all();
+
+    return jsonResponse({ tasks: result.results });
+}
+
+async function getTask(id, env) {
+    const task = await env.DB.prepare(
+        'SELECT * FROM tasks WHERE id = ?'
+    ).bind(id).first();
+
+    if (!task) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+
+    return jsonResponse({ task });
+}
+
+async function createTask(request, env) {
+    const body = await request.json();
+
+    const errors = validateTask(body);
+    if (errors.length > 0) {
+        return jsonResponse({ error: errors.join(', ') }, 400);
+    }
+
+    const result = await env.DB.prepare(`
+        INSERT INTO tasks (
+            supplier_name, summary, contract_amount, status, assigned_unit,
+            priority, category, notes, dependency, expected_completion_date,
+            archived, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, datetime("now"), datetime("now"))
+    `).bind(
+        body.supplier_name.trim(),
+        body.summary.trim(),
+        body.contract_amount || null,
+        body.status || 'Pending',
+        body.assigned_unit?.trim() || null,
+        body.priority || 'Medium',
+        body.category?.trim() || null,
+        body.notes?.trim() || null,
+        body.dependency?.trim() || null,
+        body.expected_completion_date || null
+    ).run();
+
+    const taskId = result.meta.last_row_id;
+    const task = await env.DB.prepare('SELECT * FROM tasks WHERE id = ?').bind(taskId).first();
+
+    return jsonResponse({ success: true, task }, 201);
+}
+
+async function updateTask(id, request, env) {
+    const body = await request.json();
+
+    const existing = await env.DB.prepare('SELECT id FROM tasks WHERE id = ?').bind(id).first();
+    if (!existing) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+
+    const errors = validateTask(body);
+    if (errors.length > 0) {
+        return jsonResponse({ error: errors.join(', ') }, 400);
+    }
+
+    await env.DB.prepare(`
+        UPDATE tasks
+        SET supplier_name = ?, summary = ?, contract_amount = ?, status = ?,
+            assigned_unit = ?, priority = ?, category = ?, notes = ?,
+            dependency = ?, expected_completion_date = ?, archived = ?,
+            updated_at = datetime("now")
+        WHERE id = ?
+    `).bind(
+        body.supplier_name.trim(),
+        body.summary.trim(),
+        body.contract_amount || null,
+        body.status || 'Pending',
+        body.assigned_unit?.trim() || null,
+        body.priority || 'Medium',
+        body.category?.trim() || null,
+        body.notes?.trim() || null,
+        body.dependency?.trim() || null,
+        body.expected_completion_date || null,
+        body.archived ? 1 : 0,
+        id
+    ).run();
+
+    const task = await env.DB.prepare('SELECT * FROM tasks WHERE id = ?').bind(id).first();
+
+    return jsonResponse({ success: true, task });
+}
+
+async function deleteTask(id, env) {
+    const task = await env.DB.prepare('SELECT id FROM tasks WHERE id = ?').bind(id).first();
+
+    if (!task) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+
+    await env.DB.prepare('DELETE FROM tasks WHERE id = ?').bind(id).run();
+
+    return jsonResponse({ success: true });
+}
+
+function validateTask(data) {
+    const errors = [];
+
+    if (!data.supplier_name?.trim()) {
+        errors.push('Supplier name is required');
+    }
+
+    if (!data.summary?.trim()) {
+        errors.push('Task summary is required');
+    }
+
+    if (data.contract_amount !== undefined && data.contract_amount !== null && isNaN(parseFloat(data.contract_amount))) {
+        errors.push('Contract amount must be a valid number');
+    }
+
+    return errors;
 }
 
 // ==================== Utility ====================

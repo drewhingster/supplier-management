@@ -258,6 +258,56 @@ class SupplierAPI {
         });
     }
 
+    async setupTasksTable() {
+        return await this.request('/setup/tasks', {
+            method: 'POST'
+        });
+    }
+
+    // ==================== Outstanding Tasks ====================
+
+    async getTasks(filters = {}) {
+        let endpoint = '/tasks';
+        const params = new URLSearchParams();
+
+        if (filters.archived !== undefined) params.append('archived', filters.archived);
+        if (filters.status) params.append('status', filters.status);
+        if (filters.supplier) params.append('supplier', filters.supplier);
+        if (filters.assigned_unit) params.append('assigned_unit', filters.assigned_unit);
+
+        if (params.toString()) {
+            endpoint += `?${params.toString()}`;
+        }
+
+        const response = await this.request(endpoint);
+        return response.tasks || [];
+    }
+
+    async getTask(id) {
+        const response = await this.request(`/tasks/${id}`);
+        return response.task;
+    }
+
+    async createTask(data) {
+        return await this.request('/tasks', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateTask(id, data) {
+        return await this.request(`/tasks/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteTask(id) {
+        return await this.request(`/tasks/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
     // ==================== Statistics ====================
 
     async getStatistics() {

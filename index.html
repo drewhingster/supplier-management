@@ -58,6 +58,10 @@
                         <svg viewBox="0 0 24 24" width="18" height="18"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" fill="none"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2"/></svg>
                         Contracts
                     </button>
+                    <button id="nav-tasks" class="nav-tab" onclick="switchView('tasks')">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        Outstanding Tasks
+                    </button>
                 </div>
                 
                 <button id="add-category-btn" class="btn btn-secondary">
@@ -71,6 +75,10 @@
                 <button id="add-contract-btn" class="btn btn-primary hidden">
                     <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     Add Contract
+                </button>
+                <button id="add-task-btn" class="btn btn-primary hidden">
+                    <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Add Task
                 </button>
                 
                 <!-- Notification Button -->
@@ -258,9 +266,9 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div id="contracts-list" class="contracts-container"></div>
-                    
+
                     <div id="contracts-empty-state" class="empty-state hidden">
                         <svg viewBox="0 0 120 120" class="empty-icon">
                             <path d="M70 20H30a5 5 0 00-5 5v70a5 5 0 005 5h60a5 5 0 005-5V40L70 20z" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -280,6 +288,117 @@
                     <div id="contracts-loading-state" class="loading-state hidden">
                         <div class="loading-spinner"></div>
                         <p>Loading contracts...</p>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- ==================== OUTSTANDING TASKS VIEW ==================== -->
+        <div id="tasks-view" class="view-container hidden">
+            <main class="main-content tasks-main">
+                <!-- Tasks Sidebar -->
+                <aside class="sidebar">
+                    <div class="filter-section">
+                        <h3 class="filter-title">View</h3>
+                        <div class="status-filters">
+                            <label class="status-item">
+                                <input type="radio" name="task-archive-filter" value="active" checked>
+                                <span class="status-checkbox"></span>
+                                <span class="status-name">Active Tasks</span>
+                            </label>
+                            <label class="status-item">
+                                <input type="radio" name="task-archive-filter" value="archived">
+                                <span class="status-checkbox"></span>
+                                <span class="status-name">Archived Tasks</span>
+                            </label>
+                            <label class="status-item">
+                                <input type="radio" name="task-archive-filter" value="all">
+                                <span class="status-checkbox"></span>
+                                <span class="status-name">All Tasks</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <h3 class="filter-title">Filter by Status</h3>
+                        <select id="task-status-filter" class="form-select">
+                            <option value="">All Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Submitted">Submitted</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-section">
+                        <h3 class="filter-title">Filter by Unit</h3>
+                        <select id="task-unit-filter" class="form-select">
+                            <option value="">All Units</option>
+                            <option value="Procurement">Procurement</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Evaluation">Evaluation</option>
+                            <option value="Legal">Legal</option>
+                            <option value="Board">Board</option>
+                        </select>
+                    </div>
+
+                    <div class="sidebar-stats">
+                        <div class="stat-card">
+                            <span class="stat-value" id="total-tasks">0</span>
+                            <span class="stat-label">Total Tasks</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="active-tasks">0</span>
+                            <span class="stat-label">Active</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="archived-tasks">0</span>
+                            <span class="stat-label">Archived</span>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Tasks List -->
+                <section class="tasks-grid">
+                    <div class="grid-header">
+                        <h2 id="tasks-view-title">Active Tasks</h2>
+                    </div>
+
+                    <div id="tasks-table-container" class="tasks-table-container">
+                        <table id="tasks-table" class="tasks-table">
+                            <thead>
+                                <tr>
+                                    <th>Supplier</th>
+                                    <th>Summary / Contract Details</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Assigned Unit</th>
+                                    <th>Expected Completion</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tasks-table-body">
+                                <!-- Tasks will be rendered here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="tasks-empty-state" class="empty-state hidden">
+                        <svg viewBox="0 0 120 120" class="empty-icon">
+                            <path d="M40 30h40M40 50h40M40 70h25" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="8 4"/>
+                        </svg>
+                        <h3>No Tasks Found</h3>
+                        <p>Create your first task to get started.</p>
+                        <button class="btn btn-primary" onclick="openTaskModal()">
+                            <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Add First Task
+                        </button>
+                    </div>
+
+                    <div id="tasks-loading-state" class="loading-state hidden">
+                        <div class="loading-spinner"></div>
+                        <p>Loading tasks...</p>
                     </div>
                 </section>
             </main>
@@ -656,6 +775,117 @@
                     Edit Contract
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Task Modal -->
+    <div id="task-modal" class="modal hidden">
+        <div class="modal-content task-modal-content">
+            <div class="modal-header">
+                <h2 id="task-modal-title">Add New Task</h2>
+                <button class="modal-close" onclick="closeTaskModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+
+            <form id="task-form" class="task-form">
+                <input type="hidden" id="task-id">
+
+                <div class="form-section">
+                    <h3>Task Information</h3>
+                    <div class="form-row two-col">
+                        <div class="form-group">
+                            <label for="task-supplier-name">Supplier Name <span class="required">*</span></label>
+                            <input type="text" id="task-supplier-name" required placeholder="e.g., F & H Printing Establishment Inc.">
+                        </div>
+                        <div class="form-group">
+                            <label for="task-contract-amount">Contract Amount ($)</label>
+                            <input type="number" id="task-contract-amount" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="task-summary">Summary of Task / Contract Details <span class="required">*</span></label>
+                            <textarea id="task-summary" required placeholder="e.g., Perfect Binding of Census Preliminary Report Booklets"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row three-col">
+                        <div class="form-group">
+                            <label for="task-status">Current Status <span class="required">*</span></label>
+                            <select id="task-status" required>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Submitted">Submitted</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-assigned-unit">Assigned Unit / Officer</label>
+                            <select id="task-assigned-unit">
+                                <option value="">Select Unit</option>
+                                <option value="Procurement">Procurement</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Evaluation">Evaluation</option>
+                                <option value="Legal">Legal</option>
+                                <option value="Board">Board</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-expected-completion">Expected Completion Date</label>
+                            <input type="date" id="task-expected-completion">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Additional Details</h3>
+                    <div class="form-row three-col">
+                        <div class="form-group">
+                            <label for="task-priority">Priority Level</label>
+                            <select id="task-priority">
+                                <option value="Low">Low</option>
+                                <option value="Medium" selected>Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-category">Task Category</label>
+                            <select id="task-category">
+                                <option value="">Select Category</option>
+                                <option value="Evaluation">Evaluation</option>
+                                <option value="Contract Award">Contract Award</option>
+                                <option value="Signing">Signing</option>
+                                <option value="Payment Processing">Payment Processing</option>
+                                <option value="Compliance Review">Compliance Review</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-dependency">Dependency / Waiting On</label>
+                            <select id="task-dependency">
+                                <option value="">None</option>
+                                <option value="Finance">Finance</option>
+                                <option value="Legal">Legal</option>
+                                <option value="Supplier">Supplier</option>
+                                <option value="Board Approval">Board Approval</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="task-notes">Internal Notes / Remarks</label>
+                            <textarea id="task-notes" placeholder="Add any clarifications, follow-ups, or notes about delays..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="task-submit-btn">
+                        <span>Save Task</span>
+                        <div class="btn-spinner hidden"></div>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 

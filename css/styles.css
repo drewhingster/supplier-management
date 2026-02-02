@@ -20,7 +20,7 @@
     --color-accent: #e87722;
     --color-accent-light: #f59549;
     --color-accent-dark: #c45f12;
-    
+
     /* Status Colors */
     --color-success: #2e7d32;
     --color-success-light: #e8f5e9;
@@ -28,7 +28,7 @@
     --color-warning-light: #fff4e5;
     --color-error: #c62828;
     --color-error-light: #ffebee;
-    
+
     /* Neutrals */
     --color-bg: #faf8f5;
     --color-bg-secondary: #f5f2ed;
@@ -37,17 +37,17 @@
     --color-surface-elevated: #ffffff;
     --color-border: #d4cfc5;
     --color-border-light: #e8e4dc;
-    
+
     /* Text Colors */
     --color-text: #1a1a18;
     --color-text-secondary: #4a4a45;
     --color-text-muted: #7a7a72;
     --color-text-inverse: #ffffff;
-    
+
     /* Typography */
     --font-display: 'Source Serif 4', Georgia, serif;
     --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    
+
     /* Spacing */
     --space-xs: 0.25rem;
     --space-sm: 0.5rem;
@@ -56,19 +56,19 @@
     --space-xl: 2rem;
     --space-2xl: 3rem;
     --space-3xl: 4rem;
-    
+
     /* Border Radius */
     --radius-sm: 4px;
     --radius-md: 8px;
     --radius-lg: 12px;
     --radius-xl: 16px;
-    
+
     /* Shadows */
     --shadow-sm: 0 1px 2px rgba(26, 26, 24, 0.05);
     --shadow-md: 0 4px 12px rgba(26, 26, 24, 0.08);
     --shadow-lg: 0 8px 24px rgba(26, 26, 24, 0.12);
     --shadow-xl: 0 16px 48px rgba(26, 26, 24, 0.16);
-    
+
     /* Transitions */
     --transition-fast: 150ms ease;
     --transition-base: 250ms ease;
@@ -462,11 +462,11 @@ a:hover {
         flex-wrap: wrap;
         gap: var(--space-md);
     }
-    
+
     .header-title h1 {
         font-size: 1rem;
     }
-    
+
     .header-right {
         width: 100%;
         justify-content: flex-end;
@@ -693,14 +693,14 @@ a:hover {
     .main-content {
         flex-direction: column;
     }
-    
+
     .sidebar {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid var(--color-border);
         padding: var(--space-md);
     }
-    
+
     .sidebar-stats {
         margin-top: var(--space-lg);
     }
@@ -1378,35 +1378,35 @@ a:hover {
     .supplier-grid {
         padding: var(--space-md);
     }
-    
+
     .suppliers-container.grid-view {
         grid-template-columns: 1fr;
     }
-    
+
     .modal-content {
         margin: var(--space-md);
         border-radius: var(--radius-lg);
     }
-    
+
     .supplier-form,
     .detail-content {
         padding: var(--space-md);
     }
-    
+
     .detail-grid,
     .documents-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .detail-actions {
         flex-direction: column;
         gap: var(--space-md);
     }
-    
+
     .detail-actions .btn {
         width: 100%;
     }
-    
+
     .toast {
         left: var(--space-md);
         right: var(--space-md);
@@ -1421,11 +1421,11 @@ a:hover {
     .modal {
         display: none !important;
     }
-    
+
     .supplier-grid {
         padding: 0;
     }
-    
+
     .supplier-card {
         break-inside: avoid;
         box-shadow: none;
@@ -1686,7 +1686,7 @@ a:hover {
 }
 /* =========================================================================
    SUPPLIER MANAGEMENT SYSTEM - CSS ADDITIONS v2
-   
+
    Add these styles to your existing styles.css file
    ========================================================================= */
 
@@ -1893,13 +1893,13 @@ a:hover {
     .category-checkboxes {
         max-height: 150px;
     }
-    
+
     .compliance-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.25rem;
     }
-    
+
     .doc-actions-row {
         flex-direction: column;
     }
@@ -2194,7 +2194,7 @@ a:hover {
         width: auto;
         max-height: calc(100vh - 80px);
     }
-    
+
     .notification-summary {
         flex-wrap: wrap;
     }
@@ -2370,24 +2370,24 @@ a:hover {
         grid-template-rows: auto auto auto;
         gap: 0.5rem 1rem;
     }
-    
+
     .contract-card-header {
         grid-column: 1;
     }
-    
+
     .contract-supplier {
         grid-column: 2;
         text-align: right;
     }
-    
+
     .contract-description {
         grid-column: 1 / -1;
     }
-    
+
     .contract-amount {
         grid-column: 1;
     }
-    
+
     .contract-dates {
         grid-column: 2;
     }
@@ -2398,7 +2398,7 @@ a:hover {
         grid-template-columns: 1fr;
         gap: 0.5rem;
     }
-    
+
     .contract-supplier,
     .contract-dates {
         text-align: left;
@@ -2565,11 +2565,11 @@ a:hover {
     .nav-tabs {
         display: none;
     }
-    
+
     .contract-form .form-row.three-col {
         grid-template-columns: 1fr;
     }
-    
+
     .contracts-container {
         grid-template-columns: 1fr;
     }
@@ -2641,7 +2641,7 @@ a:hover {
     .contract-form .form-row.three-col {
         grid-template-columns: 1fr;
     }
-    
+
     .contract-form .form-row.two-col {
         grid-template-columns: 1fr;
     }
@@ -2809,5 +2809,159 @@ a:hover {
 @media (max-width: 1024px) {
     .contract-list-header {
         display: none;
+    }
+}
+
+
+/* ==================== OUTSTANDING TASKS MODULE ==================== */
+
+.tasks-main {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.tasks-grid {
+    flex: 1;
+    min-width: 0;
+}
+
+.tasks-table-container {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+.tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.tasks-table thead {
+    background: var(--color-bg-secondary);
+    border-bottom: 2px solid var(--color-border);
+}
+
+.tasks-table th {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+}
+
+.tasks-table tbody tr {
+    border-bottom: 1px solid var(--color-border-light);
+    transition: background-color 0.15s ease;
+}
+
+.tasks-table tbody tr:hover {
+    background: var(--color-bg);
+}
+
+.tasks-table td {
+    padding: 1rem;
+    vertical-align: top;
+}
+
+.task-summary {
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: 0.25rem;
+}
+
+.task-notes-preview {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin-top: 0.25rem;
+}
+
+.task-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.badge-archived {
+    background: var(--color-text-muted);
+    color: white;
+    margin-left: 0.5rem;
+}
+
+.badge-pending {
+    background: var(--color-warning-light);
+    color: var(--color-warning);
+}
+
+.badge-in-progress {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.badge-submitted {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.badge-completed {
+    background: var(--color-success-light);
+    color: var(--color-success);
+}
+
+/* Task Modal */
+.task-modal-content {
+    max-width: 900px;
+}
+
+.task-form .form-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.task-form .form-section:last-of-type {
+    border-bottom: none;
+}
+
+.task-form .form-section h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    margin-bottom: 1rem;
+}
+
+/* Responsive Tasks Table */
+@media (max-width: 1200px) {
+    .tasks-table {
+        font-size: 0.8125rem;
+    }
+
+    .tasks-table th,
+    .tasks-table td {
+        padding: 0.75rem 0.625rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .tasks-main {
+        flex-direction: column;
+    }
+
+    .tasks-table-container {
+        overflow-x: scroll;
+    }
+
+    .tasks-table {
+        min-width: 900px;
     }
 }

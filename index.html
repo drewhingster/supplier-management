@@ -331,15 +331,8 @@
                     </div>
 
                     <div class="filter-section">
-                        <h3 class="filter-title">Filter by Unit</h3>
-                        <select id="task-unit-filter" class="form-select">
-                            <option value="">All Units</option>
-                            <option value="Procurement">Procurement</option>
-                            <option value="Finance">Finance</option>
-                            <option value="Evaluation">Evaluation</option>
-                            <option value="Legal">Legal</option>
-                            <option value="Board">Board</option>
-                        </select>
+                        <h3 class="filter-title">Filter by Assigned Person</h3>
+                        <input type="text" id="task-unit-filter" class="form-select" placeholder="Search by name...">
                     </div>
 
                     <div class="sidebar-stats">
@@ -820,15 +813,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="task-assigned-unit">Assigned Unit / Officer</label>
-                            <select id="task-assigned-unit">
-                                <option value="">Select Unit</option>
-                                <option value="Procurement">Procurement</option>
-                                <option value="Finance">Finance</option>
-                                <option value="Evaluation">Evaluation</option>
-                                <option value="Legal">Legal</option>
-                                <option value="Board">Board</option>
-                            </select>
+                            <label for="task-assigned-unit">Assigned To (Person/Unit)</label>
+                            <input type="text" id="task-assigned-unit" placeholder="e.g., John Smith, Procurement Team">
                         </div>
                         <div class="form-group">
                             <label for="task-expected-completion">Expected Completion Date</label>

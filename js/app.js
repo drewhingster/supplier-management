@@ -277,7 +277,7 @@ function setupEventListeners() {
 
     // Task Filters
     elements.taskStatusFilter?.addEventListener('change', handleTaskFilterChange);
-    elements.taskUnitFilter?.addEventListener('change', handleTaskFilterChange);
+    elements.taskUnitFilter?.addEventListener('input', handleTaskFilterChange);
     document.querySelectorAll('input[name="task-archive-filter"]').forEach(radio => {
         radio.addEventListener('change', handleTaskArchiveFilterChange);
     });
@@ -1871,8 +1871,8 @@ async function loadTasks() {
     try {
         const filters = {
             archived: state.taskFilters.archived === 'all' ? undefined : (state.taskFilters.archived === 'archived'),
-            status: state.taskFilters.status || undefined,
-            assigned_unit: state.taskFilters.assigned_unit || undefined
+            status: state.taskFilters.status || undefined
+            // Note: assigned_unit filter is now done client-side for partial matching
         };
 
         state.tasks = await api.getTasks(filters);
@@ -1889,7 +1889,18 @@ async function loadTasks() {
 function renderTasks() {
     const tbody = elements.tasksTableBody;
 
-    if (!state.tasks || state.tasks.length === 0) {
+    // Apply client-side filter for assigned person (partial match)
+    let filteredTasks = state.tasks;
+    const assignedFilter = state.taskFilters.assigned_unit?.trim().toLowerCase();
+
+    if (assignedFilter) {
+        filteredTasks = state.tasks.filter(task => {
+            const assignedTo = (task.assigned_unit || '').toLowerCase();
+            return assignedTo.includes(assignedFilter);
+        });
+    }
+
+    if (!filteredTasks || filteredTasks.length === 0) {
         elements.tasksEmptyState.classList.remove('hidden');
         document.getElementById('tasks-table-container').classList.add('hidden');
         return;
@@ -1898,7 +1909,7 @@ function renderTasks() {
     elements.tasksEmptyState.classList.add('hidden');
     document.getElementById('tasks-table-container').classList.remove('hidden');
 
-    tbody.innerHTML = state.tasks.map(task => createTaskRow(task)).join('');
+    tbody.innerHTML = filteredTasks.map(task => createTaskRow(task)).join('');
 }
 
 function createTaskRow(task) {

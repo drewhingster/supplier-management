@@ -458,15 +458,23 @@ function setupEventListeners() {
         }
     });
 
-    // Close on escape
+    // Close on escape - with confirmation for forms with data
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            closeSupplierModal();
-            closeDetailModal();
-            closeCategoryModal();
-            closeContractModal();
-            closeContractDetailModal();
-            closeNotificationPanel();
+            // Check which modal is open and close it with confirmation
+            if (!elements.supplierModal?.classList.contains('hidden')) {
+                closeSupplierModal();
+            } else if (!elements.contractModal?.classList.contains('hidden')) {
+                closeContractModal();
+            } else if (!elements.taskModal?.classList.contains('hidden')) {
+                closeTaskModal();
+            } else {
+                // These don't need confirmation as they're view-only
+                closeDetailModal();
+                closeCategoryModal();
+                closeContractDetailModal();
+                closeNotificationPanel();
+            }
         }
     });
 
@@ -1190,11 +1198,37 @@ function openSupplierModal(supplier = null) {
     elements.supplierName.focus();
 }
 
-function closeSupplierModal() {
+function closeSupplierModal(skipConfirm = false) {
+    // Check if form has data and prompt for confirmation
+    if (!skipConfirm && hasFormData(elements.supplierForm)) {
+        if (!confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+            return;
+        }
+    }
     elements.supplierModal.classList.add('hidden');
+    elements.supplierForm?.reset();
     state.currentSupplier = null;
     state.isEditMode = false;
     state.pendingDocuments = {};
+}
+
+// Helper function to check if a form has any data entered
+function hasFormData(form) {
+    if (!form) return false;
+    const inputs = form.querySelectorAll('input, textarea, select');
+    for (const input of inputs) {
+        if (input.type === 'hidden') continue;
+        if (input.type === 'checkbox' || input.type === 'radio') {
+            if (input.checked) return true;
+        } else if (input.type === 'file') {
+            if (input.files && input.files.length > 0) return true;
+        } else if (input.value && input.value.trim() !== '') {
+            // Skip default select values
+            if (input.tagName === 'SELECT' && input.selectedIndex === 0) continue;
+            return true;
+        }
+    }
+    return false;
 }
 
 async function handleSupplierSubmit(e) {
@@ -1246,7 +1280,7 @@ async function handleSupplierSubmit(e) {
         await loadSuppliers();
         await loadCategories();
 
-        closeSupplierModal();
+        closeSupplierModal(true); // Skip confirmation since we just saved
 
     } catch (error) {
         showToast(error.message || 'Failed to save supplier', 'error');
@@ -1698,8 +1732,15 @@ function openContractModal(contract = null) {
     elements.contractNumber?.focus();
 }
 
-function closeContractModal() {
+function closeContractModal(skipConfirm = false) {
+    // Check if form has data and prompt for confirmation
+    if (!skipConfirm && hasFormData(elements.contractForm)) {
+        if (!confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+            return;
+        }
+    }
     elements.contractModal?.classList.add('hidden');
+    elements.contractForm?.reset();
     state.currentContract = null;
     state.isContractEditMode = false;
     state.pendingContractFiles = [];
@@ -1781,7 +1822,7 @@ async function handleContractSubmit(e) {
         }
 
         await loadContracts();
-        closeContractModal();
+        closeContractModal(true); // Skip confirmation since we just saved
 
     } catch (error) {
         showToast(error.message || 'Failed to save contract', 'error');
@@ -2479,7 +2520,13 @@ async function populateContractorDropdown(selectedValue = '') {
     }
 }
 
-function closeTaskModal() {
+function closeTaskModal(skipConfirm = false) {
+    // Check if form has data and prompt for confirmation
+    if (!skipConfirm && hasFormData(elements.taskForm)) {
+        if (!confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+            return;
+        }
+    }
     elements.taskModal.classList.add('hidden');
     elements.taskForm.reset();
     elements.awardDetailsSection?.classList.add('hidden');
@@ -2550,7 +2597,7 @@ async function handleTaskSubmit(e) {
             await uploadAwardDocument(savedTask.id, awardFile);
         }
 
-        closeTaskModal();
+        closeTaskModal(true); // Skip confirmation since we just saved
         await loadTasks();
 
     } catch (error) {
@@ -2607,6 +2654,11 @@ async function handleTaskDelete(taskId) {
 async function handleTaskArchive(taskId, archived) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
+
+    const action = archived ? 'archive' : 'unarchive';
+    if (!confirm(`Are you sure you want to ${action} this task?`)) {
+        return;
+    }
 
     try {
         await api.updateTask(taskId, { ...task, archived });

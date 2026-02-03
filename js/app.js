@@ -2356,16 +2356,53 @@ function createTaskRow(task) {
             </div>
             <div class="clickup-subtasks">
                 ${subtasksHtml}
+                <div class="task-suppliers-list" id="task-suppliers-${task.id}" data-loaded="false"></div>
             </div>
         </div>
     `;
 }
 
 // Toggle task row expand/collapse
-function toggleTaskExpand(taskId) {
+async function toggleTaskExpand(taskId) {
     const row = document.querySelector(`.clickup-task-row[data-task-id="${taskId}"]`);
     if (row) {
+        const isExpanding = !row.classList.contains('expanded');
         row.classList.toggle('expanded');
+
+        // Load suppliers when expanding if not already loaded
+        if (isExpanding) {
+            const suppliersContainer = document.getElementById(`task-suppliers-${taskId}`);
+            if (suppliersContainer && suppliersContainer.dataset.loaded === 'false') {
+                suppliersContainer.dataset.loaded = 'true';
+                await loadAndDisplayTaskSuppliers(taskId, suppliersContainer);
+            }
+        }
+    }
+}
+
+// Load and display suppliers in the expanded task row
+async function loadAndDisplayTaskSuppliers(taskId, container) {
+    try {
+        const suppliers = await loadTaskSuppliers(taskId);
+        if (suppliers.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const suppliersHtml = suppliers.map(s => `
+            <div class="task-supplier-item">
+                <span class="supplier-name">${escapeHtml(s.supplier_name)}</span>
+                <span class="supplier-amount">G$${formatCurrency(s.amount)}</span>
+                ${s.notes ? `<span class="supplier-notes">(${escapeHtml(s.notes)})</span>` : ''}
+            </div>
+        `).join('');
+
+        container.innerHTML = `
+            <h5>Supplier Allocations</h5>
+            ${suppliersHtml}
+        `;
+    } catch (error) {
+        console.error('Failed to load task suppliers:', error);
     }
 }
 
@@ -2558,6 +2595,16 @@ async function openTaskModal(task = null) {
             });
             updateAwardDetailsVisibility();
         }, 100);
+
+        // Load task suppliers for multi-supplier split
+        resetSupplierModal();
+        const suppliers = await loadTaskSuppliers(task.id);
+        if (suppliers.length > 0) {
+            document.getElementById('enable-multi-supplier').checked = true;
+            document.getElementById('multi-supplier-container')?.classList.remove('hidden');
+            updateSupplierBudgetDisplay();
+            suppliers.forEach(s => addSupplierRow(s));
+        }
     } else {
         elements.taskForm.reset();
         elements.taskId.value = '';
@@ -2571,6 +2618,9 @@ async function openTaskModal(task = null) {
             elements.tierBadge.textContent = 'Enter budget to determine tier';
             elements.tierBadge.className = 'tier-badge';
         }
+
+        // Reset multi-supplier section
+        resetSupplierModal();
     }
 
     elements.taskModal.classList.remove('hidden');
@@ -2611,6 +2661,9 @@ function handleBudgetChange() {
 
     // Render workflow stages
     renderWorkflowStages(tier, requiresContract);
+
+    // Update supplier budget display if multi-supplier is enabled
+    updateSupplierBudgetDisplay();
 }
 
 // Handle contract toggle
@@ -2625,6 +2678,188 @@ function handleContractToggle() {
 
     // Re-render workflow stages to include/exclude contract stage
     handleBudgetChange();
+}
+
+// ==================== Multi-Supplier Split Functions ====================
+
+// Track suppliers in modal
+let modalSuppliers = [];
+let supplierIdCounter = 0;
+
+function toggleMultiSupplier() {
+    const isEnabled = document.getElementById('enable-multi-supplier')?.checked;
+    const container = document.getElementById('multi-supplier-container');
+
+    if (container) {
+        if (isEnabled) {
+            container.classList.remove('hidden');
+            updateSupplierBudgetDisplay();
+            // Add first supplier row if empty
+            if (modalSuppliers.length === 0) {
+                addSupplierRow();
+            }
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+}
+
+function addSupplierRow(supplierData = null) {
+    const supplierList = document.getElementById('supplier-list');
+    if (!supplierList) return;
+
+    const tempId = `temp_${++supplierIdCounter}`;
+    const supplier = {
+        tempId: tempId,
+        id: supplierData?.id || null,
+        supplier_name: supplierData?.supplier_name || '',
+        amount: supplierData?.amount || 0,
+        notes: supplierData?.notes || ''
+    };
+    modalSuppliers.push(supplier);
+
+    const row = document.createElement('div');
+    row.className = 'supplier-row';
+    row.dataset.tempId = tempId;
+    row.innerHTML = `
+        <select class="supplier-select" onchange="updateSupplierData('${tempId}', 'supplier_name', this.value)">
+            <option value="">Select Supplier</option>
+            ${state.suppliers.map(s => `<option value="${escapeHtml(s.supplier_name)}" ${s.supplier_name === supplier.supplier_name ? 'selected' : ''}>${escapeHtml(s.supplier_name)}</option>`).join('')}
+        </select>
+        <input type="number" class="supplier-amount" placeholder="Amount" step="0.01" min="0"
+            value="${supplier.amount || ''}"
+            onchange="updateSupplierData('${tempId}', 'amount', this.value)">
+        <input type="text" class="supplier-notes" placeholder="Notes (optional)"
+            value="${escapeHtml(supplier.notes || '')}"
+            onchange="updateSupplierData('${tempId}', 'notes', this.value)">
+        <button type="button" class="remove-supplier-btn" onclick="removeSupplierRow('${tempId}')" title="Remove supplier">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        </button>
+    `;
+    supplierList.appendChild(row);
+    updateSupplierSum();
+}
+
+function updateSupplierData(tempId, field, value) {
+    const supplier = modalSuppliers.find(s => s.tempId === tempId);
+    if (supplier) {
+        if (field === 'amount') {
+            supplier[field] = parseFloat(value) || 0;
+        } else {
+            supplier[field] = value;
+        }
+    }
+    updateSupplierSum();
+}
+
+function removeSupplierRow(tempId) {
+    modalSuppliers = modalSuppliers.filter(s => s.tempId !== tempId);
+    const row = document.querySelector(`.supplier-row[data-temp-id="${tempId}"]`);
+    if (row) row.remove();
+    updateSupplierSum();
+}
+
+function updateSupplierBudgetDisplay() {
+    const budgetAmount = parseFloat(document.getElementById('task-budget-amount')?.value) || 0;
+    const budgetDisplay = document.getElementById('supplier-budget-display');
+    if (budgetDisplay) {
+        budgetDisplay.textContent = `G$${budgetAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    updateSupplierSum();
+}
+
+function updateSupplierSum() {
+    const sum = modalSuppliers.reduce((acc, s) => acc + (parseFloat(s.amount) || 0), 0);
+    const sumDisplay = document.getElementById('supplier-sum-display');
+    const balanceDisplay = document.getElementById('supplier-balance');
+    const budgetAmount = parseFloat(document.getElementById('task-budget-amount')?.value) || 0;
+
+    if (sumDisplay) {
+        sumDisplay.textContent = `G$${sum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    if (balanceDisplay) {
+        const diff = Math.abs(budgetAmount - sum);
+        if (diff < 0.01) {
+            balanceDisplay.textContent = 'Balanced';
+            balanceDisplay.className = 'supplier-balance balanced';
+        } else if (sum > budgetAmount) {
+            balanceDisplay.textContent = `Over by G$${(sum - budgetAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            balanceDisplay.className = 'supplier-balance unbalanced';
+        } else {
+            balanceDisplay.textContent = `Remaining: G$${(budgetAmount - sum).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            balanceDisplay.className = 'supplier-balance unbalanced';
+        }
+    }
+}
+
+function resetSupplierModal() {
+    modalSuppliers = [];
+    supplierIdCounter = 0;
+    const supplierList = document.getElementById('supplier-list');
+    if (supplierList) supplierList.innerHTML = '';
+    const enableCheckbox = document.getElementById('enable-multi-supplier');
+    if (enableCheckbox) enableCheckbox.checked = false;
+    const container = document.getElementById('multi-supplier-container');
+    if (container) container.classList.add('hidden');
+}
+
+async function loadTaskSuppliers(taskId) {
+    try {
+        const response = await fetch(`${window.API_BASE_URL}/api/tasks/${taskId}/suppliers`, {
+            headers: { 'Authorization': `Bearer ${api.getToken()}` }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return data.suppliers || [];
+        }
+    } catch (error) {
+        console.error('Failed to load task suppliers:', error);
+    }
+    return [];
+}
+
+async function saveTaskSuppliers(taskId) {
+    const isEnabled = document.getElementById('enable-multi-supplier')?.checked;
+    if (!isEnabled) return;
+
+    const token = api.getToken();
+
+    // Get existing suppliers from server
+    const existing = await loadTaskSuppliers(taskId);
+    const existingIds = existing.map(s => s.id);
+
+    // Delete suppliers that were removed
+    for (const existingSupplier of existing) {
+        const stillExists = modalSuppliers.find(s => s.id === existingSupplier.id);
+        if (!stillExists) {
+            await fetch(`${window.API_BASE_URL}/api/tasks/${taskId}/suppliers/${existingSupplier.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+        }
+    }
+
+    // Add or update suppliers
+    for (const supplier of modalSuppliers) {
+        if (!supplier.supplier_name?.trim()) continue;
+
+        if (!supplier.id) {
+            // New supplier - add it
+            await fetch(`${window.API_BASE_URL}/api/tasks/${taskId}/suppliers`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    supplier_name: supplier.supplier_name,
+                    amount: supplier.amount,
+                    notes: supplier.notes
+                })
+            });
+        }
+    }
 }
 
 // Render workflow stages in the modal
@@ -2850,6 +3085,11 @@ async function handleTaskSubmit(e) {
             await uploadAwardDocument(savedTask.id, awardFile);
         }
 
+        // Save multi-supplier allocations if enabled
+        if (savedTask?.id) {
+            await saveTaskSuppliers(savedTask.id);
+        }
+
         closeTaskModal(true); // Skip confirmation since we just saved
         await loadTasks();
 
@@ -3060,6 +3300,10 @@ window.toggleTaskExpand = toggleTaskExpand;
 window.handleStageToggle = handleStageToggle;
 window.updateModalStageProgress = updateModalStageProgress;
 window.openContractModalFromTask = openContractModalFromTask;
+window.toggleMultiSupplier = toggleMultiSupplier;
+window.addSupplierRow = addSupplierRow;
+window.updateSupplierData = updateSupplierData;
+window.removeSupplierRow = removeSupplierRow;
 
 // ==================== Audit Log Functions ====================
 

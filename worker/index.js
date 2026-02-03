@@ -203,6 +203,20 @@ export default {
                 if (request.method === 'DELETE') return await deleteTaskAwardDocument(taskId, env, currentUser, request);
             }
 
+            // Task suppliers (multi-supplier split)
+            if (path.match(/^\/api\/tasks\/\d+\/suppliers$/)) {
+                const taskId = parseInt(path.split('/')[3]);
+                if (request.method === 'GET') return await getTaskSuppliers(taskId, env);
+                if (request.method === 'POST') return await addTaskSupplier(taskId, request, env, currentUser);
+            }
+
+            if (path.match(/^\/api\/tasks\/\d+\/suppliers\/\d+$/)) {
+                const parts = path.split('/');
+                const taskId = parseInt(parts[3]);
+                const supplierId = parseInt(parts[5]);
+                if (request.method === 'DELETE') return await deleteTaskSupplier(taskId, supplierId, env, currentUser, request);
+            }
+
             // Setup tasks table
             if (path === '/api/setup/tasks' && request.method === 'POST') {
                 return await setupTasksTable(env);
@@ -1813,6 +1827,23 @@ async function setupTasksTable(env) {
             CREATE INDEX IF NOT EXISTS idx_tasks_archived ON tasks(archived)
         `).run();
 
+        // Create task_suppliers table for multi-supplier split
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS task_suppliers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                supplier_name TEXT NOT NULL,
+                amount REAL NOT NULL,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+            )
+        `).run();
+
+        await env.DB.prepare(`
+            CREATE INDEX IF NOT EXISTS idx_task_suppliers_task_id ON task_suppliers(task_id)
+        `).run();
+
         return jsonResponse({ success: true, message: 'Tasks table created successfully' });
     } catch (error) {
         return jsonResponse({ error: error.message }, 500);
@@ -2106,6 +2137,78 @@ async function deleteTaskAwardDocument(taskId, env, currentUser, request) {
 
     // Log audit entry
     await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'TaskAwardDocument', taskId, task.title, `Deleted award document for task: ${task.title}`, request);
+
+    return jsonResponse({ success: true });
+}
+
+// ==================== Task Suppliers (Multi-Supplier Split) ====================
+
+async function getTaskSuppliers(taskId, env) {
+    const task = await env.DB.prepare('SELECT id FROM tasks WHERE id = ?').bind(taskId).first();
+    if (!task) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+
+    const { results } = await env.DB.prepare(`
+        SELECT id, task_id, supplier_name, amount, notes, created_at
+        FROM task_suppliers
+        WHERE task_id = ?
+        ORDER BY created_at ASC
+    `).bind(taskId).all();
+
+    return jsonResponse({ suppliers: results || [] });
+}
+
+async function addTaskSupplier(taskId, request, env, currentUser) {
+    const task = await env.DB.prepare('SELECT id, title FROM tasks WHERE id = ?').bind(taskId).first();
+    if (!task) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+
+    const body = await request.json();
+
+    if (!body.supplier_name?.trim()) {
+        return jsonResponse({ error: 'Supplier name is required' }, 400);
+    }
+
+    if (body.amount === undefined || body.amount === null || isNaN(parseFloat(body.amount))) {
+        return jsonResponse({ error: 'Valid amount is required' }, 400);
+    }
+
+    const result = await env.DB.prepare(`
+        INSERT INTO task_suppliers (task_id, supplier_name, amount, notes, created_at)
+        VALUES (?, ?, ?, ?, datetime("now"))
+    `).bind(
+        taskId,
+        body.supplier_name.trim(),
+        parseFloat(body.amount),
+        body.notes?.trim() || null
+    ).run();
+
+    const supplierId = result.meta.last_row_id;
+    const supplier = await env.DB.prepare('SELECT * FROM task_suppliers WHERE id = ?').bind(supplierId).first();
+
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'TaskSupplier', supplierId, body.supplier_name.trim(), `Added supplier "${body.supplier_name.trim()}" to task: ${task.title}`, request);
+
+    return jsonResponse({ success: true, supplier }, 201);
+}
+
+async function deleteTaskSupplier(taskId, supplierId, env, currentUser, request) {
+    const task = await env.DB.prepare('SELECT id, title FROM tasks WHERE id = ?').bind(taskId).first();
+    if (!task) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+
+    const supplier = await env.DB.prepare('SELECT * FROM task_suppliers WHERE id = ? AND task_id = ?').bind(supplierId, taskId).first();
+    if (!supplier) {
+        return jsonResponse({ error: 'Supplier not found' }, 404);
+    }
+
+    await env.DB.prepare('DELETE FROM task_suppliers WHERE id = ?').bind(supplierId).run();
+
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'TaskSupplier', supplierId, supplier.supplier_name, `Removed supplier "${supplier.supplier_name}" from task: ${task.title}`, request);
 
     return jsonResponse({ success: true });
 }

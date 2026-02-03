@@ -1053,6 +1053,31 @@
                         </div>
                     </div>
 
+                    <!-- Multi-Supplier Split Section -->
+                    <div class="multi-supplier-section">
+                        <div class="supplier-toggle">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="enable-multi-supplier" onchange="toggleMultiSupplier()">
+                                <span class="checkbox-custom"></span>
+                                <span>Split across multiple suppliers</span>
+                            </label>
+                        </div>
+                        <div id="multi-supplier-container" class="hidden">
+                            <div class="supplier-summary">
+                                <span>Budget Amount: <strong id="supplier-budget-display">G$0.00</strong></span>
+                                <span class="supplier-sum">Sum of Allocations: <strong id="supplier-sum-display">G$0.00</strong></span>
+                                <span id="supplier-balance" class="supplier-balance balanced">Balanced</span>
+                            </div>
+                            <div id="supplier-list" class="supplier-list">
+                                <!-- Supplier rows will be added dynamically -->
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm add-supplier-btn" onclick="addSupplierRow()">
+                                <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                Add Supplier
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Contract Linking (shown when contract is required) -->
                     <div id="contract-link-section" class="conditional-section hidden">
                         <div class="form-row two-col">

@@ -3141,18 +3141,11 @@ async function populateUserFilter() {
 }
 
 function formatAuditTime(timestamp) {
-    // Parse the timestamp
-    const utcDate = new Date(timestamp);
+    // Server already stores Guyana time, no conversion needed
+    const date = new Date(timestamp);
     
-    // Guyana is UTC-4, so subtract 4 hours (14400000 milliseconds)
-    const guyanaOffset = -4 * 60 * 60 * 1000;
-    const guyanaDate = new Date(utcDate.getTime() + guyanaOffset);
-    
-    // Get current time in Guyana
-    const nowUtc = new Date();
-    const nowGuyana = new Date(nowUtc.getTime() + guyanaOffset);
-    
-    const diffMs = nowGuyana - guyanaDate;
+    const now = new Date();
+    const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
@@ -3164,31 +3157,27 @@ function formatAuditTime(timestamp) {
     
     // Format as readable date
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const month = months[guyanaDate.getUTCMonth()];
-    const day = guyanaDate.getUTCDate();
-    const year = guyanaDate.getUTCFullYear();
+    const month = months[date.getMonth()];
+    const day = date.getDate();
+    const year = date.getFullYear();
     return `${month} ${day}, ${year}`;
 }
 
 function formatAuditTimestamp(timestamp) {
-    // Parse the timestamp
-    const utcDate = new Date(timestamp);
-    
-    // Guyana is UTC-4, so subtract 4 hours (14400000 milliseconds)
-    const guyanaOffset = -4 * 60 * 60 * 1000;
-    const guyanaTime = new Date(utcDate.getTime() + guyanaOffset);
-    
+    // Server already stores Guyana time, no conversion needed
+    const date = new Date(timestamp);
+
     // Format manually
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const month = months[guyanaTime.getUTCMonth()];
-    const day = guyanaTime.getUTCDate();
-    const year = guyanaTime.getUTCFullYear();
+    const month = months[date.getMonth()];
+    const day = date.getDate();
+    const year = date.getFullYear();
     
-    let hours = guyanaTime.getUTCHours();
-    const minutes = guyanaTime.getUTCMinutes().toString().padStart(2, '0');
+    let hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12 || 12;
-    
+
     return `${month} ${day}, ${year}, ${hours}:${minutes} ${ampm}`;
 }
 

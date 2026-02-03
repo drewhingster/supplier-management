@@ -567,17 +567,22 @@ async function getUsers(env) {
 async function logAudit(env, userId, userName, action, entityType, entityId, entityName, details, request) {
     try {
         const ipAddress = request?.headers?.get('CF-Connecting-IP') || 'unknown';
+        
+        // Get current time in Guyana (UTC-4)
+        const now = new Date();
+        const guyanaOffset = -4 * 60 * 60 * 1000; // -4 hours in milliseconds
+        const guyanaTime = new Date(now.getTime() + guyanaOffset);
+        const timestamp = guyanaTime.toISOString().replace('T', ' ').substring(0, 19);
 
         await env.AUDIT_DB.prepare(`
-            INSERT INTO audit_logs (user_id, user_name, action, entity_type, entity_id, entity_name, details, ip_address)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(userId, userName, action, entityType, entityId || null, entityName || null, details || null, ipAddress).run();
+            INSERT INTO audit_logs (user_id, user_name, action, entity_type, entity_id, entity_name, details, ip_address, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(userId, userName, action, entityType, entityId || null, entityName || null, details || null, ipAddress, timestamp).run();
     } catch (error) {
         console.error('Failed to log audit entry:', error);
         // Don't throw - audit logging should not break the main operation
     }
 }
-
 // Get audit logs with filtering
 async function getAuditLogs(request, env) {
     try {

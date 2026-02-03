@@ -173,11 +173,28 @@
             <main class="main-content">
                 <!-- Sidebar Filters -->
                 <aside class="sidebar">
+                    <!-- Recent Activity Widget -->
+                    <div class="audit-widget">
+                        <div class="audit-widget-header">
+                            <h3 class="filter-title">
+                                <svg viewBox="0 0 24 24" width="16" height="16" class="audit-icon">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+                                    <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" fill="none"/>
+                                </svg>
+                                Recent Activity
+                            </h3>
+                        </div>
+                        <div id="audit-entries" class="audit-entries">
+                            <div class="audit-loading">Loading...</div>
+                        </div>
+                        <button class="btn btn-link audit-view-all" onclick="switchView('activity')">View All Activity</button>
+                    </div>
+
                     <div class="search-container">
                         <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/></svg>
                         <input type="text" id="search-input" placeholder="Search suppliers...">
                     </div>
-                    
+
                     <div class="filter-section">
                         <h3 class="filter-title">Filter by Category</h3>
                         <div id="category-filters" class="category-list">
@@ -219,23 +236,6 @@
                             <span class="stat-value" id="needs-attention">0</span>
                             <span class="stat-label">Needs Attention</span>
                         </div>
-                    </div>
-
-                    <!-- Recent Activity Widget -->
-                    <div class="audit-widget">
-                        <div class="audit-widget-header">
-                            <h3 class="filter-title">
-                                <svg viewBox="0 0 24 24" width="16" height="16" class="audit-icon">
-                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
-                                    <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" fill="none"/>
-                                </svg>
-                                Recent Activity
-                            </h3>
-                        </div>
-                        <div id="audit-entries" class="audit-entries">
-                            <div class="audit-loading">Loading...</div>
-                        </div>
-                        <button class="btn btn-link audit-view-all" onclick="switchView('activity')">View All Activity</button>
                     </div>
                 </aside>
 
@@ -294,6 +294,23 @@
             <main class="main-content contracts-main">
                 <!-- Contracts Sidebar -->
                 <aside class="sidebar">
+                    <!-- Recent Activity Widget -->
+                    <div class="audit-widget">
+                        <div class="audit-widget-header">
+                            <h3 class="filter-title">
+                                <svg viewBox="0 0 24 24" width="16" height="16" class="audit-icon">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+                                    <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" fill="none"/>
+                                </svg>
+                                Recent Activity
+                            </h3>
+                        </div>
+                        <div id="audit-entries-contracts" class="audit-entries">
+                            <div class="audit-loading">Loading...</div>
+                        </div>
+                        <button class="btn btn-link audit-view-all" onclick="switchView('activity')">View All Activity</button>
+                    </div>
+
                     <div class="search-container">
                         <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/></svg>
                         <input type="text" id="contract-search-input" placeholder="Search contracts...">
@@ -368,6 +385,23 @@
             <main class="main-content tasks-main">
                 <!-- Tasks Sidebar -->
                 <aside class="sidebar">
+                    <!-- Recent Activity Widget -->
+                    <div class="audit-widget">
+                        <div class="audit-widget-header">
+                            <h3 class="filter-title">
+                                <svg viewBox="0 0 24 24" width="16" height="16" class="audit-icon">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+                                    <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" fill="none"/>
+                                </svg>
+                                Recent Activity
+                            </h3>
+                        </div>
+                        <div id="audit-entries-tasks" class="audit-entries">
+                            <div class="audit-loading">Loading...</div>
+                        </div>
+                        <button class="btn btn-link audit-view-all" onclick="switchView('activity')">View All Activity</button>
+                    </div>
+
                     <div class="filter-section">
                         <h3 class="filter-title">View</h3>
                         <div class="status-filters">

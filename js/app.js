@@ -3028,14 +3028,20 @@ let auditLogState = {
 };
 
 async function loadRecentAuditLogs() {
-    const container = document.getElementById('audit-entries');
-    if (!container) return;
+    // Get all three audit widget containers
+    const containers = [
+        document.getElementById('audit-entries'),
+        document.getElementById('audit-entries-contracts'),
+        document.getElementById('audit-entries-tasks')
+    ].filter(c => c !== null);
+
+    if (containers.length === 0) return;
 
     try {
         const response = await api.getRecentAuditLogs(8);
 
-        if (response.logs && response.logs.length > 0) {
-            container.innerHTML = response.logs.map(log => `
+        const html = response.logs && response.logs.length > 0
+            ? response.logs.map(log => `
                 <div class="audit-entry">
                     <div class="audit-entry-header">
                         <span class="audit-user">${escapeHtml(log.user_name)}</span>
@@ -3044,13 +3050,18 @@ async function loadRecentAuditLogs() {
                     <span class="audit-action ${log.action.toLowerCase()}">${log.action}</span>
                     <span class="audit-details">${escapeHtml(log.entity_type)}: ${escapeHtml(log.entity_name || '')}</span>
                 </div>
-            `).join('');
-        } else {
-            container.innerHTML = '<div class="audit-loading">No recent activity</div>';
-        }
+            `).join('')
+            : '<div class="audit-loading">No recent activity</div>';
+
+        // Update all containers with the same content
+        containers.forEach(container => {
+            container.innerHTML = html;
+        });
     } catch (error) {
         console.error('Failed to load recent audit logs:', error);
-        container.innerHTML = '<div class="audit-loading">Failed to load activity</div>';
+        containers.forEach(container => {
+            container.innerHTML = '<div class="audit-loading">Failed to load activity</div>';
+        });
     }
 }
 
@@ -3130,9 +3141,11 @@ async function populateUserFilter() {
 }
 
 function formatAuditTime(timestamp) {
+    // Convert to Guyana timezone (UTC-4 / America/Guyana)
     const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now - date;
+    const guyanaDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/Guyana' }));
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guyana' }));
+    const diffMs = now - guyanaDate;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
@@ -3141,17 +3154,20 @@ function formatAuditTime(timestamp) {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+    return guyanaDate.toLocaleDateString('en-GY');
 }
 
 function formatAuditTimestamp(timestamp) {
     const date = new Date(timestamp);
-    return date.toLocaleString('en-GY', {
+    // Format in Guyana timezone (America/Guyana - UTC-4)
+    return date.toLocaleString('en-US', {
+        timeZone: 'America/Guyana',
         year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: true
     });
 }
 

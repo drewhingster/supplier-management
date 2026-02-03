@@ -1274,24 +1274,20 @@ async function setupTasksTable(env) {
                 project_code TEXT,
                 title TEXT NOT NULL,
                 budget_amount REAL,
-                method_of_procurement TEXT,
-                tender_advertise_date DATE,
-                tender_closed_date DATE,
-                eval_sent_date DATE,
-                date_of_award DATE,
-                procurement_status TEXT DEFAULT 'RFQ',
-                tender_board_award_number TEXT,
+                procurement_tier TEXT,
+                completed_stages TEXT DEFAULT '[]',
+                requires_contract INTEGER DEFAULT 0,
+                linked_contract_id INTEGER,
+                approver TEXT,
+                award_number TEXT,
                 award_document_r2_key TEXT,
                 contractor_supplier TEXT,
                 contract_sum REAL,
+                assigned_person TEXT,
+                remarks TEXT,
                 start_date DATE,
                 end_date DATE,
                 expected_completion_date DATE,
-                status_percentage INTEGER DEFAULT 0,
-                assigned_person TEXT,
-                remarks TEXT,
-                passed_to_finance_date DATE,
-                is_paid INTEGER DEFAULT 0,
                 archived INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -1299,15 +1295,11 @@ async function setupTasksTable(env) {
         `).run();
 
         await env.DB.prepare(`
-            CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(procurement_status)
+            CREATE INDEX IF NOT EXISTS idx_tasks_tier ON tasks(procurement_tier)
         `).run();
 
         await env.DB.prepare(`
             CREATE INDEX IF NOT EXISTS idx_tasks_archived ON tasks(archived)
-        `).run();
-
-        await env.DB.prepare(`
-            CREATE INDEX IF NOT EXISTS idx_tasks_paid ON tasks(is_paid)
         `).run();
 
         return jsonResponse({ success: true, message: 'Tasks table created successfully' });
@@ -1319,10 +1311,8 @@ async function setupTasksTable(env) {
 async function getTasks(request, env) {
     const url = new URL(request.url);
     const archivedFilter = url.searchParams.get('archived');
-    const statusFilter = url.searchParams.get('status');
-    const contractorFilter = url.searchParams.get('contractor');
+    const tierFilter = url.searchParams.get('procurement_tier');
     const assignedPersonFilter = url.searchParams.get('assigned_person');
-    const paidFilter = url.searchParams.get('is_paid');
 
     let query = 'SELECT * FROM tasks WHERE 1=1';
     const bindings = [];
@@ -1332,24 +1322,14 @@ async function getTasks(request, env) {
         bindings.push(archivedFilter === 'true' ? 1 : 0);
     }
 
-    if (statusFilter) {
-        query += ' AND procurement_status = ?';
-        bindings.push(statusFilter);
-    }
-
-    if (contractorFilter) {
-        query += ' AND contractor_supplier LIKE ?';
-        bindings.push(`%${contractorFilter}%`);
+    if (tierFilter) {
+        query += ' AND procurement_tier = ?';
+        bindings.push(tierFilter);
     }
 
     if (assignedPersonFilter) {
         query += ' AND assigned_person LIKE ?';
         bindings.push(`%${assignedPersonFilter}%`);
-    }
-
-    if (paidFilter !== null) {
-        query += ' AND is_paid = ?';
-        bindings.push(paidFilter === 'true' ? 1 : 0);
     }
 
     query += ' ORDER BY created_at DESC';
@@ -1382,38 +1362,38 @@ async function createTask(request, env) {
         return jsonResponse({ error: errors.join(', ') }, 400);
     }
 
+    // Ensure completed_stages is a valid JSON string
+    const completedStages = Array.isArray(body.completed_stages)
+        ? JSON.stringify(body.completed_stages)
+        : '[]';
+
     const result = await env.DB.prepare(`
         INSERT INTO tasks (
-            project_code, title, budget_amount, method_of_procurement,
-            tender_advertise_date, tender_closed_date, eval_sent_date, date_of_award,
-            procurement_status, tender_board_award_number, award_document_r2_key,
-            contractor_supplier, contract_sum, start_date, end_date,
-            expected_completion_date, status_percentage, assigned_person,
-            remarks, passed_to_finance_date, is_paid, archived,
-            created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, datetime("now"), datetime("now"))
+            project_code, title, budget_amount, procurement_tier,
+            completed_stages, requires_contract, linked_contract_id,
+            approver, award_number, award_document_r2_key,
+            contractor_supplier, contract_sum, assigned_person,
+            remarks, start_date, end_date, expected_completion_date,
+            archived, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, datetime("now"), datetime("now"))
     `).bind(
         body.project_code?.trim() || null,
         body.title.trim(),
         body.budget_amount || null,
-        body.method_of_procurement || null,
-        body.tender_advertise_date || null,
-        body.tender_closed_date || null,
-        body.eval_sent_date || null,
-        body.date_of_award || null,
-        body.procurement_status || 'RFQ',
-        body.tender_board_award_number?.trim() || null,
+        body.procurement_tier || null,
+        completedStages,
+        body.requires_contract ? 1 : 0,
+        body.linked_contract_id || null,
+        body.approver?.trim() || null,
+        body.award_number?.trim() || null,
         body.award_document_r2_key || null,
         body.contractor_supplier?.trim() || null,
         body.contract_sum || null,
-        body.start_date || null,
-        body.end_date || null,
-        body.expected_completion_date || null,
-        body.status_percentage || 0,
         body.assigned_person?.trim() || null,
         body.remarks?.trim() || null,
-        body.passed_to_finance_date || null,
-        body.is_paid ? 1 : 0
+        body.start_date || null,
+        body.end_date || null,
+        body.expected_completion_date || null
     ).run();
 
     const taskId = result.meta.last_row_id;
@@ -1435,38 +1415,38 @@ async function updateTask(id, request, env) {
         return jsonResponse({ error: errors.join(', ') }, 400);
     }
 
+    // Ensure completed_stages is a valid JSON string
+    const completedStages = Array.isArray(body.completed_stages)
+        ? JSON.stringify(body.completed_stages)
+        : (body.completed_stages || '[]');
+
     await env.DB.prepare(`
         UPDATE tasks
-        SET project_code = ?, title = ?, budget_amount = ?, method_of_procurement = ?,
-            tender_advertise_date = ?, tender_closed_date = ?, eval_sent_date = ?, date_of_award = ?,
-            procurement_status = ?, tender_board_award_number = ?, award_document_r2_key = ?,
-            contractor_supplier = ?, contract_sum = ?, start_date = ?, end_date = ?,
-            expected_completion_date = ?, status_percentage = ?, assigned_person = ?,
-            remarks = ?, passed_to_finance_date = ?, is_paid = ?, archived = ?,
-            updated_at = datetime("now")
+        SET project_code = ?, title = ?, budget_amount = ?, procurement_tier = ?,
+            completed_stages = ?, requires_contract = ?, linked_contract_id = ?,
+            approver = ?, award_number = ?, award_document_r2_key = ?,
+            contractor_supplier = ?, contract_sum = ?, assigned_person = ?,
+            remarks = ?, start_date = ?, end_date = ?, expected_completion_date = ?,
+            archived = ?, updated_at = datetime("now")
         WHERE id = ?
     `).bind(
         body.project_code?.trim() || null,
         body.title.trim(),
         body.budget_amount || null,
-        body.method_of_procurement || null,
-        body.tender_advertise_date || null,
-        body.tender_closed_date || null,
-        body.eval_sent_date || null,
-        body.date_of_award || null,
-        body.procurement_status || 'RFQ',
-        body.tender_board_award_number?.trim() || null,
+        body.procurement_tier || null,
+        completedStages,
+        body.requires_contract ? 1 : 0,
+        body.linked_contract_id || null,
+        body.approver?.trim() || null,
+        body.award_number?.trim() || null,
         body.award_document_r2_key || null,
         body.contractor_supplier?.trim() || null,
         body.contract_sum || null,
+        body.assigned_person?.trim() || null,
+        body.remarks?.trim() || null,
         body.start_date || null,
         body.end_date || null,
         body.expected_completion_date || null,
-        body.status_percentage || 0,
-        body.assigned_person?.trim() || null,
-        body.remarks?.trim() || null,
-        body.passed_to_finance_date || null,
-        body.is_paid ? 1 : 0,
         body.archived ? 1 : 0,
         id
     ).run();
@@ -1501,18 +1481,6 @@ function validateTask(data) {
 
     if (data.contract_sum !== undefined && data.contract_sum !== null && isNaN(parseFloat(data.contract_sum))) {
         errors.push('Contract sum must be a valid number');
-    }
-
-    if (data.status_percentage !== undefined && data.status_percentage !== null) {
-        const pct = parseInt(data.status_percentage);
-        if (isNaN(pct) || pct < 0 || pct > 100) {
-            errors.push('Status percentage must be between 0 and 100');
-        }
-    }
-
-    const validStatuses = ['RFQ', 'Evaluation', 'Tender Board Approval Request', 'Awaiting Tender Board Award', 'Approved by Tender Board', 'Passed to Finance', 'Completed'];
-    if (data.procurement_status && !validStatuses.includes(data.procurement_status)) {
-        errors.push('Invalid procurement status');
     }
 
     return errors;

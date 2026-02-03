@@ -1,6 +1,6 @@
 /**
  * Supplier Document Management System
- * Main Application - VERSION 4
+ * Main Application - VERSION 5
  *
  * Bureau of Statistics — Procurement Unit
  *
@@ -9,7 +9,161 @@
  * 2. Multi-category support
  * 3. Compliance notifications
  * 4. CONTRACT MANAGEMENT MODULE
+ * 5. ClickUp-style Procurement Workflow with dynamic tiers
  */
+
+// ==================== Procurement Tier Configuration ====================
+const PROCUREMENT_TIERS = {
+    CASH_ADVANCE: {
+        id: 'cash_advance',
+        name: 'Cash Advance',
+        minAmount: 0,
+        maxAmount: 49999,
+        stages: [
+            { id: 'applied_advance', name: 'Applied for Advance', requiresAward: false },
+            { id: 'received_advance', name: 'Received Advance', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false },
+            { id: 'completed', name: 'Completed', requiresAward: false }
+        ],
+        approver: null
+    },
+    SINGLE_QUOTE: {
+        id: 'single_quote',
+        name: 'Single Quote',
+        minAmount: 50000,
+        maxAmount: 89999,
+        stages: [
+            { id: 'quotation_received', name: 'Quotation Received', requiresAward: false },
+            { id: 'approved', name: 'Approved by CS/DCS', requiresAward: false, requiresApprover: true },
+            { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false },
+            { id: 'completed', name: 'Completed', requiresAward: false }
+        ],
+        approver: 'Chief Statistician / Deputy Chief Statistician'
+    },
+    THREE_QUOTE_RFQ: {
+        id: 'three_quote_rfq',
+        name: '3-Quote RFQ',
+        minAmount: 90000,
+        maxAmount: 249999,
+        stages: [
+            { id: 'rfqs', name: 'RFQs', requiresAward: false },
+            { id: 'evaluation', name: 'Evaluation', requiresAward: false },
+            { id: 'approved_cs', name: 'Approved by Chief Statistician', requiresAward: false },
+            { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false },
+            { id: 'completed', name: 'Completed', requiresAward: false }
+        ],
+        approver: 'Chief Statistician'
+    },
+    MINISTERIAL_TENDER_BOARD: {
+        id: 'ministerial_tender_board',
+        name: 'Ministerial Tender Board',
+        minAmount: 250000,
+        maxAmount: 1499999,
+        stages: [
+            { id: 'rfqs', name: 'RFQs', requiresAward: false },
+            { id: 'evaluation', name: 'Evaluation', requiresAward: false },
+            { id: 'approved_cs', name: 'Approved by Chief Statistician', requiresAward: false },
+            { id: 'mtb_submission', name: 'Ministerial Tender Board Submission', requiresAward: false },
+            { id: 'approved_mtb', name: 'Approved by MTB', requiresAward: true },
+            { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
+            { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false },
+            { id: 'completed', name: 'Completed', requiresAward: false }
+        ],
+        approver: 'Ministerial Tender Board'
+    },
+    NPTA: {
+        id: 'npta',
+        name: 'NPTA',
+        minAmount: 1500000,
+        maxAmount: 2999999,
+        stages: [
+            { id: 'rfqs', name: 'RFQs', requiresAward: false },
+            { id: 'evaluation', name: 'Evaluation', requiresAward: false },
+            { id: 'approved_cs', name: 'Approved by Chief Statistician', requiresAward: false },
+            { id: 'npta_form', name: 'NPTA Form & Request Letter', requiresAward: false },
+            { id: 'approved_npta', name: 'Approved by NPTA', requiresAward: true },
+            { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
+            { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false },
+            { id: 'completed', name: 'Completed', requiresAward: false }
+        ],
+        approver: 'NPTA'
+    },
+    PUBLIC_TENDER_NPTA: {
+        id: 'public_tender_npta',
+        name: 'Public Tender (NPTA)',
+        minAmount: 3000000,
+        maxAmount: 14999999,
+        stages: [
+            { id: 'tender_advertised', name: 'Public Tender Advertised', requiresAward: false },
+            { id: 'tender_closed', name: 'Tender Closed', requiresAward: false },
+            { id: 'evaluation', name: 'Evaluation', requiresAward: false },
+            { id: 'npta_form', name: 'NPTA Form & Request Letter', requiresAward: false },
+            { id: 'approved_npta', name: 'Approved by NPTA', requiresAward: true },
+            { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
+            { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false },
+            { id: 'completed', name: 'Completed', requiresAward: false }
+        ],
+        approver: 'NPTA'
+    },
+    CABINET: {
+        id: 'cabinet',
+        name: 'Cabinet',
+        minAmount: 15000000,
+        maxAmount: Infinity,
+        stages: [
+            { id: 'tender_advertised', name: 'Public Tender Advertised', requiresAward: false },
+            { id: 'tender_closed', name: 'Tender Closed', requiresAward: false },
+            { id: 'evaluation', name: 'Evaluation', requiresAward: false },
+            { id: 'cabinet_submission', name: 'Cabinet Submission', requiresAward: false },
+            { id: 'approved_cabinet', name: 'Approved by Cabinet', requiresAward: true },
+            { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
+            { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false },
+            { id: 'completed', name: 'Completed', requiresAward: false }
+        ],
+        approver: 'Cabinet'
+    }
+};
+
+// Contract stage to be inserted when "Is contract necessary?" is checked
+const CONTRACT_STAGE = { id: 'contract', name: 'Contract', requiresAward: false, requiresContract: true };
+
+// Helper function to get tier based on budget amount
+function getProcurementTier(amount) {
+    if (amount <= 49999) return PROCUREMENT_TIERS.CASH_ADVANCE;
+    if (amount <= 89999) return PROCUREMENT_TIERS.SINGLE_QUOTE;
+    if (amount <= 249999) return PROCUREMENT_TIERS.THREE_QUOTE_RFQ;
+    if (amount <= 1499999) return PROCUREMENT_TIERS.MINISTERIAL_TENDER_BOARD;
+    if (amount <= 2999999) return PROCUREMENT_TIERS.NPTA;
+    if (amount <= 14999999) return PROCUREMENT_TIERS.PUBLIC_TENDER_NPTA;
+    return PROCUREMENT_TIERS.CABINET;
+}
+
+// Get stages for a tier, optionally including contract stage
+function getTierStages(tier, requiresContract = false) {
+    let stages = [...tier.stages];
+
+    if (requiresContract) {
+        // Insert contract stage before "Passed to Finance Dept."
+        const financeIndex = stages.findIndex(s => s.id === 'passed_finance');
+        if (financeIndex !== -1) {
+            stages.splice(financeIndex, 0, CONTRACT_STAGE);
+        }
+    }
+
+    return stages;
+}
+
+// Calculate progress percentage based on completed stages
+function calculateProgress(completedStages, totalStages) {
+    if (totalStages === 0) return 0;
+    return Math.round((completedStages.length / totalStages) * 100);
+}
 
 // ==================== State ====================
 const state = {
@@ -178,10 +332,11 @@ const elements = {
     editContractBtn: document.getElementById('edit-contract-btn'),
     deleteContractBtn: document.getElementById('delete-contract-btn'),
 
-    // Task elements
+    // Task elements - ClickUp style
     taskStatusFilter: document.getElementById('task-status-filter'),
     taskPersonFilter: document.getElementById('task-person-filter'),
-    tasksTableBody: document.getElementById('tasks-table-body'),
+    tasksListBody: document.getElementById('tasks-list-body'),
+    tasksListContainer: document.getElementById('tasks-list-container'),
     tasksEmptyState: document.getElementById('tasks-empty-state'),
     tasksLoadingState: document.getElementById('tasks-loading-state'),
     tasksViewTitle: document.getElementById('tasks-view-title'),
@@ -189,7 +344,7 @@ const elements = {
     activeTasks: document.getElementById('active-tasks'),
     completedTasks: document.getElementById('completed-tasks'),
 
-    // Task Modal - PSIP fields
+    // Task Modal - ClickUp fields
     taskModal: document.getElementById('task-modal'),
     taskModalTitle: document.getElementById('task-modal-title'),
     taskForm: document.getElementById('task-form'),
@@ -198,22 +353,18 @@ const elements = {
     taskTitle: document.getElementById('task-title'),
     taskBudgetAmount: document.getElementById('task-budget-amount'),
     taskAssignedPerson: document.getElementById('task-assigned-person'),
-    taskMethod: document.getElementById('task-method'),
-    taskTenderAdvertise: document.getElementById('task-tender-advertise'),
-    taskTenderClosed: document.getElementById('task-tender-closed'),
-    taskEvalSent: document.getElementById('task-eval-sent'),
-    taskDateOfAward: document.getElementById('task-date-of-award'),
     taskContractor: document.getElementById('task-contractor'),
     taskContractSum: document.getElementById('task-contract-sum'),
-    taskProcurementStatus: document.getElementById('task-procurement-status'),
-    taskStatusPercentage: document.getElementById('task-status-percentage'),
+    taskRequiresContract: document.getElementById('task-requires-contract'),
+    taskLinkedContract: document.getElementById('task-linked-contract'),
+    contractLinkSection: document.getElementById('contract-link-section'),
+    tierBadge: document.getElementById('tier-badge'),
+    workflowStagesContainer: document.getElementById('workflow-stages-container'),
+    taskApprover: document.getElementById('task-approver'),
     taskAwardNumber: document.getElementById('task-award-number'),
     taskAwardDocument: document.getElementById('task-award-document'),
     awardDocumentName: document.getElementById('award-document-name'),
     awardDetailsSection: document.getElementById('award-details-section'),
-    financeDetailsSection: document.getElementById('finance-details-section'),
-    taskPassedToFinance: document.getElementById('task-passed-to-finance'),
-    taskIsPaid: document.getElementById('task-is-paid'),
     taskStartDate: document.getElementById('task-start-date'),
     taskEndDate: document.getElementById('task-end-date'),
     taskExpectedCompletion: document.getElementById('task-expected-completion'),
@@ -1901,7 +2052,7 @@ async function loadTasks() {
 }
 
 function renderTasks() {
-    const tbody = elements.tasksTableBody;
+    const listBody = elements.tasksListBody;
 
     // Apply client-side filter for assigned person (partial match)
     let filteredTasks = state.tasks;
@@ -1916,55 +2067,138 @@ function renderTasks() {
 
     if (!filteredTasks || filteredTasks.length === 0) {
         elements.tasksEmptyState.classList.remove('hidden');
-        document.getElementById('tasks-table-container').classList.add('hidden');
+        elements.tasksListContainer?.classList.add('hidden');
         return;
     }
 
     elements.tasksEmptyState.classList.add('hidden');
-    document.getElementById('tasks-table-container').classList.remove('hidden');
+    elements.tasksListContainer?.classList.remove('hidden');
 
-    tbody.innerHTML = filteredTasks.map(task => createTaskRow(task)).join('');
+    listBody.innerHTML = filteredTasks.map(task => createTaskRow(task)).join('');
 }
 
 function createTaskRow(task) {
     const budgetAmount = task.budget_amount ? `G$${formatCurrency(task.budget_amount)}` : '-';
-    const contractSum = task.contract_sum ? `G$${formatCurrency(task.contract_sum)}` : '-';
+    const tier = task.budget_amount ? getProcurementTier(task.budget_amount) : null;
+    const tierName = tier ? tier.name : '-';
+    const tierClass = tier ? `tier-${tier.id.replace(/_/g, '-')}` : '';
 
-    // Use procurement_status for the status badge
-    const status = task.procurement_status || 'RFQ';
-    const statusClass = status.toLowerCase().replace(/\s+/g, '-');
-    const archivedBadge = task.archived ? '<span class="badge badge-archived">Archived</span>' : '';
+    // Parse completed stages
+    let completedStages = [];
+    try {
+        completedStages = JSON.parse(task.completed_stages || '[]');
+    } catch (e) {
+        completedStages = [];
+    }
+
+    // Calculate progress
+    const stages = tier ? getTierStages(tier, task.requires_contract === 1) : [];
+    const progress = calculateProgress(completedStages, stages.length);
+    const progressClass = progress === 100 ? 'progress-complete' : progress >= 70 ? 'progress-high' : progress >= 40 ? 'progress-medium' : 'progress-low';
+
+    // Build subtasks HTML
+    const subtasksHtml = stages.map(stage => {
+        const isCompleted = completedStages.includes(stage.id);
+        return `
+            <div class="clickup-subtask">
+                <label class="stage-checkbox" onclick="event.stopPropagation()">
+                    <input type="checkbox" ${isCompleted ? 'checked' : ''}
+                           onchange="handleStageToggle(${task.id}, '${stage.id}', this.checked)">
+                    <span class="checkbox-custom"></span>
+                    <span class="stage-name">${escapeHtml(stage.name)}</span>
+                    ${stage.requiresAward ? '<span class="stage-requires-award">(Award)</span>' : ''}
+                    ${stage.requiresContract ? '<span class="stage-requires-contract">(Contract)</span>' : ''}
+                </label>
+            </div>
+        `;
+    }).join('');
 
     return `
-        <tr data-task-id="${task.id}">
-            <td>${escapeHtml(task.project_code || '-')}</td>
-            <td>
-                <div class="task-title">${escapeHtml(task.title || '-')}</div>
-            </td>
-            <td>${budgetAmount}</td>
-            <td>${escapeHtml(task.method_of_procurement || '-')}</td>
-            <td>
-                <span class="badge badge-${statusClass}">${escapeHtml(status)}</span>
-                ${archivedBadge}
-            </td>
-            <td>${escapeHtml(task.contractor_supplier || '-')}</td>
-            <td>${contractSum}</td>
-            <td>${escapeHtml(task.assigned_person || '-')}</td>
-            <td>
-                <div class="task-actions">
-                    <button class="btn-icon" onclick="handleTaskEdit(${task.id})" title="Edit">
-                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                    </button>
-                    <button class="btn-icon" onclick="handleTaskArchive(${task.id}, ${task.archived ? 0 : 1})" title="${task.archived ? 'Unarchive' : 'Archive'}">
-                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                    </button>
-                    <button class="btn-icon btn-danger" onclick="handleTaskDelete(${task.id})" title="Delete">
-                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        <div class="clickup-task-row" data-task-id="${task.id}">
+            <div class="clickup-task-main" onclick="toggleTaskExpand(${task.id})">
+                <div>
+                    <button class="clickup-expand-btn" onclick="event.stopPropagation(); toggleTaskExpand(${task.id})">
+                        <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     </button>
                 </div>
-            </td>
-        </tr>
+                <div class="clickup-task-name">
+                    ${escapeHtml(task.title || '-')}
+                    ${task.project_code ? `<span class="task-code">${escapeHtml(task.project_code)}</span>` : ''}
+                    ${task.archived ? '<span class="badge badge-archived" style="margin-left:0.5rem;">Archived</span>' : ''}
+                </div>
+                <div class="clickup-task-budget">${budgetAmount}</div>
+                <div><span class="tier-badge ${tierClass}">${escapeHtml(tierName)}</span></div>
+                <div class="clickup-task-contractor">${escapeHtml(task.contractor_supplier || '-')}</div>
+                <div class="clickup-task-assigned">${escapeHtml(task.assigned_person || '-')}</div>
+                <div class="clickup-progress">
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill ${progressClass}" style="width: ${progress}%"></div>
+                    </div>
+                    <span class="progress-text">${progress}%</span>
+                </div>
+                <div class="clickup-task-actions" onclick="event.stopPropagation()">
+                    <button class="btn-icon" onclick="handleTaskEdit(${task.id})" title="Edit">
+                        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    </button>
+                    <button class="btn-icon btn-danger" onclick="handleTaskDelete(${task.id})" title="Delete">
+                        <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="clickup-subtasks">
+                ${subtasksHtml}
+            </div>
+        </div>
     `;
+}
+
+// Toggle task row expand/collapse
+function toggleTaskExpand(taskId) {
+    const row = document.querySelector(`.clickup-task-row[data-task-id="${taskId}"]`);
+    if (row) {
+        row.classList.toggle('expanded');
+    }
+}
+
+// Handle stage checkbox toggle
+async function handleStageToggle(taskId, stageId, isChecked) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Parse current completed stages
+    let completedStages = [];
+    try {
+        completedStages = JSON.parse(task.completed_stages || '[]');
+    } catch (e) {
+        completedStages = [];
+    }
+
+    // Update completed stages
+    if (isChecked) {
+        if (!completedStages.includes(stageId)) {
+            completedStages.push(stageId);
+        }
+    } else {
+        completedStages = completedStages.filter(id => id !== stageId);
+    }
+
+    try {
+        await api.updateTask(taskId, {
+            completed_stages: JSON.stringify(completedStages)
+        });
+
+        // Update local state
+        task.completed_stages = JSON.stringify(completedStages);
+
+        // Re-render to update progress
+        renderTasks();
+        updateTaskStatistics();
+    } catch (error) {
+        console.error('Failed to update stage:', error);
+        showToast('Failed to update stage', 'error');
+        // Reload tasks to sync state
+        loadTasks();
+    }
 }
 
 async function openTaskModal(task = null) {
@@ -1975,10 +2209,13 @@ async function openTaskModal(task = null) {
 
     // Reset conditional sections
     elements.awardDetailsSection?.classList.add('hidden');
-    elements.financeDetailsSection?.classList.add('hidden');
+    elements.contractLinkSection?.classList.add('hidden');
 
     // Populate contractor dropdown with suppliers from database
     await populateContractorDropdown(task?.contractor_supplier || '');
+
+    // Populate contract dropdown
+    await populateContractDropdown(task?.linked_contract_id || null);
 
     if (task) {
         elements.taskId.value = task.id;
@@ -1986,17 +2223,10 @@ async function openTaskModal(task = null) {
         elements.taskTitle.value = task.title || '';
         elements.taskBudgetAmount.value = task.budget_amount || '';
         elements.taskAssignedPerson.value = task.assigned_person || '';
-        elements.taskMethod.value = task.method_of_procurement || '';
-        elements.taskTenderAdvertise.value = task.tender_advertise_date || '';
-        elements.taskTenderClosed.value = task.tender_closed_date || '';
-        elements.taskEvalSent.value = task.eval_sent_date || '';
-        elements.taskDateOfAward.value = task.date_of_award || '';
         elements.taskContractSum.value = task.contract_sum || '';
-        elements.taskProcurementStatus.value = task.procurement_status || 'RFQ';
-        elements.taskStatusPercentage.value = task.status_percentage || 0;
-        elements.taskAwardNumber.value = task.tender_board_award_number || '';
-        elements.taskPassedToFinance.value = task.passed_to_finance_date || '';
-        elements.taskIsPaid.checked = task.is_paid === 1;
+        elements.taskRequiresContract.checked = task.requires_contract === 1;
+        elements.taskApprover.value = task.approver || '';
+        elements.taskAwardNumber.value = task.award_number || '';
         elements.taskStartDate.value = task.start_date || '';
         elements.taskEndDate.value = task.end_date || '';
         elements.taskExpectedCompletion.value = task.expected_completion_date || '';
@@ -2010,17 +2240,204 @@ async function openTaskModal(task = null) {
             elements.awardDocumentName.textContent = 'No file selected';
         }
 
-        // Show conditional sections based on status
-        handleProcurementStatusChange();
+        // Show contract link section if requires contract
+        if (task.requires_contract === 1) {
+            elements.contractLinkSection?.classList.remove('hidden');
+        }
+
+        // Trigger budget change to render stages
+        handleBudgetChange();
+
+        // Parse and set completed stages
+        let completedStages = [];
+        try {
+            completedStages = JSON.parse(task.completed_stages || '[]');
+        } catch (e) {
+            completedStages = [];
+        }
+
+        // Mark completed stages in UI
+        setTimeout(() => {
+            completedStages.forEach(stageId => {
+                const checkbox = document.querySelector(`#workflow-stages-container input[data-stage-id="${stageId}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+            updateAwardDetailsVisibility();
+        }, 100);
     } else {
         elements.taskForm.reset();
         elements.taskId.value = '';
-        elements.taskProcurementStatus.value = 'RFQ';
-        elements.taskStatusPercentage.value = STATUS_PERCENTAGES['RFQ'];
         elements.awardDocumentName.textContent = 'No file selected';
+
+        // Reset workflow stages
+        renderWorkflowPlaceholder();
+
+        // Reset tier badge
+        if (elements.tierBadge) {
+            elements.tierBadge.textContent = 'Enter budget to determine tier';
+            elements.tierBadge.className = 'tier-badge';
+        }
     }
 
     elements.taskModal.classList.remove('hidden');
+}
+
+// Render placeholder for workflow stages
+function renderWorkflowPlaceholder() {
+    if (!elements.workflowStagesContainer) return;
+    elements.workflowStagesContainer.innerHTML = `
+        <div class="workflow-placeholder">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2" fill="none" opacity="0.3"/></svg>
+            <span>Enter a budget amount to see workflow stages</span>
+        </div>
+    `;
+}
+
+// Handle budget amount change - determine tier and render stages
+function handleBudgetChange() {
+    const budgetAmount = parseFloat(elements.taskBudgetAmount?.value) || 0;
+
+    if (budgetAmount <= 0) {
+        renderWorkflowPlaceholder();
+        if (elements.tierBadge) {
+            elements.tierBadge.textContent = 'Enter budget to determine tier';
+            elements.tierBadge.className = 'tier-badge';
+        }
+        return;
+    }
+
+    const tier = getProcurementTier(budgetAmount);
+    const requiresContract = elements.taskRequiresContract?.checked || false;
+
+    // Update tier badge
+    if (elements.tierBadge) {
+        elements.tierBadge.textContent = tier.name;
+        elements.tierBadge.className = `tier-badge tier-${tier.id.replace(/_/g, '-')}`;
+    }
+
+    // Render workflow stages
+    renderWorkflowStages(tier, requiresContract);
+}
+
+// Handle contract toggle
+function handleContractToggle() {
+    const requiresContract = elements.taskRequiresContract?.checked || false;
+
+    if (requiresContract) {
+        elements.contractLinkSection?.classList.remove('hidden');
+    } else {
+        elements.contractLinkSection?.classList.add('hidden');
+    }
+
+    // Re-render workflow stages to include/exclude contract stage
+    handleBudgetChange();
+}
+
+// Render workflow stages in the modal
+function renderWorkflowStages(tier, requiresContract = false) {
+    if (!elements.workflowStagesContainer) return;
+
+    const stages = getTierStages(tier, requiresContract);
+
+    // Get current completed stages if editing
+    let completedStages = [];
+    if (state.currentTask) {
+        try {
+            completedStages = JSON.parse(state.currentTask.completed_stages || '[]');
+        } catch (e) {
+            completedStages = [];
+        }
+    }
+
+    const stagesHtml = stages.map((stage, index) => {
+        const isCompleted = completedStages.includes(stage.id);
+        return `
+            <div class="workflow-stage-item ${isCompleted ? 'stage-completed' : ''}">
+                <label class="stage-checkbox">
+                    <input type="checkbox" data-stage-id="${stage.id}" ${isCompleted ? 'checked' : ''} onchange="updateModalStageProgress()">
+                    <span class="checkbox-custom"></span>
+                    <span class="stage-number">${index + 1}</span>
+                    <span class="stage-name">${escapeHtml(stage.name)}</span>
+                    ${stage.requiresAward ? '<span class="stage-requires-award">(Award Details)</span>' : ''}
+                    ${stage.requiresContract ? '<span class="stage-requires-contract">(Link Contract)</span>' : ''}
+                </label>
+            </div>
+        `;
+    }).join('');
+
+    elements.workflowStagesContainer.innerHTML = `<div class="workflow-stages-list">${stagesHtml}</div>`;
+}
+
+// Update stage completion in modal
+function updateModalStageProgress() {
+    updateAwardDetailsVisibility();
+}
+
+// Show/hide award details based on checked stages
+function updateAwardDetailsVisibility() {
+    const stageCheckboxes = document.querySelectorAll('#workflow-stages-container input[type="checkbox"]');
+    let showAwardDetails = false;
+
+    stageCheckboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            const stageId = checkbox.dataset.stageId;
+            // Check if this stage requires award details
+            const allTiers = Object.values(PROCUREMENT_TIERS);
+            for (const tier of allTiers) {
+                const stage = tier.stages.find(s => s.id === stageId);
+                if (stage && stage.requiresAward) {
+                    showAwardDetails = true;
+                    break;
+                }
+            }
+        }
+    });
+
+    if (showAwardDetails) {
+        elements.awardDetailsSection?.classList.remove('hidden');
+    } else {
+        elements.awardDetailsSection?.classList.add('hidden');
+    }
+}
+
+// Populate contract dropdown
+async function populateContractDropdown(selectedId = null) {
+    const dropdown = elements.taskLinkedContract;
+    if (!dropdown) return;
+
+    dropdown.innerHTML = '<option value="">Select Contract</option>';
+
+    try {
+        // Use existing contracts from state or load them
+        let contracts = state.contracts;
+        if (!contracts || contracts.length === 0) {
+            contracts = await api.getContracts();
+        }
+
+        contracts.forEach(contract => {
+            const option = document.createElement('option');
+            option.value = contract.id;
+            option.textContent = `${contract.contract_number || 'No #'} - ${contract.title}`;
+            dropdown.appendChild(option);
+        });
+
+        if (selectedId) {
+            dropdown.value = selectedId;
+        }
+    } catch (error) {
+        console.error('Failed to load contracts:', error);
+    }
+}
+
+// Open contract modal from task modal
+function openContractModalFromTask() {
+    // Close task modal temporarily
+    elements.taskModal.classList.add('hidden');
+
+    // Open contract modal
+    openContractModal(null);
+
+    // TODO: After contract is created, re-open task modal and select the new contract
 }
 
 // Populate contractor dropdown with suppliers from database
@@ -2066,58 +2483,12 @@ function closeTaskModal() {
     elements.taskModal.classList.add('hidden');
     elements.taskForm.reset();
     elements.awardDetailsSection?.classList.add('hidden');
-    elements.financeDetailsSection?.classList.add('hidden');
+    elements.contractLinkSection?.classList.add('hidden');
     elements.awardDocumentName.textContent = 'No file selected';
+    renderWorkflowPlaceholder();
     state.currentTask = null;
     state.isTaskEditMode = false;
 }
-
-// Status to percentage mapping
-const STATUS_PERCENTAGES = {
-    'RFQ': 10,
-    'Evaluation': 25,
-    'Tender Board Approval Request': 40,
-    'Awaiting Tender Board Award': 55,
-    'Approved by Tender Board': 70,
-    'Passed to Finance': 85,
-    'Completed': 100
-};
-
-// Handle procurement status change - show/hide conditional sections and auto-calculate percentage
-function handleProcurementStatusChange() {
-    const status = elements.taskProcurementStatus?.value;
-    const showAward = ['Approved by Tender Board', 'Passed to Finance', 'Completed'].includes(status);
-    const showFinance = ['Passed to Finance', 'Completed'].includes(status);
-
-    if (showAward) {
-        elements.awardDetailsSection?.classList.remove('hidden');
-    } else {
-        elements.awardDetailsSection?.classList.add('hidden');
-    }
-
-    if (showFinance) {
-        elements.financeDetailsSection?.classList.remove('hidden');
-    } else {
-        elements.financeDetailsSection?.classList.add('hidden');
-    }
-
-    // Auto-calculate status percentage based on procurement status
-    if (status && STATUS_PERCENTAGES[status] !== undefined) {
-        elements.taskStatusPercentage.value = STATUS_PERCENTAGES[status];
-    }
-}
-
-// Handle paid checkbox change - auto-set status to Completed
-function handlePaidChange() {
-    if (elements.taskIsPaid?.checked) {
-        elements.taskProcurementStatus.value = 'Completed';
-        handleProcurementStatusChange();
-    }
-}
-
-// Make these globally accessible for onclick handlers in HTML
-window.handleProcurementStatusChange = handleProcurementStatusChange;
-window.handlePaidChange = handlePaidChange;
 
 async function handleTaskSubmit(e) {
     e.preventDefault();
@@ -2131,23 +2502,32 @@ async function handleTaskSubmit(e) {
     btnText.textContent = state.isTaskEditMode ? 'Updating...' : 'Creating...';
 
     try {
+        // Collect completed stages from checkboxes
+        const completedStages = [];
+        const stageCheckboxes = document.querySelectorAll('#workflow-stages-container input[type="checkbox"]:checked');
+        stageCheckboxes.forEach(checkbox => {
+            if (checkbox.dataset.stageId) {
+                completedStages.push(checkbox.dataset.stageId);
+            }
+        });
+
+        // Determine procurement tier from budget
+        const budgetAmount = elements.taskBudgetAmount?.value ? parseFloat(elements.taskBudgetAmount.value) : null;
+        const tier = budgetAmount ? getProcurementTier(budgetAmount) : null;
+
         const taskData = {
             project_code: elements.taskProjectCode?.value.trim() || null,
             title: elements.taskTitle.value.trim(),
-            budget_amount: elements.taskBudgetAmount?.value ? parseFloat(elements.taskBudgetAmount.value) : null,
-            assigned_person: elements.taskAssignedPerson?.value.trim() || null,
-            method_of_procurement: elements.taskMethod?.value || null,
-            tender_advertise_date: elements.taskTenderAdvertise?.value || null,
-            tender_closed_date: elements.taskTenderClosed?.value || null,
-            eval_sent_date: elements.taskEvalSent?.value || null,
-            date_of_award: elements.taskDateOfAward?.value || null,
+            budget_amount: budgetAmount,
+            procurement_tier: tier ? tier.id : null,
+            completed_stages: JSON.stringify(completedStages),
+            requires_contract: elements.taskRequiresContract?.checked ? 1 : 0,
+            linked_contract_id: elements.taskLinkedContract?.value ? parseInt(elements.taskLinkedContract.value) : null,
+            approver: elements.taskApprover?.value.trim() || null,
+            award_number: elements.taskAwardNumber?.value.trim() || null,
             contractor_supplier: elements.taskContractor?.value.trim() || null,
             contract_sum: elements.taskContractSum?.value ? parseFloat(elements.taskContractSum.value) : null,
-            procurement_status: elements.taskProcurementStatus?.value || 'RFQ',
-            status_percentage: elements.taskStatusPercentage?.value ? parseInt(elements.taskStatusPercentage.value) : 0,
-            tender_board_award_number: elements.taskAwardNumber?.value.trim() || null,
-            passed_to_finance_date: elements.taskPassedToFinance?.value || null,
-            is_paid: elements.taskIsPaid?.checked ? 1 : 0,
+            assigned_person: elements.taskAssignedPerson?.value.trim() || null,
             start_date: elements.taskStartDate?.value || null,
             end_date: elements.taskEndDate?.value || null,
             expected_completion_date: elements.taskExpectedCompletion?.value || null,
@@ -2260,19 +2640,37 @@ function handleTaskArchiveFilterChange(e) {
 
 function updateTaskStatistics() {
     const total = state.tasks.length;
-    const inProgress = state.tasks.filter(t => !t.archived && t.procurement_status !== 'Completed').length;
-    const completed = state.tasks.filter(t => t.procurement_status === 'Completed' || t.is_paid === 1).length;
 
-    elements.totalTasks.textContent = total;
-    elements.activeTasks.textContent = inProgress;
-    elements.completedTasks.textContent = completed;
+    // Calculate based on completed stages - if all stages are checked, it's completed
+    const completed = state.tasks.filter(t => {
+        if (t.archived) return false;
+        const budget = t.budget_amount || 0;
+        if (budget <= 0) return false;
+
+        const tier = getProcurementTier(budget);
+        const stages = getTierStages(tier, t.requires_contract === 1);
+        let completedStages = [];
+        try {
+            completedStages = JSON.parse(t.completed_stages || '[]');
+        } catch (e) {
+            completedStages = [];
+        }
+
+        return completedStages.length >= stages.length;
+    }).length;
+
+    const inProgress = total - completed;
+
+    if (elements.totalTasks) elements.totalTasks.textContent = total;
+    if (elements.activeTasks) elements.activeTasks.textContent = inProgress;
+    if (elements.completedTasks) elements.completedTasks.textContent = completed;
 }
 
 function showTasksLoading(show) {
     elements.tasksLoadingState?.classList.toggle('hidden', !show);
     elements.tasksEmptyState?.classList.add('hidden');
     if (show) {
-        document.getElementById('tasks-table-container')?.classList.add('hidden');
+        elements.tasksListContainer?.classList.add('hidden');
     }
 }
 
@@ -2282,3 +2680,9 @@ window.closeTaskModal = closeTaskModal;
 window.handleTaskEdit = handleTaskEdit;
 window.handleTaskDelete = handleTaskDelete;
 window.handleTaskArchive = handleTaskArchive;
+window.handleBudgetChange = handleBudgetChange;
+window.handleContractToggle = handleContractToggle;
+window.toggleTaskExpand = toggleTaskExpand;
+window.handleStageToggle = handleStageToggle;
+window.updateModalStageProgress = updateModalStageProgress;
+window.openContractModalFromTask = openContractModalFromTask;

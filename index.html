@@ -354,8 +354,8 @@
                     </div>
                 </aside>
 
-                <!-- Tasks List -->
-                <section class="tasks-grid">
+                <!-- Tasks List - ClickUp Style -->
+                <section class="tasks-grid clickup-style">
                     <div class="grid-header">
                         <h2 id="tasks-view-title">Procurement Items</h2>
                         <button class="btn btn-primary" onclick="openTaskModal()">
@@ -364,25 +364,21 @@
                         </button>
                     </div>
 
-                    <div id="tasks-table-container" class="tasks-table-container psip-table-container">
-                        <table id="tasks-table" class="tasks-table psip-table">
-                            <thead>
-                                <tr>
-                                    <th class="col-code">Code</th>
-                                    <th class="col-title">Title / Activity</th>
-                                    <th class="col-budget">Budget</th>
-                                    <th class="col-method">Method</th>
-                                    <th class="col-status">Status</th>
-                                    <th class="col-contractor">Contractor</th>
-                                    <th class="col-contract">Contract Sum</th>
-                                    <th class="col-person">Assigned</th>
-                                    <th class="col-actions">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tasks-table-body">
-                                <!-- Tasks will be rendered here -->
-                            </tbody>
-                        </table>
+                    <!-- ClickUp-style Task List -->
+                    <div id="tasks-list-container" class="clickup-list-container">
+                        <div class="clickup-list-header">
+                            <div class="clickup-col-expand"></div>
+                            <div class="clickup-col-name">Name</div>
+                            <div class="clickup-col-budget">Budget (G$)</div>
+                            <div class="clickup-col-tier">Tier</div>
+                            <div class="clickup-col-contractor">Contractor</div>
+                            <div class="clickup-col-assigned">Assigned</div>
+                            <div class="clickup-col-progress">Progress</div>
+                            <div class="clickup-col-actions">Actions</div>
+                        </div>
+                        <div id="tasks-list-body" class="clickup-list-body">
+                            <!-- Tasks will be rendered here dynamically -->
+                        </div>
                     </div>
 
                     <div id="tasks-empty-state" class="empty-state hidden">
@@ -390,17 +386,17 @@
                             <path d="M40 30h40M40 50h40M40 70h25" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
                             <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="8 4"/>
                         </svg>
-                        <h3>No Tasks Found</h3>
-                        <p>Create your first task to get started.</p>
+                        <h3>No Procurement Items Found</h3>
+                        <p>Create your first procurement item to get started.</p>
                         <button class="btn btn-primary" onclick="openTaskModal()">
                             <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                            Add First Task
+                            Add First Item
                         </button>
                     </div>
 
                     <div id="tasks-loading-state" class="loading-state hidden">
                         <div class="loading-spinner"></div>
-                        <p>Loading tasks...</p>
+                        <p>Loading procurement items...</p>
                     </div>
                 </section>
             </main>
@@ -780,9 +776,9 @@
         </div>
     </div>
 
-    <!-- Add/Edit Task Modal -->
+    <!-- Add/Edit Task Modal - ClickUp Style -->
     <div id="task-modal" class="modal hidden">
-        <div class="modal-content task-modal-content task-modal-psip">
+        <div class="modal-content task-modal-content task-modal-clickup">
             <div class="modal-header">
                 <h2 id="task-modal-title">Add Procurement Item</h2>
                 <button class="modal-close" onclick="closeTaskModal()">
@@ -790,7 +786,7 @@
                 </button>
             </div>
 
-            <form id="task-form" class="task-form psip-form">
+            <form id="task-form" class="task-form clickup-form">
                 <input type="hidden" id="task-id">
 
                 <!-- Section 1: Basic Information -->
@@ -802,8 +798,8 @@
                             <input type="text" id="task-project-code" placeholder="e.g., 2601200">
                         </div>
                         <div class="form-group">
-                            <label for="task-budget-amount">Budget Amount (G$)</label>
-                            <input type="number" id="task-budget-amount" step="0.01" min="0" placeholder="0.00">
+                            <label for="task-budget-amount">Budget Amount (G$) <span class="required">*</span></label>
+                            <input type="number" id="task-budget-amount" step="0.01" min="0" placeholder="0.00" required onchange="handleBudgetChange()">
                         </div>
                         <div class="form-group">
                             <label for="task-assigned-person">Assigned Person</label>
@@ -816,42 +812,18 @@
                             <input type="text" id="task-title" required placeholder="e.g., 6 AC Units">
                         </div>
                     </div>
+
+                    <!-- Tier Display -->
+                    <div class="tier-display" id="tier-display">
+                        <span class="tier-label">Procurement Tier:</span>
+                        <span class="tier-badge" id="tier-badge">Enter budget to determine tier</span>
+                    </div>
                 </div>
 
-                <!-- Section 2: Procurement Method & Timeline -->
+                <!-- Section 2: Contractor & Contract -->
                 <div class="form-section">
-                    <h3>Procurement Timeline</h3>
-                    <div class="form-row four-col">
-                        <div class="form-group">
-                            <label for="task-method">Method of Procurement</label>
-                            <select id="task-method">
-                                <option value="">Select Method</option>
-                                <option value="OT">OT (Open Tender)</option>
-                                <option value="RT">RT (Restricted Tender)</option>
-                                <option value="SS">SS (Single Source)</option>
-                                <option value="RFQ">RFQ (Request for Quotation)</option>
-                                <option value="CP">CP (Competitive Procurement)</option>
-                                <option value="Open/Public Tender">Open/Public Tender</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="task-tender-advertise">Tender Advertise Date</label>
-                            <input type="date" id="task-tender-advertise">
-                        </div>
-                        <div class="form-group">
-                            <label for="task-tender-closed">Tender Closed Date</label>
-                            <input type="date" id="task-tender-closed">
-                        </div>
-                        <div class="form-group">
-                            <label for="task-eval-sent">Eval Sent for Approval</label>
-                            <input type="date" id="task-eval-sent">
-                        </div>
-                    </div>
+                    <h3>Contractor Details</h3>
                     <div class="form-row three-col">
-                        <div class="form-group">
-                            <label for="task-date-of-award">Date of Award</label>
-                            <input type="date" id="task-date-of-award">
-                        </div>
                         <div class="form-group">
                             <label for="task-contractor">Contractor / Supplier</label>
                             <select id="task-contractor">
@@ -863,37 +835,59 @@
                             <label for="task-contract-sum">Contract Sum (G$)</label>
                             <input type="number" id="task-contract-sum" step="0.01" min="0" placeholder="0.00">
                         </div>
+                        <div class="form-group checkbox-group contract-toggle">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="task-requires-contract" onchange="handleContractToggle()">
+                                <span class="checkbox-custom"></span>
+                                <span>Is a contract necessary?</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Contract Linking (shown when contract is required) -->
+                    <div id="contract-link-section" class="conditional-section hidden">
+                        <div class="form-row two-col">
+                            <div class="form-group">
+                                <label for="task-linked-contract">Link to Contract</label>
+                                <select id="task-linked-contract">
+                                    <option value="">Select Contract</option>
+                                    <!-- Contracts will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openContractModalFromTask()">
+                                    <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                    Create New Contract
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Section 3: Procurement Status Workflow -->
+                <!-- Section 3: Workflow Stages (Dynamic based on tier) -->
                 <div class="form-section">
-                    <h3>Procurement Status</h3>
-                    <div class="form-row two-col">
-                        <div class="form-group">
-                            <label for="task-procurement-status">Current Status <span class="required">*</span></label>
-                            <select id="task-procurement-status" required onchange="handleProcurementStatusChange()">
-                                <option value="RFQ">RFQ</option>
-                                <option value="Evaluation">Evaluation</option>
-                                <option value="Tender Board Approval Request">Tender Board Approval Request</option>
-                                <option value="Awaiting Tender Board Award">Awaiting Tender Board Award</option>
-                                <option value="Approved by Tender Board">Approved by Tender Board</option>
-                                <option value="Passed to Finance">Passed to Finance Department</option>
-                                <option value="Completed">Completed</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="task-status-percentage">Status % Complete</label>
-                            <input type="number" id="task-status-percentage" min="0" max="100" placeholder="0" value="0">
+                    <h3>Workflow Stages</h3>
+                    <p class="section-hint">Check each stage as it is completed. Progress is calculated automatically.</p>
+
+                    <div id="workflow-stages-container" class="workflow-stages-container">
+                        <!-- Stages will be rendered dynamically based on budget tier -->
+                        <div class="workflow-placeholder">
+                            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2" fill="none" opacity="0.3"/></svg>
+                            <span>Enter a budget amount to see workflow stages</span>
                         </div>
                     </div>
 
-                    <!-- Conditional: Award Details (shown when "Approved by Tender Board" or later) -->
+                    <!-- Award Details (shown when award stage is checked) -->
                     <div id="award-details-section" class="conditional-section hidden">
-                        <div class="form-row two-col">
+                        <h4>Award Details</h4>
+                        <div class="form-row three-col">
                             <div class="form-group">
-                                <label for="task-award-number">Tender Board Award Number</label>
-                                <input type="text" id="task-award-number" placeholder="e.g., NPTA-123/2026">
+                                <label for="task-approver">Approved By</label>
+                                <input type="text" id="task-approver" placeholder="e.g., Chief Statistician">
+                            </div>
+                            <div class="form-group">
+                                <label for="task-award-number">Award Number</label>
+                                <input type="text" id="task-award-number" placeholder="e.g., MTB-123/2026">
                             </div>
                             <div class="form-group">
                                 <label for="task-award-document">Award Document (PDF)</label>
@@ -901,23 +895,6 @@
                                     <input type="file" id="task-award-document" accept=".pdf" class="file-input">
                                     <span id="award-document-name" class="file-name">No file selected</span>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Conditional: Finance Details (shown when "Passed to Finance" or later) -->
-                    <div id="finance-details-section" class="conditional-section hidden">
-                        <div class="form-row two-col">
-                            <div class="form-group">
-                                <label for="task-passed-to-finance">Passed to Finance Date</label>
-                                <input type="date" id="task-passed-to-finance">
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="task-is-paid" onchange="handlePaidChange()">
-                                    <span class="checkbox-custom"></span>
-                                    <span>Paid (marks as Completed)</span>
-                                </label>
                             </div>
                         </div>
                     </div>

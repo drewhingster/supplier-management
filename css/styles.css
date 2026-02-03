@@ -3236,3 +3236,537 @@ a:hover {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==========================================================================
+   ClickUp-Style Task List
+   ========================================================================== */
+
+.tasks-grid.clickup-style {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ClickUp List Container */
+.clickup-list-container {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* ClickUp List Header */
+.clickup-list-header {
+    display: grid;
+    grid-template-columns: 40px 1fr 120px 140px 140px 120px 140px 100px;
+    background: var(--color-bg-secondary);
+    border-bottom: 2px solid var(--color-border);
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+}
+
+.clickup-list-header > div {
+    display: flex;
+    align-items: center;
+}
+
+.clickup-col-expand {
+    justify-content: center;
+}
+
+/* ClickUp List Body */
+.clickup-list-body {
+    max-height: calc(100vh - 280px);
+    overflow-y: auto;
+}
+
+/* ClickUp Task Row */
+.clickup-task-row {
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.clickup-task-row:last-child {
+    border-bottom: none;
+}
+
+.clickup-task-main {
+    display: grid;
+    grid-template-columns: 40px 1fr 120px 140px 140px 120px 140px 100px;
+    padding: 0.875rem 1rem;
+    align-items: center;
+    transition: background-color 0.15s ease;
+    cursor: pointer;
+}
+
+.clickup-task-main:hover {
+    background: var(--color-bg);
+}
+
+/* Expand Button */
+.clickup-expand-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+    color: var(--color-text-muted);
+}
+
+.clickup-expand-btn:hover {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text);
+}
+
+.clickup-expand-btn svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+}
+
+.clickup-task-row.expanded .clickup-expand-btn svg {
+    transform: rotate(90deg);
+}
+
+/* Task Name */
+.clickup-task-name {
+    font-weight: 500;
+    color: var(--color-text);
+    font-size: 0.9375rem;
+}
+
+.clickup-task-name .task-code {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-left: 0.5rem;
+}
+
+/* Budget */
+.clickup-task-budget {
+    font-family: var(--font-body);
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+/* Tier Badge */
+.tier-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.tier-badge.tier-cash-advance {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.tier-badge.tier-single-quote {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.tier-badge.tier-3-quote-rfq {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.tier-badge.tier-ministerial {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.tier-badge.tier-npta {
+    background: #fce4ec;
+    color: #c2185b;
+}
+
+.tier-badge.tier-public-tender {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.tier-badge.tier-cabinet {
+    background: #263238;
+    color: #ffffff;
+}
+
+/* Contractor & Assigned */
+.clickup-task-contractor,
+.clickup-task-assigned {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Progress Bar */
+.clickup-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.progress-bar-container {
+    flex: 1;
+    height: 8px;
+    background: var(--color-bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.progress-bar-fill.progress-low {
+    background: var(--color-error);
+}
+
+.progress-bar-fill.progress-medium {
+    background: var(--color-warning);
+}
+
+.progress-bar-fill.progress-high {
+    background: var(--color-accent);
+}
+
+.progress-bar-fill.progress-complete {
+    background: var(--color-success);
+}
+
+.progress-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    min-width: 36px;
+    text-align: right;
+}
+
+/* Task Actions */
+.clickup-task-actions {
+    display: flex;
+    gap: 0.375rem;
+    justify-content: flex-end;
+}
+
+.clickup-task-actions .btn-icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--color-text-muted);
+}
+
+.clickup-task-actions .btn-icon:hover {
+    background: var(--color-bg);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.clickup-task-actions .btn-icon.btn-danger:hover {
+    background: var(--color-error-light);
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+.clickup-task-actions .btn-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+
+/* ClickUp Subtasks (Stages) */
+.clickup-subtasks {
+    display: none;
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border-light);
+    padding: 0.5rem 1rem 0.5rem 56px;
+}
+
+.clickup-task-row.expanded .clickup-subtasks {
+    display: block;
+}
+
+.clickup-subtask {
+    display: flex;
+    align-items: center;
+    padding: 0.625rem 0.75rem;
+    margin: 0.25rem 0;
+    border-radius: 6px;
+    transition: background-color 0.15s ease;
+}
+
+.clickup-subtask:hover {
+    background: var(--color-surface);
+}
+
+/* Stage Checkbox */
+.stage-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    flex: 1;
+}
+
+.stage-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.stage-checkbox .checkbox-custom {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.stage-checkbox input:checked + .checkbox-custom {
+    background: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.stage-checkbox input:checked + .checkbox-custom::after {
+    content: '';
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
+}
+
+.stage-checkbox .stage-name {
+    font-size: 0.875rem;
+    color: var(--color-text);
+}
+
+.stage-checkbox input:checked ~ .stage-name {
+    text-decoration: line-through;
+    color: var(--color-text-muted);
+}
+
+.stage-checkbox .stage-requires-award {
+    font-size: 0.6875rem;
+    color: var(--color-accent);
+    margin-left: 0.5rem;
+    font-weight: 500;
+}
+
+.stage-checkbox .stage-requires-contract {
+    font-size: 0.6875rem;
+    color: var(--color-primary);
+    margin-left: 0.5rem;
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   ClickUp-Style Modal Form
+   ========================================================================== */
+
+.task-modal-clickup {
+    max-width: 700px;
+}
+
+.clickup-form .tier-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-bg);
+    border-radius: 6px;
+    margin-top: 0.75rem;
+}
+
+.clickup-form .tier-label {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.clickup-form .tier-badge {
+    font-size: 0.8125rem;
+}
+
+/* Workflow Stages Container in Modal */
+.workflow-stages-container {
+    background: var(--color-bg);
+    border-radius: 8px;
+    padding: 1rem;
+    min-height: 120px;
+}
+
+.workflow-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--color-text-muted);
+    padding: 2rem;
+}
+
+.workflow-placeholder svg {
+    opacity: 0.5;
+}
+
+.workflow-stages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.workflow-stage-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--color-surface);
+    border-radius: 6px;
+    border: 1px solid var(--color-border-light);
+    transition: all 0.15s ease;
+}
+
+.workflow-stage-item:hover {
+    border-color: var(--color-primary);
+}
+
+.workflow-stage-item.stage-completed {
+    background: var(--color-success-light);
+    border-color: var(--color-success);
+}
+
+.workflow-stage-item .stage-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-right: 0.75rem;
+}
+
+.workflow-stage-item.stage-completed .stage-number {
+    background: var(--color-success);
+    color: white;
+}
+
+/* Contract Toggle */
+.contract-toggle {
+    display: flex;
+    align-items: center;
+    padding-top: 1.5rem;
+}
+
+.contract-toggle .checkbox-label {
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+/* Section Hint */
+.section-hint {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+}
+
+/* Award Details Section in Modal */
+#award-details-section h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+/* Small Button */
+.btn.btn-sm {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+}
+
+/* ClickUp List Responsive */
+@media (max-width: 1200px) {
+    .clickup-list-header,
+    .clickup-task-main {
+        grid-template-columns: 40px 1fr 100px 120px 120px 100px 120px 90px;
+    }
+}
+
+@media (max-width: 992px) {
+    .clickup-list-header {
+        display: none;
+    }
+
+    .clickup-task-main {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 1rem;
+    }
+
+    .clickup-task-main > div {
+        flex: 0 0 auto;
+    }
+
+    .clickup-task-main .clickup-expand-btn {
+        order: -1;
+    }
+
+    .clickup-task-main .clickup-task-name {
+        flex: 1 1 100%;
+        order: 0;
+    }
+
+    .clickup-task-main .clickup-task-budget,
+    .clickup-task-main .tier-badge,
+    .clickup-task-main .clickup-task-contractor,
+    .clickup-task-main .clickup-task-assigned {
+        font-size: 0.75rem;
+    }
+
+    .clickup-task-main .clickup-progress {
+        flex: 1 1 100%;
+        order: 10;
+    }
+
+    .clickup-task-main .clickup-task-actions {
+        order: 11;
+    }
+
+    .clickup-subtasks {
+        padding-left: 1rem;
+    }
+}

@@ -2206,6 +2206,13 @@ async function handleStageToggle(taskId, stageId, isChecked) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
+    // Get the tier and stages for this task
+    const tier = task.budget_amount ? getProcurementTier(task.budget_amount) : null;
+    const stages = tier ? getTierStages(tier, task.requires_contract === 1) : [];
+
+    // Find the index of the clicked stage
+    const clickedStageIndex = stages.findIndex(s => s.id === stageId);
+
     // Parse current completed stages
     let completedStages = [];
     try {
@@ -2216,10 +2223,14 @@ async function handleStageToggle(taskId, stageId, isChecked) {
 
     // Update completed stages
     if (isChecked) {
-        if (!completedStages.includes(stageId)) {
-            completedStages.push(stageId);
+        // Auto-check all previous stages when checking a stage
+        for (let i = 0; i <= clickedStageIndex; i++) {
+            if (!completedStages.includes(stages[i].id)) {
+                completedStages.push(stages[i].id);
+            }
         }
     } else {
+        // When unchecking, only uncheck this stage (user might want to track partial progress)
         completedStages = completedStages.filter(id => id !== stageId);
     }
 
@@ -2251,14 +2262,49 @@ async function handleStageToggle(taskId, stageId, isChecked) {
         // Update local state
         task.completed_stages = JSON.stringify(completedStages);
 
-        // Re-render to update progress
-        renderTasks();
+        // Re-render to update progress but keep the row expanded
+        renderTasksKeepExpanded(taskId);
         updateTaskStatistics();
     } catch (error) {
         console.error('Failed to update stage:', error);
         showToast('Failed to update stage', 'error');
         // Reload tasks to sync state
         loadTasks();
+    }
+}
+
+// Render tasks but keep a specific task row expanded
+function renderTasksKeepExpanded(expandedTaskId) {
+    const listBody = elements.tasksListBody;
+
+    // Apply client-side filter for assigned person (partial match)
+    let filteredTasks = state.tasks;
+    const assignedFilter = state.taskFilters.assigned_person?.trim().toLowerCase();
+
+    if (assignedFilter) {
+        filteredTasks = state.tasks.filter(task => {
+            const assignedTo = (task.assigned_person || '').toLowerCase();
+            return assignedTo.includes(assignedFilter);
+        });
+    }
+
+    if (!filteredTasks || filteredTasks.length === 0) {
+        elements.tasksEmptyState.classList.remove('hidden');
+        elements.tasksListContainer?.classList.add('hidden');
+        return;
+    }
+
+    elements.tasksEmptyState.classList.add('hidden');
+    elements.tasksListContainer?.classList.remove('hidden');
+
+    listBody.innerHTML = filteredTasks.map(task => createTaskRow(task)).join('');
+
+    // Re-expand the task that was expanded before
+    if (expandedTaskId) {
+        const row = document.querySelector(`.clickup-task-row[data-task-id="${expandedTaskId}"]`);
+        if (row) {
+            row.classList.add('expanded');
+        }
     }
 }
 

@@ -499,12 +499,48 @@
                     <div id="tasks-list-container" class="clickup-list-container">
                         <div class="clickup-list-header">
                             <div class="clickup-col-expand"></div>
-                            <div class="clickup-col-name">Name</div>
-                            <div class="clickup-col-budget">Budget (G$)</div>
-                            <div class="clickup-col-tier">Tier</div>
-                            <div class="clickup-col-contractor">Contractor</div>
-                            <div class="clickup-col-assigned">Assigned</div>
-                            <div class="clickup-col-progress">Progress</div>
+                            <div class="clickup-col-name clickup-col-sortable" onclick="toggleColumnSort('name')">
+                                Name
+                                <svg class="sort-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M7 10l5-5 5 5M7 14l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            </div>
+                            <div class="clickup-col-budget clickup-col-sortable" onclick="toggleColumnSort('budget')">
+                                Budget (G$)
+                                <svg class="sort-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M7 10l5-5 5 5M7 14l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            </div>
+                            <div class="clickup-col-tier clickup-col-filterable">
+                                Tier
+                                <button class="col-filter-btn" onclick="toggleColumnFilter(event, 'tier')" title="Filter by tier">
+                                    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                </button>
+                                <div id="tier-filter-dropdown" class="col-filter-dropdown hidden">
+                                    <div class="col-filter-options" id="tier-filter-options"></div>
+                                    <button class="col-filter-clear" onclick="clearColumnFilter('tier')">Clear Filter</button>
+                                </div>
+                            </div>
+                            <div class="clickup-col-contractor clickup-col-filterable">
+                                Contractor
+                                <button class="col-filter-btn" onclick="toggleColumnFilter(event, 'contractor')" title="Filter by contractor">
+                                    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                </button>
+                                <div id="contractor-filter-dropdown" class="col-filter-dropdown hidden">
+                                    <div class="col-filter-options" id="contractor-filter-options"></div>
+                                    <button class="col-filter-clear" onclick="clearColumnFilter('contractor')">Clear Filter</button>
+                                </div>
+                            </div>
+                            <div class="clickup-col-assigned clickup-col-filterable">
+                                Assigned
+                                <button class="col-filter-btn" onclick="toggleColumnFilter(event, 'assigned')" title="Filter by assigned person">
+                                    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                </button>
+                                <div id="assigned-filter-dropdown" class="col-filter-dropdown hidden">
+                                    <div class="col-filter-options" id="assigned-filter-options"></div>
+                                    <button class="col-filter-clear" onclick="clearColumnFilter('assigned')">Clear Filter</button>
+                                </div>
+                            </div>
+                            <div class="clickup-col-progress clickup-col-sortable" onclick="toggleColumnSort('progress')">
+                                Progress
+                                <svg class="sort-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M7 10l5-5 5 5M7 14l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            </div>
                             <div class="clickup-col-actions">Actions</div>
                         </div>
                         <div id="tasks-list-body" class="clickup-list-body">
@@ -1125,9 +1161,14 @@
                             </div>
                             <div class="form-group">
                                 <label for="task-award-document">Award Document (PDF)</label>
-                                <div class="file-upload-container">
-                                    <input type="file" id="task-award-document" accept=".pdf" class="file-input">
-                                    <span id="award-document-name" class="file-name">No file selected</span>
+                                <div class="file-upload-box" onclick="document.getElementById('task-award-document').click()">
+                                    <input type="file" id="task-award-document" accept=".pdf" class="file-input-hidden">
+                                    <div class="upload-box-content">
+                                        <svg viewBox="0 0 24 24" width="24" height="24" class="upload-icon">
+                                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        <span id="award-document-name" class="upload-file-name">Click to upload PDF</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

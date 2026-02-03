@@ -496,6 +496,21 @@ function setupEventListeners() {
     // Task Form
     elements.taskForm?.addEventListener('submit', handleTaskSubmit);
 
+    // Award Document file input - update display when file is selected
+    elements.taskAwardDocument?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        const uploadBox = e.target.closest('.file-upload-box');
+        const nameSpan = document.getElementById('award-document-name');
+
+        if (file && nameSpan) {
+            nameSpan.textContent = file.name;
+            uploadBox?.classList.add('has-file');
+        } else if (nameSpan) {
+            nameSpan.textContent = 'Click to upload PDF';
+            uploadBox?.classList.remove('has-file');
+        }
+    });
+
     // Document file inputs
     CONFIG.DOCUMENT_TYPES.forEach(docType => {
         const fileInput = document.getElementById(`file-${docType.id}`);
@@ -2262,13 +2277,28 @@ function renderTasks() {
         });
     }
 
-    // Filter by assigned person
+    // Filter by assigned person (from sidebar filter)
     const assignedFilter = state.taskFilters.assigned_person?.trim().toLowerCase();
     if (assignedFilter) {
         filteredTasks = filteredTasks.filter(task => {
             const assignedTo = (task.assigned_person || '').toLowerCase();
             return assignedTo.includes(assignedFilter);
         });
+    }
+
+    // Apply column filters
+    if (columnFilters.tier) {
+        filteredTasks = filteredTasks.filter(task => {
+            if (!task.budget_amount) return false;
+            const tier = getProcurementTier(task.budget_amount);
+            return tier && tier.name === columnFilters.tier;
+        });
+    }
+    if (columnFilters.contractor) {
+        filteredTasks = filteredTasks.filter(task => task.contractor_supplier === columnFilters.contractor);
+    }
+    if (columnFilters.assigned) {
+        filteredTasks = filteredTasks.filter(task => task.assigned_person === columnFilters.assigned);
     }
 
     // Apply sorting
@@ -2500,13 +2530,28 @@ function renderTasksKeepExpanded(expandedTaskId) {
         });
     }
 
-    // Filter by assigned person
+    // Filter by assigned person (from sidebar filter)
     const assignedFilter = state.taskFilters.assigned_person?.trim().toLowerCase();
     if (assignedFilter) {
         filteredTasks = filteredTasks.filter(task => {
             const assignedTo = (task.assigned_person || '').toLowerCase();
             return assignedTo.includes(assignedFilter);
         });
+    }
+
+    // Apply column filters
+    if (columnFilters.tier) {
+        filteredTasks = filteredTasks.filter(task => {
+            if (!task.budget_amount) return false;
+            const tier = getProcurementTier(task.budget_amount);
+            return tier && tier.name === columnFilters.tier;
+        });
+    }
+    if (columnFilters.contractor) {
+        filteredTasks = filteredTasks.filter(task => task.contractor_supplier === columnFilters.contractor);
+    }
+    if (columnFilters.assigned) {
+        filteredTasks = filteredTasks.filter(task => task.assigned_person === columnFilters.assigned);
     }
 
     // Apply sorting
@@ -2564,11 +2609,14 @@ async function openTaskModal(task = null) {
         elements.taskRemarks.value = task.remarks || '';
 
         // Show award document name if exists
+        const uploadBox = elements.taskAwardDocument?.closest('.file-upload-box');
         if (task.award_document_r2_key) {
             const fileName = task.award_document_r2_key.split('/').pop();
             elements.awardDocumentName.textContent = fileName;
+            uploadBox?.classList.add('has-file');
         } else {
-            elements.awardDocumentName.textContent = 'No file selected';
+            elements.awardDocumentName.textContent = 'Click to upload PDF';
+            uploadBox?.classList.remove('has-file');
         }
 
         // Show contract link section if requires contract
@@ -2608,7 +2656,11 @@ async function openTaskModal(task = null) {
     } else {
         elements.taskForm.reset();
         elements.taskId.value = '';
-        elements.awardDocumentName.textContent = 'No file selected';
+        elements.awardDocumentName.textContent = 'Click to upload PDF';
+
+        // Reset upload box state
+        const uploadBox = elements.taskAwardDocument?.closest('.file-upload-box');
+        uploadBox?.classList.remove('has-file');
 
         // Reset workflow stages
         renderWorkflowPlaceholder();
@@ -2724,7 +2776,7 @@ function addSupplierRow(supplierData = null) {
     row.innerHTML = `
         <select class="supplier-select" onchange="updateSupplierData('${tempId}', 'supplier_name', this.value)">
             <option value="">Select Supplier</option>
-            ${state.suppliers.map(s => `<option value="${escapeHtml(s.supplier_name)}" ${s.supplier_name === supplier.supplier_name ? 'selected' : ''}>${escapeHtml(s.supplier_name)}</option>`).join('')}
+            ${state.suppliers.map(s => `<option value="${escapeHtml(s.name)}" ${s.name === supplier.supplier_name ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('')}
         </select>
         <input type="number" class="supplier-amount" placeholder="Amount" step="0.01" min="0"
             value="${supplier.amount || ''}"
@@ -3288,6 +3340,134 @@ function showTasksLoading(show) {
     }
 }
 
+// ==================== Column Filter Functions ====================
+
+// Track current column sort state
+let columnSortState = { field: 'date', direction: 'desc' };
+
+// Track column filter state
+let columnFilters = { tier: null, contractor: null, assigned: null };
+
+function toggleColumnSort(field) {
+    if (columnSortState.field === field) {
+        columnSortState.direction = columnSortState.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        columnSortState.field = field;
+        columnSortState.direction = 'asc';
+    }
+
+    // Update the sort dropdown to match
+    state.taskFilters.sort = `${field}-${columnSortState.direction}`;
+    const sortSelect = document.getElementById('task-sort');
+    if (sortSelect) {
+        sortSelect.value = state.taskFilters.sort;
+    }
+
+    // Update visual indicators
+    updateColumnSortIndicators();
+    renderTasks();
+}
+
+function updateColumnSortIndicators() {
+    document.querySelectorAll('.clickup-col-sortable').forEach(col => {
+        col.classList.remove('sort-asc', 'sort-desc');
+    });
+
+    const activeCol = document.querySelector(`.clickup-col-sortable[onclick*="${columnSortState.field}"]`);
+    if (activeCol) {
+        activeCol.classList.add(`sort-${columnSortState.direction}`);
+    }
+}
+
+function toggleColumnFilter(event, filterType) {
+    event.stopPropagation();
+
+    // Close other dropdowns
+    document.querySelectorAll('.col-filter-dropdown').forEach(dd => {
+        if (dd.id !== `${filterType}-filter-dropdown`) {
+            dd.classList.add('hidden');
+        }
+    });
+
+    const dropdown = document.getElementById(`${filterType}-filter-dropdown`);
+    const isHidden = dropdown.classList.contains('hidden');
+
+    if (isHidden) {
+        populateFilterOptions(filterType);
+        dropdown.classList.remove('hidden');
+    } else {
+        dropdown.classList.add('hidden');
+    }
+}
+
+function populateFilterOptions(filterType) {
+    const optionsContainer = document.getElementById(`${filterType}-filter-options`);
+    if (!optionsContainer) return;
+
+    let values = [];
+
+    switch (filterType) {
+        case 'tier':
+            // Get unique tiers from tasks
+            values = [...new Set(state.tasks.map(t => {
+                if (!t.budget_amount) return null;
+                const tier = getProcurementTier(t.budget_amount);
+                return tier ? tier.name : null;
+            }).filter(Boolean))].sort();
+            break;
+        case 'contractor':
+            values = [...new Set(state.tasks.map(t => t.contractor_supplier).filter(Boolean))].sort();
+            break;
+        case 'assigned':
+            values = [...new Set(state.tasks.map(t => t.assigned_person).filter(Boolean))].sort();
+            break;
+    }
+
+    optionsContainer.innerHTML = values.map(value => `
+        <div class="col-filter-option ${columnFilters[filterType] === value ? 'selected' : ''}"
+             onclick="applyColumnFilter('${filterType}', '${escapeHtml(value)}')">
+            ${escapeHtml(value)}
+        </div>
+    `).join('');
+
+    if (values.length === 0) {
+        optionsContainer.innerHTML = '<div class="col-filter-option" style="color: var(--color-text-muted); cursor: default;">No options available</div>';
+    }
+}
+
+function applyColumnFilter(filterType, value) {
+    columnFilters[filterType] = value;
+
+    // Update filter button to show active state
+    const btn = document.querySelector(`.clickup-col-${filterType === 'assigned' ? 'assigned' : filterType} .col-filter-btn`);
+    if (btn) btn.classList.add('active');
+
+    // Close dropdown
+    document.getElementById(`${filterType}-filter-dropdown`)?.classList.add('hidden');
+
+    renderTasks();
+}
+
+function clearColumnFilter(filterType) {
+    columnFilters[filterType] = null;
+
+    // Remove active state from button
+    const btn = document.querySelector(`.clickup-col-${filterType === 'assigned' ? 'assigned' : filterType} .col-filter-btn`);
+    if (btn) btn.classList.remove('active');
+
+    // Close dropdown
+    document.getElementById(`${filterType}-filter-dropdown`)?.classList.add('hidden');
+
+    renderTasks();
+}
+
+// Close filter dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.clickup-col-filterable')) {
+        document.querySelectorAll('.col-filter-dropdown').forEach(dd => dd.classList.add('hidden'));
+    }
+});
+
 // Make task functions globally accessible
 window.openTaskModal = openTaskModal;
 window.closeTaskModal = closeTaskModal;
@@ -3304,6 +3484,10 @@ window.toggleMultiSupplier = toggleMultiSupplier;
 window.addSupplierRow = addSupplierRow;
 window.updateSupplierData = updateSupplierData;
 window.removeSupplierRow = removeSupplierRow;
+window.toggleColumnSort = toggleColumnSort;
+window.toggleColumnFilter = toggleColumnFilter;
+window.applyColumnFilter = applyColumnFilter;
+window.clearColumnFilter = clearColumnFilter;
 
 // ==================== Audit Log Functions ====================
 

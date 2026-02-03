@@ -197,6 +197,7 @@ const state = {
         archived: 'active', // 'active', 'archived', 'all'
         status: '',
         assigned_person: '',
+        search: '', // search by task name
         sort: 'date-desc' // default sort
     },
     viewMode: 'grid'
@@ -350,6 +351,7 @@ const elements = {
     deleteContractBtn: document.getElementById('delete-contract-btn'),
 
     // Task elements - ClickUp style
+    taskSearch: document.getElementById('task-search'),
     taskStatusFilter: document.getElementById('task-status-filter'),
     taskPersonFilter: document.getElementById('task-person-filter'),
     taskSort: document.getElementById('task-sort'),
@@ -483,6 +485,7 @@ function setupEventListeners() {
     elements.deleteContractBtn?.addEventListener('click', handleDeleteContract);
 
     // Task Filters
+    elements.taskSearch?.addEventListener('input', handleTaskFilterChange);
     elements.taskStatusFilter?.addEventListener('change', handleTaskFilterChange);
     elements.taskPersonFilter?.addEventListener('input', handleTaskFilterChange);
     elements.taskSort?.addEventListener('change', handleTaskSortChange);
@@ -2241,12 +2244,28 @@ async function loadTasks() {
 function renderTasks() {
     const listBody = elements.tasksListBody;
 
-    // Apply client-side filter for assigned person (partial match)
+    // Apply client-side filters
     let filteredTasks = state.tasks;
-    const assignedFilter = state.taskFilters.assigned_person?.trim().toLowerCase();
 
+    // Filter by search term (matches title, project code, contractor, assigned person)
+    const searchFilter = state.taskFilters.search?.trim().toLowerCase();
+    if (searchFilter) {
+        filteredTasks = filteredTasks.filter(task => {
+            const title = (task.title || '').toLowerCase();
+            const projectCode = (task.project_code || '').toLowerCase();
+            const contractor = (task.contractor_supplier || '').toLowerCase();
+            const assigned = (task.assigned_person || '').toLowerCase();
+            return title.includes(searchFilter) ||
+                   projectCode.includes(searchFilter) ||
+                   contractor.includes(searchFilter) ||
+                   assigned.includes(searchFilter);
+        });
+    }
+
+    // Filter by assigned person
+    const assignedFilter = state.taskFilters.assigned_person?.trim().toLowerCase();
     if (assignedFilter) {
-        filteredTasks = state.tasks.filter(task => {
+        filteredTasks = filteredTasks.filter(task => {
             const assignedTo = (task.assigned_person || '').toLowerCase();
             return assignedTo.includes(assignedFilter);
         });
@@ -2426,12 +2445,28 @@ async function handleStageToggle(taskId, stageId, isChecked) {
 function renderTasksKeepExpanded(expandedTaskId) {
     const listBody = elements.tasksListBody;
 
-    // Apply client-side filter for assigned person (partial match)
+    // Apply client-side filters
     let filteredTasks = state.tasks;
-    const assignedFilter = state.taskFilters.assigned_person?.trim().toLowerCase();
 
+    // Filter by search term
+    const searchFilter = state.taskFilters.search?.trim().toLowerCase();
+    if (searchFilter) {
+        filteredTasks = filteredTasks.filter(task => {
+            const title = (task.title || '').toLowerCase();
+            const projectCode = (task.project_code || '').toLowerCase();
+            const contractor = (task.contractor_supplier || '').toLowerCase();
+            const assigned = (task.assigned_person || '').toLowerCase();
+            return title.includes(searchFilter) ||
+                   projectCode.includes(searchFilter) ||
+                   contractor.includes(searchFilter) ||
+                   assigned.includes(searchFilter);
+        });
+    }
+
+    // Filter by assigned person
+    const assignedFilter = state.taskFilters.assigned_person?.trim().toLowerCase();
     if (assignedFilter) {
-        filteredTasks = state.tasks.filter(task => {
+        filteredTasks = filteredTasks.filter(task => {
             const assignedTo = (task.assigned_person || '').toLowerCase();
             return assignedTo.includes(assignedFilter);
         });
@@ -2833,17 +2868,24 @@ async function uploadAwardDocument(taskId, file) {
     formData.append('file', file);
 
     try {
+        const token = api.getToken();
         const response = await fetch(`${window.API_BASE_URL}/api/tasks/${taskId}/award-document`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             body: formData
         });
 
         if (!response.ok) {
-            throw new Error('Failed to upload award document');
+            const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+            throw new Error(errorData.error || 'Failed to upload award document');
         }
+
+        showToast('Award document uploaded successfully', 'success');
     } catch (error) {
         console.error('Failed to upload award document:', error);
-        showToast('Item saved but award document upload failed', 'error');
+        showToast('Item saved but award document upload failed: ' + error.message, 'error');
     }
 }
 
@@ -2889,9 +2931,10 @@ async function handleTaskArchive(taskId, archived) {
 }
 
 function handleTaskFilterChange() {
+    state.taskFilters.search = elements.taskSearch?.value || '';
     state.taskFilters.status = elements.taskStatusFilter?.value || '';
     state.taskFilters.assigned_person = elements.taskPersonFilter?.value || '';
-    loadTasks();
+    renderTasks(); // Use renderTasks for client-side filtering
 }
 
 function handleTaskArchiveFilterChange(e) {

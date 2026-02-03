@@ -1876,7 +1876,7 @@ async function createTask(request, env, currentUser) {
     // Ensure completed_stages is a valid JSON string
     const completedStages = Array.isArray(body.completed_stages)
         ? JSON.stringify(body.completed_stages)
-        : '[]';
+        : (body.completed_stages || '[]');
 
     const result = await env.DB.prepare(`
         INSERT INTO tasks (

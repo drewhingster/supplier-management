@@ -3465,8 +3465,8 @@ a:hover {
 /* ClickUp List Header */
 .clickup-list-header {
     display: grid;
-    grid-template-columns: 40px minmax(180px, 2fr) 100px minmax(120px, 150px) minmax(130px, 1.2fr) minmax(110px, 1fr) 110px 80px;
-    min-width: 900px;
+    grid-template-columns: 40px minmax(180px, 2fr) minmax(110px, 130px) minmax(100px, 130px) minmax(130px, 1.2fr) minmax(110px, 1fr) 110px 80px;
+    min-width: 950px;
     background: var(--color-bg-secondary);
     border-bottom: 2px solid var(--color-border);
     padding: 0.75rem 1rem;
@@ -3618,7 +3618,7 @@ a:hover {
 
 .clickup-task-main {
     display: grid;
-    grid-template-columns: 40px minmax(180px, 2fr) 100px minmax(120px, 150px) minmax(130px, 1.2fr) minmax(110px, 1fr) 110px 80px;
+    grid-template-columns: 40px minmax(180px, 2fr) minmax(110px, 130px) minmax(100px, 130px) minmax(130px, 1.2fr) minmax(110px, 1fr) 110px 80px;
     padding: 0.875rem 1rem;
     align-items: center;
     transition: background-color 0.15s ease;
@@ -3695,6 +3695,8 @@ a:hover {
     font-family: var(--font-body);
     font-weight: 500;
     color: var(--color-text);
+    white-space: nowrap;
+    font-size: 0.8125rem;
 }
 
 /* Tier Badge */
@@ -3734,8 +3736,8 @@ a:hover {
 }
 
 .tier-badge.tier-npta {
-    background: #fce4ec;
-    color: #c2185b;
+    background: #e8f5e9;
+    color: #2e7d32;
 }
 
 .tier-badge.tier-public-tender {

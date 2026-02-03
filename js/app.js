@@ -76,39 +76,39 @@ const PROCUREMENT_TIERS = {
     },
     NPTA: {
         id: 'npta',
-        name: 'NPTA',
+        name: 'NPTAB',
         minAmount: 1500000,
         maxAmount: 2999999,
         stages: [
             { id: 'rfqs', name: 'RFQs', requiresAward: false },
             { id: 'evaluation', name: 'Evaluation', requiresAward: false },
             { id: 'approved_cs', name: 'Approved by Chief Statistician', requiresAward: false },
-            { id: 'npta_form', name: 'NPTA Form & Request Letter', requiresAward: false },
-            { id: 'approved_npta', name: 'Approved by NPTA', requiresAward: true },
+            { id: 'npta_form', name: 'NPTAB Form & Request Letter', requiresAward: false },
+            { id: 'approved_npta', name: 'Approved by NPTAB', requiresAward: true },
             { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
             { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
             { id: 'paid', name: 'Paid', requiresAward: false },
             { id: 'completed', name: 'Completed', requiresAward: false }
         ],
-        approver: 'NPTA'
+        approver: 'NPTAB'
     },
     PUBLIC_TENDER_NPTA: {
         id: 'public_tender_npta',
-        name: 'Public Tender (NPTA)',
+        name: 'Public Tender (NPTAB)',
         minAmount: 3000000,
         maxAmount: 14999999,
         stages: [
             { id: 'tender_advertised', name: 'Public Tender Advertised', requiresAward: false },
             { id: 'tender_closed', name: 'Tender Closed', requiresAward: false },
             { id: 'evaluation', name: 'Evaluation', requiresAward: false },
-            { id: 'npta_form', name: 'NPTA Form & Request Letter', requiresAward: false },
-            { id: 'approved_npta', name: 'Approved by NPTA', requiresAward: true },
+            { id: 'npta_form', name: 'NPTAB Form & Request Letter', requiresAward: false },
+            { id: 'approved_npta', name: 'Approved by NPTAB', requiresAward: true },
             { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
             { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
             { id: 'paid', name: 'Paid', requiresAward: false },
             { id: 'completed', name: 'Completed', requiresAward: false }
         ],
-        approver: 'NPTA'
+        approver: 'NPTAB'
     },
     CABINET: {
         id: 'cabinet',
@@ -2770,13 +2770,16 @@ function addSupplierRow(supplierData = null) {
     };
     modalSuppliers.push(supplier);
 
+    // Sort suppliers alphabetically for the dropdown
+    const sortedSuppliers = [...state.suppliers].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
     const row = document.createElement('div');
     row.className = 'supplier-row';
     row.dataset.tempId = tempId;
     row.innerHTML = `
         <select class="supplier-select" onchange="updateSupplierData('${tempId}', 'supplier_name', this.value)">
             <option value="">Select Supplier</option>
-            ${state.suppliers.map(s => `<option value="${escapeHtml(s.name)}" ${s.name === supplier.supplier_name ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('')}
+            ${sortedSuppliers.map(s => `<option value="${escapeHtml(s.name)}" ${s.name === supplier.supplier_name ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('')}
         </select>
         <input type="number" class="supplier-amount" placeholder="Amount" step="0.01" min="0"
             value="${supplier.amount || ''}"
@@ -3030,7 +3033,9 @@ async function populateContractorDropdown(selectedValue = '') {
     dropdown.innerHTML = '<option value="">Select Supplier</option>';
 
     try {
+        // Fetch suppliers and update state so multi-supplier dropdown also has access
         const suppliers = await api.getSuppliers();
+        state.suppliers = suppliers; // Update state for multi-supplier feature
 
         // Sort suppliers alphabetically by name
         suppliers.sort((a, b) => a.name.localeCompare(b.name));

@@ -3047,9 +3047,20 @@ a:hover {
     font-size: 0.8125rem;
 }
 
-.supplier-balance.balanced {
+.supplier-balance.balanced,
+.supplier-balance.valid {
     background: rgba(16, 185, 129, 0.15);
     color: #059669;
+}
+
+.supplier-balance.unbalanced.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #d97706;
+}
+
+.supplier-balance.unbalanced.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #dc2626;
 }
 
 .supplier-balance.unbalanced {
@@ -3743,8 +3754,8 @@ a:hover {
 }
 
 .tier-badge.tier-ministerial {
-    background: #f3e5f5;
-    color: #7b1fa2;
+    background: #e3f2fd;
+    color: #1565c0;
 }
 
 .tier-badge.tier-npta {

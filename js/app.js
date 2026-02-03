@@ -2738,7 +2738,7 @@ function handleContractToggle() {
 let modalSuppliers = [];
 let supplierIdCounter = 0;
 
-function toggleMultiSupplier() {
+async function toggleMultiSupplier() {
     const isEnabled = document.getElementById('enable-multi-supplier')?.checked;
     const container = document.getElementById('multi-supplier-container');
     const contractorSection = document.getElementById('contractor-single-section');
@@ -2751,7 +2751,7 @@ function toggleMultiSupplier() {
             updateSupplierBudgetDisplay();
             // Add first supplier row if empty
             if (modalSuppliers.length === 0) {
-                addSupplierRow();
+                await addSupplierRow();
             }
         } else {
             // Show single contractor dropdown, hide multi-supplier section
@@ -2761,9 +2761,18 @@ function toggleMultiSupplier() {
     }
 }
 
-function addSupplierRow(supplierData = null) {
+async function addSupplierRow(supplierData = null) {
     const supplierList = document.getElementById('supplier-list');
     if (!supplierList) return;
+
+    // Ensure suppliers are loaded from database
+    if (!state.suppliers || state.suppliers.length === 0) {
+        try {
+            state.suppliers = await api.getSuppliers();
+        } catch (error) {
+            console.error('Failed to load suppliers:', error);
+        }
+    }
 
     const tempId = `temp_${++supplierIdCounter}`;
     const supplier = {
@@ -2841,16 +2850,31 @@ function updateSupplierSum() {
     if (balanceDisplay) {
         const diff = Math.abs(budgetAmount - sum);
         if (diff < 0.01) {
-            balanceDisplay.textContent = 'Balanced';
-            balanceDisplay.className = 'supplier-balance balanced';
+            // Valid state - split total equals awarded total
+            balanceDisplay.textContent = 'Balanced ✓';
+            balanceDisplay.className = 'supplier-balance balanced valid';
         } else if (sum > budgetAmount) {
+            // Error state - split total exceeds awarded total
             balanceDisplay.textContent = `Over by G$${(sum - budgetAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            balanceDisplay.className = 'supplier-balance unbalanced';
+            balanceDisplay.className = 'supplier-balance unbalanced error';
         } else {
+            // Warning state - split total less than awarded total
             balanceDisplay.textContent = `Remaining: G$${(budgetAmount - sum).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            balanceDisplay.className = 'supplier-balance unbalanced';
+            balanceDisplay.className = 'supplier-balance unbalanced warning';
         }
     }
+}
+
+// Check if split supplier amounts are valid (equals budget total)
+function isSplitSupplierValid() {
+    const isEnabled = document.getElementById('enable-multi-supplier')?.checked;
+    if (!isEnabled) return true; // Not in split mode, always valid
+
+    const sum = modalSuppliers.reduce((acc, s) => acc + (parseFloat(s.amount) || 0), 0);
+    const budgetAmount = parseFloat(document.getElementById('task-budget-amount')?.value) || 0;
+    const diff = Math.abs(budgetAmount - sum);
+
+    return diff < 0.01; // Valid if difference is less than 1 cent
 }
 
 function resetSupplierModal() {
@@ -2862,6 +2886,9 @@ function resetSupplierModal() {
     if (enableCheckbox) enableCheckbox.checked = false;
     const container = document.getElementById('multi-supplier-container');
     if (container) container.classList.add('hidden');
+    // Show single contractor section when resetting
+    const contractorSection = document.getElementById('contractor-single-section');
+    if (contractorSection) contractorSection.classList.remove('hidden');
 }
 
 async function loadTaskSuppliers(taskId) {
@@ -3089,6 +3116,12 @@ function closeTaskModal(skipConfirm = false) {
 
 async function handleTaskSubmit(e) {
     e.preventDefault();
+
+    // Validate split supplier amounts if split mode is enabled
+    if (!isSplitSupplierValid()) {
+        showToast('Split supplier amounts must equal the total budget amount', 'error');
+        return;
+    }
 
     const submitBtn = elements.taskSubmitBtn;
     const spinner = submitBtn.querySelector('.btn-spinner');

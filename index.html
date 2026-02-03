@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supplier Document Management System | Bureau of Statistics</title>
+    <title>Procurement Management System | Bureau of Statistics</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
                 <div class="gov-seal">
                     <img src="images/logo.png.jpg" alt="Bureau of Statistics Logo" class="seal-icon">
                 </div>
-                <h2>Supplier Document Management System</h2>
+                <h2>Procurement Management System</h2>
                 <p class="auth-subtitle">Bureau of Statistics — Ministry of Finance</p>
             </div>
 
@@ -82,7 +82,7 @@
                     <img src="images/logo.png.jpg" alt="Bureau of Statistics Logo" class="logo-icon">
                 </div>
                 <div class="header-title">
-                    <h1>Supplier Document Management</h1>
+                    <h1>Procurement Management System</h1>
                     <span class="header-subtitle">Bureau of Statistics — Procurement Unit</span>
                 </div>
             </div>
@@ -1068,7 +1068,18 @@
                 <!-- Section 2: Contractor & Contract -->
                 <div class="form-section">
                     <h3>Contractor Details</h3>
-                    <div class="form-row three-col">
+
+                    <!-- Multi-Supplier Toggle (always visible at top) -->
+                    <div class="multi-supplier-toggle-section">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enable-multi-supplier" onchange="toggleMultiSupplier()">
+                            <span class="checkbox-custom"></span>
+                            <span>Split across multiple suppliers</span>
+                        </label>
+                    </div>
+
+                    <!-- Single Contractor Section (hidden when multi-supplier enabled) -->
+                    <div id="contractor-single-section" class="form-row three-col">
                         <div class="form-group">
                             <label for="task-contractor">Contractor / Supplier</label>
                             <select id="task-contractor">
@@ -1089,29 +1100,20 @@
                         </div>
                     </div>
 
-                    <!-- Multi-Supplier Split Section -->
-                    <div class="multi-supplier-section">
-                        <div class="supplier-toggle">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="enable-multi-supplier" onchange="toggleMultiSupplier()">
-                                <span class="checkbox-custom"></span>
-                                <span>Split across multiple suppliers</span>
-                            </label>
+                    <!-- Multi-Supplier Split Section (shown when multi-supplier enabled) -->
+                    <div id="multi-supplier-container" class="multi-supplier-section hidden">
+                        <div class="supplier-summary">
+                            <span>Budget Amount: <strong id="supplier-budget-display">G$0.00</strong></span>
+                            <span class="supplier-sum">Sum of Allocations: <strong id="supplier-sum-display">G$0.00</strong></span>
+                            <span id="supplier-balance" class="supplier-balance balanced">Balanced</span>
                         </div>
-                        <div id="multi-supplier-container" class="hidden">
-                            <div class="supplier-summary">
-                                <span>Budget Amount: <strong id="supplier-budget-display">G$0.00</strong></span>
-                                <span class="supplier-sum">Sum of Allocations: <strong id="supplier-sum-display">G$0.00</strong></span>
-                                <span id="supplier-balance" class="supplier-balance balanced">Balanced</span>
-                            </div>
-                            <div id="supplier-list" class="supplier-list">
-                                <!-- Supplier rows will be added dynamically -->
-                            </div>
-                            <button type="button" class="btn btn-secondary btn-sm add-supplier-btn" onclick="addSupplierRow()">
-                                <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                                Add Supplier
-                            </button>
+                        <div id="supplier-list" class="supplier-list">
+                            <!-- Supplier rows will be added dynamically -->
                         </div>
+                        <button type="button" class="btn btn-secondary btn-sm add-supplier-btn" onclick="addSupplierRow()">
+                            <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Add Supplier
+                        </button>
                     </div>
 
                     <!-- Contract Linking (shown when contract is required) -->

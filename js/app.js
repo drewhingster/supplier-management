@@ -76,7 +76,7 @@ const PROCUREMENT_TIERS = {
     },
     NPTA: {
         id: 'npta',
-        name: 'NPTAB',
+        name: 'National Procurement and Tender Administration Board',
         minAmount: 1500000,
         maxAmount: 2999999,
         stages: [
@@ -2741,9 +2741,12 @@ let supplierIdCounter = 0;
 function toggleMultiSupplier() {
     const isEnabled = document.getElementById('enable-multi-supplier')?.checked;
     const container = document.getElementById('multi-supplier-container');
+    const contractorSection = document.getElementById('contractor-single-section');
 
-    if (container) {
+    if (container && contractorSection) {
         if (isEnabled) {
+            // Hide single contractor dropdown, show multi-supplier section
+            contractorSection.classList.add('hidden');
             container.classList.remove('hidden');
             updateSupplierBudgetDisplay();
             // Add first supplier row if empty
@@ -2751,6 +2754,8 @@ function toggleMultiSupplier() {
                 addSupplierRow();
             }
         } else {
+            // Show single contractor dropdown, hide multi-supplier section
+            contractorSection.classList.remove('hidden');
             container.classList.add('hidden');
         }
     }

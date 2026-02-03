@@ -358,10 +358,27 @@
                 <section class="tasks-grid clickup-style">
                     <div class="grid-header">
                         <h2 id="tasks-view-title">Procurement Items</h2>
-                        <button class="btn btn-primary" onclick="openTaskModal()">
-                            <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                            Add Item
-                        </button>
+                        <div class="grid-header-controls">
+                            <div class="sort-control">
+                                <label for="task-sort">Sort by:</label>
+                                <select id="task-sort" class="sort-select">
+                                    <option value="date-desc">Date Added (Newest)</option>
+                                    <option value="date-asc">Date Added (Oldest)</option>
+                                    <option value="name-asc">Name (A-Z)</option>
+                                    <option value="name-desc">Name (Z-A)</option>
+                                    <option value="assigned-asc">Assigned (A-Z)</option>
+                                    <option value="assigned-desc">Assigned (Z-A)</option>
+                                    <option value="budget-desc">Budget (High-Low)</option>
+                                    <option value="budget-asc">Budget (Low-High)</option>
+                                    <option value="progress-desc">Progress (High-Low)</option>
+                                    <option value="progress-asc">Progress (Low-High)</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="openTaskModal()">
+                                <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                Add Item
+                            </button>
+                        </div>
                     </div>
 
                     <!-- ClickUp-style Task List -->

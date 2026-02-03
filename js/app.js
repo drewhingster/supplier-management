@@ -196,7 +196,8 @@ const state = {
     taskFilters: {
         archived: 'active', // 'active', 'archived', 'all'
         status: '',
-        assigned_person: ''
+        assigned_person: '',
+        sort: 'date-desc' // default sort
     },
     viewMode: 'grid'
 };
@@ -335,6 +336,7 @@ const elements = {
     // Task elements - ClickUp style
     taskStatusFilter: document.getElementById('task-status-filter'),
     taskPersonFilter: document.getElementById('task-person-filter'),
+    taskSort: document.getElementById('task-sort'),
     tasksListBody: document.getElementById('tasks-list-body'),
     tasksListContainer: document.getElementById('tasks-list-container'),
     tasksEmptyState: document.getElementById('tasks-empty-state'),
@@ -443,6 +445,7 @@ function setupEventListeners() {
     // Task Filters
     elements.taskStatusFilter?.addEventListener('change', handleTaskFilterChange);
     elements.taskPersonFilter?.addEventListener('input', handleTaskFilterChange);
+    elements.taskSort?.addEventListener('change', handleTaskSortChange);
     document.querySelectorAll('input[name="task-archive-filter"]').forEach(radio => {
         radio.addEventListener('change', handleTaskArchiveFilterChange);
     });
@@ -2106,6 +2109,9 @@ function renderTasks() {
         });
     }
 
+    // Apply sorting
+    filteredTasks = sortTasks(filteredTasks);
+
     if (!filteredTasks || filteredTasks.length === 0) {
         elements.tasksEmptyState.classList.remove('hidden');
         elements.tasksListContainer?.classList.add('hidden');
@@ -2287,6 +2293,9 @@ function renderTasksKeepExpanded(expandedTaskId) {
             return assignedTo.includes(assignedFilter);
         });
     }
+
+    // Apply sorting
+    filteredTasks = sortTasks(filteredTasks);
 
     if (!filteredTasks || filteredTasks.length === 0) {
         elements.tasksEmptyState.classList.remove('hidden');
@@ -2754,6 +2763,67 @@ function handleTaskArchiveFilterChange(e) {
     elements.tasksViewTitle.textContent = titles[e.target.value] || 'Procurement Items';
 
     loadTasks();
+}
+
+function handleTaskSortChange(e) {
+    state.taskFilters.sort = e.target.value;
+    renderTasks();
+}
+
+// Calculate progress percentage for a task
+function getTaskProgress(task) {
+    const budget = task.budget_amount || 0;
+    if (budget <= 0) return 0;
+
+    const tier = getProcurementTier(budget);
+    const stages = getTierStages(tier, task.requires_contract === 1);
+    let completedStages = [];
+    try {
+        completedStages = JSON.parse(task.completed_stages || '[]');
+    } catch (e) {
+        completedStages = [];
+    }
+
+    return stages.length > 0 ? Math.round((completedStages.length / stages.length) * 100) : 0;
+}
+
+// Sort tasks based on current sort setting
+function sortTasks(tasks) {
+    const sortValue = state.taskFilters.sort || 'date-desc';
+    const [field, direction] = sortValue.split('-');
+    const multiplier = direction === 'desc' ? -1 : 1;
+
+    return [...tasks].sort((a, b) => {
+        let comparison = 0;
+
+        switch (field) {
+            case 'date':
+                const dateA = new Date(a.created_at || 0).getTime();
+                const dateB = new Date(b.created_at || 0).getTime();
+                comparison = dateA - dateB;
+                break;
+            case 'name':
+                const nameA = (a.title || '').toLowerCase();
+                const nameB = (b.title || '').toLowerCase();
+                comparison = nameA.localeCompare(nameB);
+                break;
+            case 'assigned':
+                const assignedA = (a.assigned_person || '').toLowerCase();
+                const assignedB = (b.assigned_person || '').toLowerCase();
+                comparison = assignedA.localeCompare(assignedB);
+                break;
+            case 'budget':
+                comparison = (a.budget_amount || 0) - (b.budget_amount || 0);
+                break;
+            case 'progress':
+                comparison = getTaskProgress(a) - getTaskProgress(b);
+                break;
+            default:
+                comparison = 0;
+        }
+
+        return comparison * multiplier;
+    });
 }
 
 function updateTaskStatistics() {

@@ -59,6 +59,10 @@ export default {
             if (path === '/api/auth/verify' && request.method === 'POST') {
                 return await handleLegacyAuth(request, env);
             }
+            // Setup endpoints (public for database initialization)
+            if (path === '/api/setup/tasks' && request.method === 'POST') {
+                return await setupTasksTable(env);
+            }
 
             // All other routes require authentication
             const authResult = await verifyAuth(request, env);
@@ -215,11 +219,6 @@ export default {
                 const taskId = parseInt(parts[3]);
                 const supplierId = parseInt(parts[5]);
                 if (request.method === 'DELETE') return await deleteTaskSupplier(taskId, supplierId, env, currentUser, request);
-            }
-
-            // Setup tasks table
-            if (path === '/api/setup/tasks' && request.method === 'POST') {
-                return await setupTasksTable(env);
             }
 
             return jsonResponse({ error: 'Not found' }, 404);

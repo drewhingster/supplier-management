@@ -39,45 +39,92 @@ export default {
         const path = url.pathname;
 
         try {
-            // Auth endpoint (no auth required)
+            // ==================== PUBLIC AUTH ROUTES (no auth required) ====================
+            if (path === '/api/auth/login' && request.method === 'POST') {
+                return await handleLogin(request, env);
+            }
+            if (path === '/api/auth/logout' && request.method === 'POST') {
+                return await handleLogout(request, env);
+            }
+            if (path === '/api/auth/setup-users' && request.method === 'POST') {
+                return await setupUsersTable(env);
+            }
+            if (path === '/api/auth/setup-audit' && request.method === 'POST') {
+                return await setupAuditTable(env);
+            }
+            if (path === '/api/auth/seed-users' && request.method === 'POST') {
+                return await seedUsers(env);
+            }
+            // Legacy auth endpoint for backward compatibility
             if (path === '/api/auth/verify' && request.method === 'POST') {
-                return await handleAuth(request, env);
+                return await handleLegacyAuth(request, env);
             }
 
             // All other routes require authentication
             const authResult = await verifyAuth(request, env);
             if (!authResult.authenticated) {
-                return jsonResponse({ error: 'Unauthorized' }, 401);
+                return jsonResponse({ error: 'Unauthorized', requiresLogin: true }, 401);
+            }
+
+            // Store user info for audit logging
+            const currentUser = authResult.user;
+
+            // ==================== USER ROUTES ====================
+            if (path === '/api/auth/me' && request.method === 'GET') {
+                return jsonResponse({ user: currentUser });
+            }
+            if (path === '/api/auth/change-password' && request.method === 'POST') {
+                return await handleChangePassword(request, env, currentUser);
+            }
+            if (path === '/api/users' && request.method === 'GET') {
+                return await getUsers(env);
+            }
+
+            // ==================== AUDIT LOG ROUTES ====================
+            if (path === '/api/audit-logs' && request.method === 'GET') {
+                return await getAuditLogs(request, env);
+            }
+            if (path === '/api/audit-logs/recent' && request.method === 'GET') {
+                return await getRecentAuditLogs(env);
+            }
+
+            // Check if user is view-only for write operations
+            if (currentUser.role === 'view_only') {
+                const writeMethod = ['POST', 'PUT', 'DELETE'].includes(request.method);
+                const isWriteRoute = !path.includes('/api/auth/') && !path.includes('/api/audit-logs');
+                if (writeMethod && isWriteRoute) {
+                    return jsonResponse({ error: 'View-only users cannot make changes' }, 403);
+                }
             }
 
             // Categories routes
             if (path === '/api/categories') {
                 if (request.method === 'GET') return await getCategories(env);
-                if (request.method === 'POST') return await createCategory(request, env);
+                if (request.method === 'POST') return await createCategory(request, env, currentUser);
             }
 
             if (path.match(/^\/api\/categories\/\d+$/)) {
                 const id = parseInt(path.split('/').pop());
-                if (request.method === 'DELETE') return await deleteCategory(id, env);
+                if (request.method === 'DELETE') return await deleteCategory(id, env, currentUser, request);
             }
 
             // Suppliers routes
             if (path === '/api/suppliers') {
                 if (request.method === 'GET') return await getSuppliers(request, env);
-                if (request.method === 'POST') return await createSupplier(request, env);
+                if (request.method === 'POST') return await createSupplier(request, env, currentUser);
             }
 
             if (path.match(/^\/api\/suppliers\/\d+$/)) {
                 const id = parseInt(path.split('/').pop());
                 if (request.method === 'GET') return await getSupplier(id, env);
-                if (request.method === 'PUT') return await updateSupplier(id, request, env);
-                if (request.method === 'DELETE') return await deleteSupplier(id, env);
+                if (request.method === 'PUT') return await updateSupplier(id, request, env, currentUser);
+                if (request.method === 'DELETE') return await deleteSupplier(id, env, currentUser, request);
             }
 
             // Document routes
             if (path.match(/^\/api\/suppliers\/\d+\/documents$/)) {
                 const supplierId = parseInt(path.split('/')[3]);
-                if (request.method === 'POST') return await uploadDocument(supplierId, request, env);
+                if (request.method === 'POST') return await uploadDocument(supplierId, request, env, currentUser);
             }
 
             if (path.match(/^\/api\/suppliers\/\d+\/documents\/[a-z_]+$/)) {
@@ -85,26 +132,26 @@ export default {
                 const supplierId = parseInt(parts[3]);
                 const docType = parts[5];
                 if (request.method === 'GET') return await getDocumentFile(supplierId, docType, env);
-                if (request.method === 'DELETE') return await deleteDocument(supplierId, docType, env);
+                if (request.method === 'DELETE') return await deleteDocument(supplierId, docType, env, currentUser, request);
             }
 
             // ==================== CONTRACT ROUTES ====================
             if (path === '/api/contracts') {
                 if (request.method === 'GET') return await getContracts(request, env);
-                if (request.method === 'POST') return await createContract(request, env);
+                if (request.method === 'POST') return await createContract(request, env, currentUser);
             }
 
             if (path.match(/^\/api\/contracts\/\d+$/)) {
                 const id = parseInt(path.split('/').pop());
                 if (request.method === 'GET') return await getContract(id, env);
-                if (request.method === 'PUT') return await updateContract(id, request, env);
-                if (request.method === 'DELETE') return await deleteContract(id, env);
+                if (request.method === 'PUT') return await updateContract(id, request, env, currentUser);
+                if (request.method === 'DELETE') return await deleteContract(id, env, currentUser, request);
             }
 
             // Contract file routes
             if (path.match(/^\/api\/contracts\/\d+\/files$/)) {
                 const contractId = parseInt(path.split('/')[3]);
-                if (request.method === 'POST') return await uploadContractFile(contractId, request, env);
+                if (request.method === 'POST') return await uploadContractFile(contractId, request, env, currentUser);
             }
 
             if (path.match(/^\/api\/contracts\/\d+\/files\/\d+$/)) {
@@ -112,7 +159,7 @@ export default {
                 const contractId = parseInt(parts[3]);
                 const fileId = parseInt(parts[5]);
                 if (request.method === 'GET') return await getContractFile(contractId, fileId, env);
-                if (request.method === 'DELETE') return await deleteContractFile(contractId, fileId, env);
+                if (request.method === 'DELETE') return await deleteContractFile(contractId, fileId, env, currentUser, request);
             }
 
             // Statistics route
@@ -138,22 +185,22 @@ export default {
             // ==================== OUTSTANDING TASKS ROUTES ====================
             if (path === '/api/tasks') {
                 if (request.method === 'GET') return await getTasks(request, env);
-                if (request.method === 'POST') return await createTask(request, env);
+                if (request.method === 'POST') return await createTask(request, env, currentUser);
             }
 
             if (path.match(/^\/api\/tasks\/\d+$/)) {
                 const id = parseInt(path.split('/').pop());
                 if (request.method === 'GET') return await getTask(id, env);
-                if (request.method === 'PUT') return await updateTask(id, request, env);
-                if (request.method === 'DELETE') return await deleteTask(id, env);
+                if (request.method === 'PUT') return await updateTask(id, request, env, currentUser);
+                if (request.method === 'DELETE') return await deleteTask(id, env, currentUser, request);
             }
 
             // Task award document upload
             if (path.match(/^\/api\/tasks\/\d+\/award-document$/)) {
                 const taskId = parseInt(path.split('/')[3]);
-                if (request.method === 'POST') return await uploadTaskAwardDocument(taskId, request, env);
+                if (request.method === 'POST') return await uploadTaskAwardDocument(taskId, request, env, currentUser);
                 if (request.method === 'GET') return await getTaskAwardDocument(taskId, env);
-                if (request.method === 'DELETE') return await deleteTaskAwardDocument(taskId, env);
+                if (request.method === 'DELETE') return await deleteTaskAwardDocument(taskId, env, currentUser, request);
             }
 
             // Setup tasks table
@@ -170,9 +217,280 @@ export default {
     }
 };
 
-// ==================== Authentication ====================
+// ==================== Authentication & User Management ====================
 
-async function handleAuth(request, env) {
+// Simple password hashing using SHA-256 (for Cloudflare Workers compatibility)
+async function hashPassword(password, salt) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + salt);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Generate a random salt
+function generateSalt() {
+    const array = new Uint8Array(16);
+    crypto.getRandomValues(array);
+    return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Generate a session token
+function generateSessionToken() {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Setup users and sessions tables
+async function setupUsersTable(env) {
+    try {
+        // Create users table
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                full_name TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                password_salt TEXT NOT NULL,
+                role TEXT NOT NULL CHECK(role IN ('admin', 'view_only')),
+                must_change_password INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_login DATETIME
+            )
+        `).run();
+
+        // Create sessions table
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                session_token TEXT UNIQUE NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `).run();
+
+        // Create indexes
+        await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(session_token)`).run();
+        await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)`).run();
+
+        return jsonResponse({ success: true, message: 'Users and sessions tables created successfully' });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+// Setup audit log table in separate database
+async function setupAuditTable(env) {
+    try {
+        await env.AUDIT_DB.prepare(`
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                user_name TEXT NOT NULL,
+                action TEXT NOT NULL,
+                entity_type TEXT NOT NULL,
+                entity_id INTEGER,
+                entity_name TEXT,
+                details TEXT,
+                ip_address TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `).run();
+
+        // Create indexes for faster queries
+        await env.AUDIT_DB.prepare(`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)`).run();
+        await env.AUDIT_DB.prepare(`CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id)`).run();
+        await env.AUDIT_DB.prepare(`CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action)`).run();
+        await env.AUDIT_DB.prepare(`CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type)`).run();
+
+        return jsonResponse({ success: true, message: 'Audit log table created successfully' });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+// Seed initial users
+async function seedUsers(env) {
+    const users = [
+        { username: 'ahing', full_name: 'Andrew Hing', role: 'admin' },
+        { username: 'jsankar', full_name: 'Japheth Sankar', role: 'admin' },
+        { username: 'jyong', full_name: 'Jonathan Yong', role: 'admin' },
+        { username: 'rshim', full_name: 'Ryan Shim', role: 'admin' },
+        { username: 'broopchand', full_name: 'Basmattie Roopchand', role: 'admin' },
+        { username: 'elacruz', full_name: 'Errol La Cruez', role: 'view_only' }
+    ];
+
+    const results = [];
+    for (const user of users) {
+        try {
+            // Check if user already exists
+            const existing = await env.DB.prepare('SELECT id FROM users WHERE username = ?').bind(user.username).first();
+            if (existing) {
+                results.push({ username: user.username, status: 'already exists' });
+                continue;
+            }
+
+            // Create with temporary password (same as username for first login)
+            const salt = generateSalt();
+            const passwordHash = await hashPassword(user.username, salt);
+
+            await env.DB.prepare(`
+                INSERT INTO users (username, full_name, password_hash, password_salt, role, must_change_password)
+                VALUES (?, ?, ?, ?, ?, 1)
+            `).bind(user.username, user.full_name, passwordHash, salt, user.role).run();
+
+            results.push({ username: user.username, status: 'created', tempPassword: user.username });
+        } catch (error) {
+            results.push({ username: user.username, status: 'error', error: error.message });
+        }
+    }
+
+    return jsonResponse({ success: true, users: results });
+}
+
+// Handle user login
+async function handleLogin(request, env) {
+    try {
+        const body = await request.json();
+        const { username, password } = body;
+
+        if (!username || !password) {
+            return jsonResponse({ error: 'Username and password are required' }, 400);
+        }
+
+        // Find user
+        const user = await env.DB.prepare('SELECT * FROM users WHERE username = ?').bind(username.toLowerCase()).first();
+        if (!user) {
+            return jsonResponse({ error: 'Invalid username or password' }, 401);
+        }
+
+        // Verify password
+        const passwordHash = await hashPassword(password, user.password_salt);
+        if (passwordHash !== user.password_hash) {
+            return jsonResponse({ error: 'Invalid username or password' }, 401);
+        }
+
+        // Create session (expires in 7 days)
+        const sessionToken = generateSessionToken();
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+        await env.DB.prepare(`
+            INSERT INTO sessions (user_id, session_token, expires_at)
+            VALUES (?, ?, ?)
+        `).bind(user.id, sessionToken, expiresAt).run();
+
+        // Update last login
+        await env.DB.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').bind(user.id).run();
+
+        // Log the login
+        await logAudit(env, user.id, user.full_name, 'LOGIN', 'User', user.id, user.full_name, 'User logged in', request);
+
+        return jsonResponse({
+            success: true,
+            token: sessionToken,
+            user: {
+                id: user.id,
+                username: user.username,
+                fullName: user.full_name,
+                role: user.role,
+                mustChangePassword: user.must_change_password === 1
+            }
+        });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+// Handle user logout
+async function handleLogout(request, env) {
+    try {
+        const authHeader = request.headers.get('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+
+            // Get user info before deleting session
+            const session = await env.DB.prepare(`
+                SELECT s.*, u.id as user_id, u.full_name
+                FROM sessions s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.session_token = ?
+            `).bind(token).first();
+
+            if (session) {
+                await logAudit(env, session.user_id, session.full_name, 'LOGOUT', 'User', session.user_id, session.full_name, 'User logged out', request);
+            }
+
+            // Delete the session
+            await env.DB.prepare('DELETE FROM sessions WHERE session_token = ?').bind(token).run();
+        }
+
+        return jsonResponse({ success: true, message: 'Logged out successfully' });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+// Verify authentication and return user info
+async function verifyAuth(request, env) {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        // Also check for legacy token auth (backward compatibility)
+        const url = new URL(request.url);
+        const queryToken = url.searchParams.get('token');
+        if (queryToken && queryToken === env.AUTH_TOKEN) {
+            // Return a system user for legacy auth
+            return {
+                authenticated: true,
+                user: { id: 0, username: 'system', fullName: 'System', role: 'admin' }
+            };
+        }
+        return { authenticated: false };
+    }
+
+    const token = authHeader.substring(7);
+
+    // Check if it's the legacy auth token
+    if (token === env.AUTH_TOKEN) {
+        return {
+            authenticated: true,
+            user: { id: 0, username: 'system', fullName: 'System', role: 'admin' }
+        };
+    }
+
+    // Check session token
+    try {
+        const session = await env.DB.prepare(`
+            SELECT s.*, u.id as user_id, u.username, u.full_name, u.role, u.must_change_password
+            FROM sessions s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.session_token = ? AND s.expires_at > datetime('now')
+        `).bind(token).first();
+
+        if (!session) {
+            return { authenticated: false };
+        }
+
+        return {
+            authenticated: true,
+            user: {
+                id: session.user_id,
+                username: session.username,
+                fullName: session.full_name,
+                role: session.role,
+                mustChangePassword: session.must_change_password === 1
+            }
+        };
+    } catch (error) {
+        console.error('Auth error:', error);
+        return { authenticated: false };
+    }
+}
+
+// Handle legacy auth (backward compatibility)
+async function handleLegacyAuth(request, env) {
     const body = await request.json();
     const token = body.token;
 
@@ -183,22 +501,153 @@ async function handleAuth(request, env) {
     return jsonResponse({ success: false, error: 'Invalid token' }, 401);
 }
 
-async function verifyAuth(request, env) {
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        if (token === env.AUTH_TOKEN) {
-            return { authenticated: true };
+// Handle password change
+async function handleChangePassword(request, env, currentUser) {
+    try {
+        const body = await request.json();
+        const { currentPassword, newPassword } = body;
+
+        if (!newPassword || newPassword.length < 6) {
+            return jsonResponse({ error: 'New password must be at least 6 characters' }, 400);
         }
-    }
 
-    const url = new URL(request.url);
-    const queryToken = url.searchParams.get('token');
-    if (queryToken && queryToken === env.AUTH_TOKEN) {
-        return { authenticated: true };
-    }
+        // Get user's current password info
+        const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(currentUser.id).first();
+        if (!user) {
+            return jsonResponse({ error: 'User not found' }, 404);
+        }
 
-    return { authenticated: false };
+        // If not first login, verify current password
+        if (!user.must_change_password) {
+            if (!currentPassword) {
+                return jsonResponse({ error: 'Current password is required' }, 400);
+            }
+            const currentHash = await hashPassword(currentPassword, user.password_salt);
+            if (currentHash !== user.password_hash) {
+                return jsonResponse({ error: 'Current password is incorrect' }, 401);
+            }
+        }
+
+        // Hash new password with new salt
+        const newSalt = generateSalt();
+        const newHash = await hashPassword(newPassword, newSalt);
+
+        await env.DB.prepare(`
+            UPDATE users
+            SET password_hash = ?, password_salt = ?, must_change_password = 0
+            WHERE id = ?
+        `).bind(newHash, newSalt, currentUser.id).run();
+
+        await logAudit(env, currentUser.id, currentUser.fullName, 'PASSWORD_CHANGE', 'User', currentUser.id, currentUser.fullName, 'Password changed', request);
+
+        return jsonResponse({ success: true, message: 'Password changed successfully' });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+// Get all users (admin only - no passwords)
+async function getUsers(env) {
+    try {
+        const result = await env.DB.prepare(`
+            SELECT id, username, full_name, role, must_change_password, created_at, last_login
+            FROM users
+            ORDER BY full_name
+        `).all();
+
+        return jsonResponse({ users: result.results });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+// ==================== Audit Logging ====================
+
+// Log an audit entry (IMMUTABLE - no delete/update functions)
+async function logAudit(env, userId, userName, action, entityType, entityId, entityName, details, request) {
+    try {
+        const ipAddress = request?.headers?.get('CF-Connecting-IP') || 'unknown';
+
+        await env.AUDIT_DB.prepare(`
+            INSERT INTO audit_logs (user_id, user_name, action, entity_type, entity_id, entity_name, details, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(userId, userName, action, entityType, entityId || null, entityName || null, details || null, ipAddress).run();
+    } catch (error) {
+        console.error('Failed to log audit entry:', error);
+        // Don't throw - audit logging should not break the main operation
+    }
+}
+
+// Get audit logs with filtering
+async function getAuditLogs(request, env) {
+    try {
+        const url = new URL(request.url);
+        const userId = url.searchParams.get('user_id');
+        const action = url.searchParams.get('action');
+        const entityType = url.searchParams.get('entity_type');
+        const startDate = url.searchParams.get('start_date');
+        const endDate = url.searchParams.get('end_date');
+        const limit = parseInt(url.searchParams.get('limit')) || 100;
+        const offset = parseInt(url.searchParams.get('offset')) || 0;
+
+        let query = 'SELECT * FROM audit_logs WHERE 1=1';
+        const params = [];
+
+        if (userId) {
+            query += ' AND user_id = ?';
+            params.push(parseInt(userId));
+        }
+        if (action) {
+            query += ' AND action = ?';
+            params.push(action);
+        }
+        if (entityType) {
+            query += ' AND entity_type = ?';
+            params.push(entityType);
+        }
+        if (startDate) {
+            query += ' AND timestamp >= ?';
+            params.push(startDate);
+        }
+        if (endDate) {
+            query += ' AND timestamp <= ?';
+            params.push(endDate + ' 23:59:59');
+        }
+
+        // Get total count
+        const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as count');
+        const countResult = await env.AUDIT_DB.prepare(countQuery).bind(...params).first();
+
+        // Get paginated results
+        query += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+        params.push(limit, offset);
+
+        const result = await env.AUDIT_DB.prepare(query).bind(...params).all();
+
+        return jsonResponse({
+            logs: result.results,
+            total: countResult?.count || 0,
+            limit,
+            offset
+        });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+// Get recent audit logs for sidebar widget
+async function getRecentAuditLogs(env) {
+    try {
+        const result = await env.AUDIT_DB.prepare(`
+            SELECT * FROM audit_logs
+            ORDER BY timestamp DESC
+            LIMIT 20
+        `).all();
+
+        return jsonResponse({ logs: result.results });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
 }
 
 // ==================== Alert Calculations ====================
@@ -300,7 +749,7 @@ async function getCategories(env) {
     return jsonResponse({ categories: result.results });
 }
 
-async function createCategory(request, env) {
+async function createCategory(request, env, currentUser) {
     const body = await request.json();
     const name = body.name?.trim();
 
@@ -320,13 +769,19 @@ async function createCategory(request, env) {
         'INSERT INTO categories (name, created_at) VALUES (?, datetime("now"))'
     ).bind(name).run();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'Category', result.meta.last_row_id, name, `Created category: ${name}`, request);
+
     return jsonResponse({
         success: true,
         category: { id: result.meta.last_row_id, name }
     }, 201);
 }
 
-async function deleteCategory(id, env) {
+async function deleteCategory(id, env, currentUser, request) {
+    // Get category name for audit log
+    const category = await env.DB.prepare('SELECT name FROM categories WHERE id = ?').bind(id).first();
+
     const supplierCount = await env.DB.prepare(
         'SELECT COUNT(*) as count FROM supplier_categories WHERE category_id = ?'
     ).bind(id).first();
@@ -338,6 +793,11 @@ async function deleteCategory(id, env) {
     }
 
     await env.DB.prepare('DELETE FROM categories WHERE id = ?').bind(id).run();
+
+    // Log audit entry
+    if (category) {
+        await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'Category', id, category.name, `Deleted category: ${category.name}`, request);
+    }
 
     return jsonResponse({ success: true });
 }
@@ -493,7 +953,7 @@ async function getSupplier(id, env) {
     });
 }
 
-async function createSupplier(request, env) {
+async function createSupplier(request, env, currentUser) {
     const body = await request.json();
 
     const errors = validateSupplier(body);
@@ -502,8 +962,8 @@ async function createSupplier(request, env) {
     }
 
     const result = await env.DB.prepare(`
-        INSERT INTO suppliers (name, address, telephone, email, contact_person, 
-                              category_id, nis_expiration_date, gra_expiration_date, 
+        INSERT INTO suppliers (name, address, telephone, email, contact_person,
+                              category_id, nis_expiration_date, gra_expiration_date,
                               created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime("now"), datetime("now"))
     `).bind(
@@ -530,13 +990,16 @@ async function createSupplier(request, env) {
 
     const supplier = await env.DB.prepare('SELECT * FROM suppliers WHERE id = ?').bind(supplierId).first();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'Supplier', supplierId, body.name.trim(), `Created supplier: ${body.name.trim()}`, request);
+
     return jsonResponse({ success: true, supplier }, 201);
 }
 
-async function updateSupplier(id, request, env) {
+async function updateSupplier(id, request, env, currentUser) {
     const body = await request.json();
 
-    const existing = await env.DB.prepare('SELECT id FROM suppliers WHERE id = ?').bind(id).first();
+    const existing = await env.DB.prepare('SELECT id, name FROM suppliers WHERE id = ?').bind(id).first();
     if (!existing) {
         return jsonResponse({ error: 'Supplier not found' }, 404);
     }
@@ -547,9 +1010,9 @@ async function updateSupplier(id, request, env) {
     }
 
     await env.DB.prepare(`
-        UPDATE suppliers 
-        SET name = ?, address = ?, telephone = ?, email = ?, 
-            contact_person = ?, category_id = ?, 
+        UPDATE suppliers
+        SET name = ?, address = ?, telephone = ?, email = ?,
+            contact_person = ?, category_id = ?,
             nis_expiration_date = ?, gra_expiration_date = ?,
             updated_at = datetime("now")
         WHERE id = ?
@@ -578,10 +1041,19 @@ async function updateSupplier(id, request, env) {
 
     const supplier = await env.DB.prepare('SELECT * FROM suppliers WHERE id = ?').bind(id).first();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'Supplier', id, body.name.trim(), `Updated supplier: ${body.name.trim()}`, request);
+
     return jsonResponse({ success: true, supplier });
 }
 
-async function deleteSupplier(id, env) {
+async function deleteSupplier(id, env, currentUser, request) {
+    // Get supplier info for audit log
+    const supplier = await env.DB.prepare('SELECT id, name FROM suppliers WHERE id = ?').bind(id).first();
+    if (!supplier) {
+        return jsonResponse({ error: 'Supplier not found' }, 404);
+    }
+
     // Check if supplier has contracts
     const contractCount = await env.DB.prepare(
         'SELECT COUNT(*) as count FROM contracts WHERE supplier_id = ?'
@@ -609,6 +1081,9 @@ async function deleteSupplier(id, env) {
     await env.DB.prepare('DELETE FROM documents WHERE supplier_id = ?').bind(id).run();
     await env.DB.prepare('DELETE FROM suppliers WHERE id = ?').bind(id).run();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'Supplier', id, supplier.name, `Deleted supplier: ${supplier.name}`, request);
+
     return jsonResponse({ success: true });
 }
 
@@ -629,7 +1104,7 @@ function validateSupplier(data) {
 
 // ==================== Documents ====================
 
-async function uploadDocument(supplierId, request, env) {
+async function uploadDocument(supplierId, request, env, currentUser) {
     const supplier = await env.DB.prepare(
         'SELECT id, name FROM suppliers WHERE id = ?'
     ).bind(supplierId).first();
@@ -695,6 +1170,9 @@ async function uploadDocument(supplierId, request, env) {
         'UPDATE suppliers SET updated_at = datetime("now") WHERE id = ?'
     ).bind(supplierId).run();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'UPLOAD', 'Document', supplierId, supplier.name, `Uploaded ${documentType} document for supplier: ${supplier.name}`, request);
+
     return jsonResponse({ success: true, documentType, fileName: file.name });
 }
 
@@ -727,10 +1205,13 @@ async function getDocumentFile(supplierId, docType, env) {
     });
 }
 
-async function deleteDocument(supplierId, docType, env) {
+async function deleteDocument(supplierId, docType, env, currentUser, request) {
     if (!DOCUMENT_TYPES.includes(docType)) {
         return jsonResponse({ error: 'Invalid document type' }, 400);
     }
+
+    // Get supplier name for audit log
+    const supplier = await env.DB.prepare('SELECT name FROM suppliers WHERE id = ?').bind(supplierId).first();
 
     const doc = await env.DB.prepare(
         'SELECT r2_key FROM documents WHERE supplier_id = ? AND document_type = ?'
@@ -749,6 +1230,11 @@ async function deleteDocument(supplierId, docType, env) {
     await env.DB.prepare(
         'DELETE FROM documents WHERE supplier_id = ? AND document_type = ?'
     ).bind(supplierId, docType).run();
+
+    // Log audit entry
+    if (supplier) {
+        await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'Document', supplierId, supplier.name, `Deleted ${docType} document for supplier: ${supplier.name}`, request);
+    }
 
     return jsonResponse({ success: true });
 }
@@ -878,7 +1364,7 @@ async function getContract(id, env) {
     });
 }
 
-async function createContract(request, env) {
+async function createContract(request, env, currentUser) {
     const body = await request.json();
 
     // Validate required fields
@@ -907,7 +1393,7 @@ async function createContract(request, env) {
 
     const result = await env.DB.prepare(`
         INSERT INTO contracts (
-            contract_number, supplier_id, description, amount, 
+            contract_number, supplier_id, description, amount,
             start_date, end_date, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, datetime("now"), datetime("now"))
     `).bind(
@@ -925,14 +1411,17 @@ async function createContract(request, env) {
         'SELECT * FROM contracts WHERE id = ?'
     ).bind(contractId).first();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'Contract', contractId, body.contract_number.trim(), `Created contract: ${body.contract_number.trim()}`, request);
+
     return jsonResponse({ success: true, contract }, 201);
 }
 
-async function updateContract(id, request, env) {
+async function updateContract(id, request, env, currentUser) {
     const body = await request.json();
 
     const existing = await env.DB.prepare(
-        'SELECT id FROM contracts WHERE id = ?'
+        'SELECT id, contract_number FROM contracts WHERE id = ?'
     ).bind(id).first();
 
     if (!existing) {
@@ -964,8 +1453,8 @@ async function updateContract(id, request, env) {
     }
 
     await env.DB.prepare(`
-        UPDATE contracts 
-        SET contract_number = ?, supplier_id = ?, description = ?, 
+        UPDATE contracts
+        SET contract_number = ?, supplier_id = ?, description = ?,
             amount = ?, start_date = ?, end_date = ?, updated_at = datetime("now")
         WHERE id = ?
     `).bind(
@@ -982,12 +1471,15 @@ async function updateContract(id, request, env) {
         'SELECT * FROM contracts WHERE id = ?'
     ).bind(id).first();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'Contract', id, body.contract_number.trim(), `Updated contract: ${body.contract_number.trim()}`, request);
+
     return jsonResponse({ success: true, contract });
 }
 
-async function deleteContract(id, env) {
+async function deleteContract(id, env, currentUser, request) {
     const contract = await env.DB.prepare(
-        'SELECT id FROM contracts WHERE id = ?'
+        'SELECT id, contract_number FROM contracts WHERE id = ?'
     ).bind(id).first();
 
     if (!contract) {
@@ -1017,6 +1509,9 @@ async function deleteContract(id, env) {
         'DELETE FROM contracts WHERE id = ?'
     ).bind(id).run();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'Contract', id, contract.contract_number, `Deleted contract: ${contract.contract_number}`, request);
+
     return jsonResponse({ success: true });
 }
 
@@ -1040,7 +1535,7 @@ function validateContract(data) {
 
 // ==================== Contract Files ====================
 
-async function uploadContractFile(contractId, request, env) {
+async function uploadContractFile(contractId, request, env, currentUser) {
     const contract = await env.DB.prepare(
         'SELECT id, contract_number FROM contracts WHERE id = ?'
     ).bind(contractId).first();
@@ -1081,6 +1576,9 @@ async function uploadContractFile(contractId, request, env) {
         VALUES (?, ?, ?, datetime("now"))
     `).bind(contractId, file.name, r2Key).run();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'UPLOAD', 'ContractFile', contractId, contract.contract_number, `Uploaded file "${file.name}" to contract: ${contract.contract_number}`, request);
+
     return jsonResponse({
         success: true,
         file: {
@@ -1115,9 +1613,12 @@ async function getContractFile(contractId, fileId, env) {
     });
 }
 
-async function deleteContractFile(contractId, fileId, env) {
+async function deleteContractFile(contractId, fileId, env, currentUser, request) {
+    // Get contract info for audit log
+    const contract = await env.DB.prepare('SELECT contract_number FROM contracts WHERE id = ?').bind(contractId).first();
+
     const file = await env.DB.prepare(
-        'SELECT r2_key FROM contract_files WHERE id = ? AND contract_id = ?'
+        'SELECT r2_key, file_name FROM contract_files WHERE id = ? AND contract_id = ?'
     ).bind(fileId, contractId).first();
 
     if (!file) {
@@ -1133,6 +1634,11 @@ async function deleteContractFile(contractId, fileId, env) {
     await env.DB.prepare(
         'DELETE FROM contract_files WHERE id = ?'
     ).bind(fileId).run();
+
+    // Log audit entry
+    if (contract) {
+        await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'ContractFile', contractId, contract.contract_number, `Deleted file "${file.file_name}" from contract: ${contract.contract_number}`, request);
+    }
 
     return jsonResponse({ success: true });
 }
@@ -1354,7 +1860,7 @@ async function getTask(id, env) {
     return jsonResponse({ task });
 }
 
-async function createTask(request, env) {
+async function createTask(request, env, currentUser) {
     const body = await request.json();
 
     const errors = validateTask(body);
@@ -1399,13 +1905,16 @@ async function createTask(request, env) {
     const taskId = result.meta.last_row_id;
     const task = await env.DB.prepare('SELECT * FROM tasks WHERE id = ?').bind(taskId).first();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'Task', taskId, body.title.trim(), `Created task: ${body.title.trim()}`, request);
+
     return jsonResponse({ success: true, task }, 201);
 }
 
-async function updateTask(id, request, env) {
+async function updateTask(id, request, env, currentUser) {
     const body = await request.json();
 
-    const existing = await env.DB.prepare('SELECT id FROM tasks WHERE id = ?').bind(id).first();
+    const existing = await env.DB.prepare('SELECT id, title FROM tasks WHERE id = ?').bind(id).first();
     if (!existing) {
         return jsonResponse({ error: 'Task not found' }, 404);
     }
@@ -1453,17 +1962,23 @@ async function updateTask(id, request, env) {
 
     const task = await env.DB.prepare('SELECT * FROM tasks WHERE id = ?').bind(id).first();
 
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'Task', id, body.title.trim(), `Updated task: ${body.title.trim()}`, request);
+
     return jsonResponse({ success: true, task });
 }
 
-async function deleteTask(id, env) {
-    const task = await env.DB.prepare('SELECT id FROM tasks WHERE id = ?').bind(id).first();
+async function deleteTask(id, env, currentUser, request) {
+    const task = await env.DB.prepare('SELECT id, title FROM tasks WHERE id = ?').bind(id).first();
 
     if (!task) {
         return jsonResponse({ error: 'Task not found' }, 404);
     }
 
     await env.DB.prepare('DELETE FROM tasks WHERE id = ?').bind(id).run();
+
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'Task', id, task.title, `Deleted task: ${task.title}`, request);
 
     return jsonResponse({ success: true });
 }
@@ -1488,7 +2003,7 @@ function validateTask(data) {
 
 // ==================== Task Award Document Functions ====================
 
-async function uploadTaskAwardDocument(taskId, request, env) {
+async function uploadTaskAwardDocument(taskId, request, env, currentUser) {
     const task = await env.DB.prepare(
         'SELECT id, title FROM tasks WHERE id = ?'
     ).bind(taskId).first();
@@ -1513,7 +2028,6 @@ async function uploadTaskAwardDocument(taskId, request, env) {
     }
 
     const timestamp = Date.now();
-    const sanitizedTitle = task.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
     const r2Key = `tasks/${taskId}/award_documents/${timestamp}_${file.name}`;
 
     await env.DOCUMENTS.put(r2Key, file.stream(), {
@@ -1529,6 +2043,9 @@ async function uploadTaskAwardDocument(taskId, request, env) {
     await env.DB.prepare(`
         UPDATE tasks SET award_document_r2_key = ?, updated_at = datetime("now") WHERE id = ?
     `).bind(r2Key, taskId).run();
+
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'UPLOAD', 'TaskAwardDocument', taskId, task.title, `Uploaded award document "${file.name}" for task: ${task.title}`, request);
 
     return jsonResponse({
         success: true,
@@ -1565,9 +2082,9 @@ async function getTaskAwardDocument(taskId, env) {
     });
 }
 
-async function deleteTaskAwardDocument(taskId, env) {
+async function deleteTaskAwardDocument(taskId, env, currentUser, request) {
     const task = await env.DB.prepare(
-        'SELECT award_document_r2_key FROM tasks WHERE id = ?'
+        'SELECT title, award_document_r2_key FROM tasks WHERE id = ?'
     ).bind(taskId).first();
 
     if (!task || !task.award_document_r2_key) {
@@ -1581,6 +2098,9 @@ async function deleteTaskAwardDocument(taskId, env) {
     await env.DB.prepare(`
         UPDATE tasks SET award_document_r2_key = NULL, updated_at = datetime("now") WHERE id = ?
     `).bind(taskId).run();
+
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'TaskAwardDocument', taskId, task.title, `Deleted award document for task: ${task.title}`, request);
 
     return jsonResponse({ success: true });
 }

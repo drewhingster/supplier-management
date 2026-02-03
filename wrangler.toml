@@ -2,11 +2,17 @@ name = "supplier-management"
 main = "worker/index.js"
 compatibility_date = "2024-01-31"
 
-# D1 Database binding
+# D1 Database binding - Main database
 [[d1_databases]]
 binding = "DB"
 database_name = "supplier-management-db"
 database_id = "ca6177ba-3f4a-4dd8-bb38-753a704e22e9"
+
+# D1 Database binding - Audit log database (separate for security & performance)
+[[d1_databases]]
+binding = "AUDIT_DB"
+database_name = "supplier-audit-db"
+database_id = "7237c2f0-e745-4c0c-a9dc-fcdb935f2d53"
 
 # R2 Storage binding
 [[r2_buckets]]

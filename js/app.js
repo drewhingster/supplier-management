@@ -2224,9 +2224,29 @@ async function handleStageToggle(taskId, stageId, isChecked) {
     }
 
     try {
-        await api.updateTask(taskId, {
-            completed_stages: JSON.stringify(completedStages)
-        });
+        // Send full task data with updated completed_stages
+        const updatedTaskData = {
+            project_code: task.project_code || null,
+            title: task.title,
+            budget_amount: task.budget_amount || null,
+            procurement_tier: task.procurement_tier || null,
+            completed_stages: JSON.stringify(completedStages),
+            requires_contract: task.requires_contract || 0,
+            linked_contract_id: task.linked_contract_id || null,
+            approver: task.approver || null,
+            award_number: task.award_number || null,
+            award_document_r2_key: task.award_document_r2_key || null,
+            contractor_supplier: task.contractor_supplier || null,
+            contract_sum: task.contract_sum || null,
+            assigned_person: task.assigned_person || null,
+            remarks: task.remarks || null,
+            start_date: task.start_date || null,
+            end_date: task.end_date || null,
+            expected_completion_date: task.expected_completion_date || null,
+            archived: task.archived || 0
+        };
+
+        await api.updateTask(taskId, updatedTaskData);
 
         // Update local state
         task.completed_stages = JSON.stringify(completedStages);

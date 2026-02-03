@@ -3158,17 +3158,26 @@ function formatAuditTime(timestamp) {
 }
 
 function formatAuditTimestamp(timestamp) {
-    const date = new Date(timestamp);
-    // Format in Guyana timezone (America/Guyana - UTC-4)
-    return date.toLocaleString('en-US', {
-        timeZone: 'America/Guyana',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
+    // Parse the timestamp
+    const utcDate = new Date(timestamp);
+    
+    // Guyana is UTC-4, so subtract 4 hours (14400000 milliseconds)
+    const guyanaOffset = -4 * 60 * 60 * 1000;
+    const guyanaTime = new Date(utcDate.getTime() + guyanaOffset);
+    
+    // Format manually
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[guyanaTime.getUTCMonth()];
+    const day = guyanaTime.getUTCDate();
+    const year = guyanaTime.getUTCFullYear();
+    
+    let hours = guyanaTime.getUTCHours();
+    const minutes = guyanaTime.getUTCMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    
+    return ${month} , , : ;
+});
 }
 
 // Make audit functions globally accessible

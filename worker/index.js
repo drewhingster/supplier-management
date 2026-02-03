@@ -148,6 +148,14 @@ export default {
                 if (request.method === 'DELETE') return await deleteTask(id, env);
             }
 
+            // Task award document upload
+            if (path.match(/^\/api\/tasks\/\d+\/award-document$/)) {
+                const taskId = parseInt(path.split('/')[3]);
+                if (request.method === 'POST') return await uploadTaskAwardDocument(taskId, request, env);
+                if (request.method === 'GET') return await getTaskAwardDocument(taskId, env);
+                if (request.method === 'DELETE') return await deleteTaskAwardDocument(taskId, env);
+            }
+
             // Setup tasks table
             if (path === '/api/setup/tasks' && request.method === 'POST') {
                 return await setupTasksTable(env);
@@ -1256,23 +1264,34 @@ async function getAlerts(env) {
     });
 }
 
-// ==================== OUTSTANDING TASKS MODULE ====================
+// ==================== OUTSTANDING TASKS MODULE (PSIP Format) ====================
 
 async function setupTasksTable(env) {
     try {
         await env.DB.prepare(`
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                supplier_name TEXT NOT NULL,
-                summary TEXT NOT NULL,
-                contract_amount REAL,
-                status TEXT NOT NULL DEFAULT 'Pending',
-                assigned_unit TEXT,
-                priority TEXT DEFAULT 'Medium',
-                category TEXT,
-                notes TEXT,
-                dependency TEXT,
+                project_code TEXT,
+                title TEXT NOT NULL,
+                budget_amount REAL,
+                method_of_procurement TEXT,
+                tender_advertise_date DATE,
+                tender_closed_date DATE,
+                eval_sent_date DATE,
+                date_of_award DATE,
+                procurement_status TEXT DEFAULT 'RFQ',
+                tender_board_award_number TEXT,
+                award_document_r2_key TEXT,
+                contractor_supplier TEXT,
+                contract_sum REAL,
+                start_date DATE,
+                end_date DATE,
                 expected_completion_date DATE,
+                status_percentage INTEGER DEFAULT 0,
+                assigned_person TEXT,
+                remarks TEXT,
+                passed_to_finance_date DATE,
+                is_paid INTEGER DEFAULT 0,
                 archived INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -1280,11 +1299,15 @@ async function setupTasksTable(env) {
         `).run();
 
         await env.DB.prepare(`
-            CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)
+            CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(procurement_status)
         `).run();
 
         await env.DB.prepare(`
             CREATE INDEX IF NOT EXISTS idx_tasks_archived ON tasks(archived)
+        `).run();
+
+        await env.DB.prepare(`
+            CREATE INDEX IF NOT EXISTS idx_tasks_paid ON tasks(is_paid)
         `).run();
 
         return jsonResponse({ success: true, message: 'Tasks table created successfully' });
@@ -1297,8 +1320,9 @@ async function getTasks(request, env) {
     const url = new URL(request.url);
     const archivedFilter = url.searchParams.get('archived');
     const statusFilter = url.searchParams.get('status');
-    const supplierFilter = url.searchParams.get('supplier');
-    const assignedUnitFilter = url.searchParams.get('assigned_unit');
+    const contractorFilter = url.searchParams.get('contractor');
+    const assignedPersonFilter = url.searchParams.get('assigned_person');
+    const paidFilter = url.searchParams.get('is_paid');
 
     let query = 'SELECT * FROM tasks WHERE 1=1';
     const bindings = [];
@@ -1309,18 +1333,23 @@ async function getTasks(request, env) {
     }
 
     if (statusFilter) {
-        query += ' AND status = ?';
+        query += ' AND procurement_status = ?';
         bindings.push(statusFilter);
     }
 
-    if (supplierFilter) {
-        query += ' AND supplier_name LIKE ?';
-        bindings.push(`%${supplierFilter}%`);
+    if (contractorFilter) {
+        query += ' AND contractor_supplier LIKE ?';
+        bindings.push(`%${contractorFilter}%`);
     }
 
-    if (assignedUnitFilter) {
-        query += ' AND assigned_unit = ?';
-        bindings.push(assignedUnitFilter);
+    if (assignedPersonFilter) {
+        query += ' AND assigned_person LIKE ?';
+        bindings.push(`%${assignedPersonFilter}%`);
+    }
+
+    if (paidFilter !== null) {
+        query += ' AND is_paid = ?';
+        bindings.push(paidFilter === 'true' ? 1 : 0);
     }
 
     query += ' ORDER BY created_at DESC';
@@ -1355,21 +1384,36 @@ async function createTask(request, env) {
 
     const result = await env.DB.prepare(`
         INSERT INTO tasks (
-            supplier_name, summary, contract_amount, status, assigned_unit,
-            priority, category, notes, dependency, expected_completion_date,
-            archived, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, datetime("now"), datetime("now"))
+            project_code, title, budget_amount, method_of_procurement,
+            tender_advertise_date, tender_closed_date, eval_sent_date, date_of_award,
+            procurement_status, tender_board_award_number, award_document_r2_key,
+            contractor_supplier, contract_sum, start_date, end_date,
+            expected_completion_date, status_percentage, assigned_person,
+            remarks, passed_to_finance_date, is_paid, archived,
+            created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, datetime("now"), datetime("now"))
     `).bind(
-        body.supplier_name.trim(),
-        body.summary.trim(),
-        body.contract_amount || null,
-        body.status || 'Pending',
-        body.assigned_unit?.trim() || null,
-        body.priority || 'Medium',
-        body.category?.trim() || null,
-        body.notes?.trim() || null,
-        body.dependency?.trim() || null,
-        body.expected_completion_date || null
+        body.project_code?.trim() || null,
+        body.title.trim(),
+        body.budget_amount || null,
+        body.method_of_procurement || null,
+        body.tender_advertise_date || null,
+        body.tender_closed_date || null,
+        body.eval_sent_date || null,
+        body.date_of_award || null,
+        body.procurement_status || 'RFQ',
+        body.tender_board_award_number?.trim() || null,
+        body.award_document_r2_key || null,
+        body.contractor_supplier?.trim() || null,
+        body.contract_sum || null,
+        body.start_date || null,
+        body.end_date || null,
+        body.expected_completion_date || null,
+        body.status_percentage || 0,
+        body.assigned_person?.trim() || null,
+        body.remarks?.trim() || null,
+        body.passed_to_finance_date || null,
+        body.is_paid ? 1 : 0
     ).run();
 
     const taskId = result.meta.last_row_id;
@@ -1393,22 +1437,36 @@ async function updateTask(id, request, env) {
 
     await env.DB.prepare(`
         UPDATE tasks
-        SET supplier_name = ?, summary = ?, contract_amount = ?, status = ?,
-            assigned_unit = ?, priority = ?, category = ?, notes = ?,
-            dependency = ?, expected_completion_date = ?, archived = ?,
+        SET project_code = ?, title = ?, budget_amount = ?, method_of_procurement = ?,
+            tender_advertise_date = ?, tender_closed_date = ?, eval_sent_date = ?, date_of_award = ?,
+            procurement_status = ?, tender_board_award_number = ?, award_document_r2_key = ?,
+            contractor_supplier = ?, contract_sum = ?, start_date = ?, end_date = ?,
+            expected_completion_date = ?, status_percentage = ?, assigned_person = ?,
+            remarks = ?, passed_to_finance_date = ?, is_paid = ?, archived = ?,
             updated_at = datetime("now")
         WHERE id = ?
     `).bind(
-        body.supplier_name.trim(),
-        body.summary.trim(),
-        body.contract_amount || null,
-        body.status || 'Pending',
-        body.assigned_unit?.trim() || null,
-        body.priority || 'Medium',
-        body.category?.trim() || null,
-        body.notes?.trim() || null,
-        body.dependency?.trim() || null,
+        body.project_code?.trim() || null,
+        body.title.trim(),
+        body.budget_amount || null,
+        body.method_of_procurement || null,
+        body.tender_advertise_date || null,
+        body.tender_closed_date || null,
+        body.eval_sent_date || null,
+        body.date_of_award || null,
+        body.procurement_status || 'RFQ',
+        body.tender_board_award_number?.trim() || null,
+        body.award_document_r2_key || null,
+        body.contractor_supplier?.trim() || null,
+        body.contract_sum || null,
+        body.start_date || null,
+        body.end_date || null,
         body.expected_completion_date || null,
+        body.status_percentage || 0,
+        body.assigned_person?.trim() || null,
+        body.remarks?.trim() || null,
+        body.passed_to_finance_date || null,
+        body.is_paid ? 1 : 0,
         body.archived ? 1 : 0,
         id
     ).run();
@@ -1433,19 +1491,130 @@ async function deleteTask(id, env) {
 function validateTask(data) {
     const errors = [];
 
-    if (!data.supplier_name?.trim()) {
-        errors.push('Supplier name is required');
+    if (!data.title?.trim()) {
+        errors.push('Title/Activity is required');
     }
 
-    if (!data.summary?.trim()) {
-        errors.push('Task summary is required');
+    if (data.budget_amount !== undefined && data.budget_amount !== null && isNaN(parseFloat(data.budget_amount))) {
+        errors.push('Budget amount must be a valid number');
     }
 
-    if (data.contract_amount !== undefined && data.contract_amount !== null && isNaN(parseFloat(data.contract_amount))) {
-        errors.push('Contract amount must be a valid number');
+    if (data.contract_sum !== undefined && data.contract_sum !== null && isNaN(parseFloat(data.contract_sum))) {
+        errors.push('Contract sum must be a valid number');
+    }
+
+    if (data.status_percentage !== undefined && data.status_percentage !== null) {
+        const pct = parseInt(data.status_percentage);
+        if (isNaN(pct) || pct < 0 || pct > 100) {
+            errors.push('Status percentage must be between 0 and 100');
+        }
+    }
+
+    const validStatuses = ['RFQ', 'Evaluation', 'Tender Board Approval Request', 'Awaiting Tender Board Award', 'Approved by Tender Board', 'Passed to Finance', 'Completed'];
+    if (data.procurement_status && !validStatuses.includes(data.procurement_status)) {
+        errors.push('Invalid procurement status');
     }
 
     return errors;
+}
+
+// ==================== Task Award Document Functions ====================
+
+async function uploadTaskAwardDocument(taskId, request, env) {
+    const task = await env.DB.prepare(
+        'SELECT id, title FROM tasks WHERE id = ?'
+    ).bind(taskId).first();
+
+    if (!task) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+
+    const formData = await request.formData();
+    const file = formData.get('file');
+
+    if (!file || !(file instanceof File)) {
+        return jsonResponse({ error: 'No file provided' }, 400);
+    }
+
+    if (file.type !== 'application/pdf') {
+        return jsonResponse({ error: 'Only PDF files are allowed' }, 400);
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        return jsonResponse({ error: 'File size exceeds 10MB limit' }, 400);
+    }
+
+    const timestamp = Date.now();
+    const sanitizedTitle = task.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+    const r2Key = `tasks/${taskId}/award_documents/${timestamp}_${file.name}`;
+
+    await env.DOCUMENTS.put(r2Key, file.stream(), {
+        httpMetadata: { contentType: 'application/pdf' },
+        customMetadata: {
+            taskId: taskId.toString(),
+            originalName: file.name,
+            type: 'award_document'
+        }
+    });
+
+    // Update the task with the award document key
+    await env.DB.prepare(`
+        UPDATE tasks SET award_document_r2_key = ?, updated_at = datetime("now") WHERE id = ?
+    `).bind(r2Key, taskId).run();
+
+    return jsonResponse({
+        success: true,
+        award_document: {
+            r2_key: r2Key,
+            file_name: file.name
+        }
+    });
+}
+
+async function getTaskAwardDocument(taskId, env) {
+    const task = await env.DB.prepare(
+        'SELECT award_document_r2_key FROM tasks WHERE id = ?'
+    ).bind(taskId).first();
+
+    if (!task || !task.award_document_r2_key) {
+        return jsonResponse({ error: 'Award document not found' }, 404);
+    }
+
+    const object = await env.DOCUMENTS.get(task.award_document_r2_key);
+
+    if (!object) {
+        return jsonResponse({ error: 'File not found in storage' }, 404);
+    }
+
+    const fileName = task.award_document_r2_key.split('/').pop();
+
+    return new Response(object.body, {
+        headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `inline; filename="${fileName}"`,
+            ...corsHeaders
+        }
+    });
+}
+
+async function deleteTaskAwardDocument(taskId, env) {
+    const task = await env.DB.prepare(
+        'SELECT award_document_r2_key FROM tasks WHERE id = ?'
+    ).bind(taskId).first();
+
+    if (!task || !task.award_document_r2_key) {
+        return jsonResponse({ error: 'Award document not found' }, 404);
+    }
+
+    // Delete from R2
+    await env.DOCUMENTS.delete(task.award_document_r2_key);
+
+    // Clear the reference in the database
+    await env.DB.prepare(`
+        UPDATE tasks SET award_document_r2_key = NULL, updated_at = datetime("now") WHERE id = ?
+    `).bind(taskId).run();
+
+    return jsonResponse({ success: true });
 }
 
 // ==================== Utility ====================

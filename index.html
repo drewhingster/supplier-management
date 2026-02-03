@@ -293,7 +293,7 @@
             </main>
         </div>
 
-        <!-- ==================== OUTSTANDING TASKS VIEW ==================== -->
+        <!-- ==================== OUTSTANDING TASKS VIEW (PSIP) ==================== -->
         <div id="tasks-view" class="view-container hidden">
             <main class="main-content tasks-main">
                 <!-- Tasks Sidebar -->
@@ -304,49 +304,52 @@
                             <label class="status-item">
                                 <input type="radio" name="task-archive-filter" value="active" checked>
                                 <span class="status-checkbox"></span>
-                                <span class="status-name">Active Tasks</span>
+                                <span class="status-name">Active Items</span>
                             </label>
                             <label class="status-item">
                                 <input type="radio" name="task-archive-filter" value="archived">
                                 <span class="status-checkbox"></span>
-                                <span class="status-name">Archived Tasks</span>
+                                <span class="status-name">Archived Items</span>
                             </label>
                             <label class="status-item">
                                 <input type="radio" name="task-archive-filter" value="all">
                                 <span class="status-checkbox"></span>
-                                <span class="status-name">All Tasks</span>
+                                <span class="status-name">All Items</span>
                             </label>
                         </div>
                     </div>
 
                     <div class="filter-section">
-                        <h3 class="filter-title">Filter by Status</h3>
+                        <h3 class="filter-title">Procurement Status</h3>
                         <select id="task-status-filter" class="form-select">
                             <option value="">All Statuses</option>
-                            <option value="Pending">Pending</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Submitted">Submitted</option>
+                            <option value="RFQ">RFQ</option>
+                            <option value="Evaluation">Evaluation</option>
+                            <option value="Tender Board Approval Request">Tender Board Approval Request</option>
+                            <option value="Awaiting Tender Board Award">Awaiting Tender Board Award</option>
+                            <option value="Approved by Tender Board">Approved by Tender Board</option>
+                            <option value="Passed to Finance">Passed to Finance</option>
                             <option value="Completed">Completed</option>
                         </select>
                     </div>
 
                     <div class="filter-section">
-                        <h3 class="filter-title">Filter by Assigned Person</h3>
-                        <input type="text" id="task-unit-filter" class="form-select" placeholder="Search by name...">
+                        <h3 class="filter-title">Assigned Person</h3>
+                        <input type="text" id="task-person-filter" class="form-select" placeholder="Search by name...">
                     </div>
 
                     <div class="sidebar-stats">
                         <div class="stat-card">
                             <span class="stat-value" id="total-tasks">0</span>
-                            <span class="stat-label">Total Tasks</span>
+                            <span class="stat-label">Total Items</span>
                         </div>
                         <div class="stat-card">
                             <span class="stat-value" id="active-tasks">0</span>
-                            <span class="stat-label">Active</span>
+                            <span class="stat-label">In Progress</span>
                         </div>
                         <div class="stat-card">
-                            <span class="stat-value" id="archived-tasks">0</span>
-                            <span class="stat-label">Archived</span>
+                            <span class="stat-value" id="completed-tasks">0</span>
+                            <span class="stat-label">Completed</span>
                         </div>
                     </div>
                 </aside>
@@ -354,20 +357,26 @@
                 <!-- Tasks List -->
                 <section class="tasks-grid">
                     <div class="grid-header">
-                        <h2 id="tasks-view-title">Active Tasks</h2>
+                        <h2 id="tasks-view-title">Procurement Items</h2>
+                        <button class="btn btn-primary" onclick="openTaskModal()">
+                            <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Add Item
+                        </button>
                     </div>
 
-                    <div id="tasks-table-container" class="tasks-table-container">
-                        <table id="tasks-table" class="tasks-table">
+                    <div id="tasks-table-container" class="tasks-table-container psip-table-container">
+                        <table id="tasks-table" class="tasks-table psip-table">
                             <thead>
                                 <tr>
-                                    <th>Supplier</th>
-                                    <th>Summary / Contract Details</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Assigned Unit</th>
-                                    <th>Expected Completion</th>
-                                    <th>Actions</th>
+                                    <th class="col-code">Code</th>
+                                    <th class="col-title">Title / Activity</th>
+                                    <th class="col-budget">Budget</th>
+                                    <th class="col-method">Method</th>
+                                    <th class="col-status">Status</th>
+                                    <th class="col-contractor">Contractor</th>
+                                    <th class="col-contract">Contract Sum</th>
+                                    <th class="col-person">Assigned</th>
+                                    <th class="col-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="tasks-table-body">
@@ -773,93 +782,165 @@
 
     <!-- Add/Edit Task Modal -->
     <div id="task-modal" class="modal hidden">
-        <div class="modal-content task-modal-content">
+        <div class="modal-content task-modal-content task-modal-psip">
             <div class="modal-header">
-                <h2 id="task-modal-title">Add New Task</h2>
+                <h2 id="task-modal-title">Add Procurement Item</h2>
                 <button class="modal-close" onclick="closeTaskModal()">
                     <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                 </button>
             </div>
 
-            <form id="task-form" class="task-form">
+            <form id="task-form" class="task-form psip-form">
                 <input type="hidden" id="task-id">
 
+                <!-- Section 1: Basic Information -->
                 <div class="form-section">
-                    <h3>Task Information</h3>
-                    <div class="form-row two-col">
+                    <h3>Project Information</h3>
+                    <div class="form-row three-col">
                         <div class="form-group">
-                            <label for="task-supplier-name">Supplier Name <span class="required">*</span></label>
-                            <input type="text" id="task-supplier-name" required placeholder="e.g., F & H Printing Establishment Inc.">
+                            <label for="task-project-code">Project Code</label>
+                            <input type="text" id="task-project-code" placeholder="e.g., 2601200">
                         </div>
                         <div class="form-group">
-                            <label for="task-contract-amount">Contract Amount ($)</label>
-                            <input type="number" id="task-contract-amount" step="0.01" min="0" placeholder="0.00">
+                            <label for="task-budget-amount">Budget Amount (G$)</label>
+                            <input type="number" id="task-budget-amount" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="task-assigned-person">Assigned Person</label>
+                            <input type="text" id="task-assigned-person" placeholder="e.g., Andrew Hing">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="task-summary">Summary of Task / Contract Details <span class="required">*</span></label>
-                            <textarea id="task-summary" required placeholder="e.g., Perfect Binding of Census Preliminary Report Booklets"></textarea>
-                        </div>
-                    </div>
-                    <div class="form-row three-col">
-                        <div class="form-group">
-                            <label for="task-status">Current Status <span class="required">*</span></label>
-                            <select id="task-status" required>
-                                <option value="Pending">Pending</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Submitted">Submitted</option>
-                                <option value="Completed">Completed</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="task-assigned-unit">Assigned To (Person/Unit)</label>
-                            <input type="text" id="task-assigned-unit" placeholder="e.g., John Smith, Procurement Team">
-                        </div>
-                        <div class="form-group">
-                            <label for="task-expected-completion">Expected Completion Date</label>
-                            <input type="date" id="task-expected-completion">
+                            <label for="task-title">Title / Activity <span class="required">*</span></label>
+                            <input type="text" id="task-title" required placeholder="e.g., 6 AC Units">
                         </div>
                     </div>
                 </div>
 
+                <!-- Section 2: Procurement Method & Timeline -->
                 <div class="form-section">
-                    <h3>Additional Details</h3>
+                    <h3>Procurement Timeline</h3>
+                    <div class="form-row four-col">
+                        <div class="form-group">
+                            <label for="task-method">Method of Procurement</label>
+                            <select id="task-method">
+                                <option value="">Select Method</option>
+                                <option value="OT">OT (Open Tender)</option>
+                                <option value="RT">RT (Restricted Tender)</option>
+                                <option value="SS">SS (Single Source)</option>
+                                <option value="RFQ">RFQ (Request for Quotation)</option>
+                                <option value="CP">CP (Competitive Procurement)</option>
+                                <option value="Open/Public Tender">Open/Public Tender</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-tender-advertise">Tender Advertise Date</label>
+                            <input type="date" id="task-tender-advertise">
+                        </div>
+                        <div class="form-group">
+                            <label for="task-tender-closed">Tender Closed Date</label>
+                            <input type="date" id="task-tender-closed">
+                        </div>
+                        <div class="form-group">
+                            <label for="task-eval-sent">Eval Sent for Approval</label>
+                            <input type="date" id="task-eval-sent">
+                        </div>
+                    </div>
                     <div class="form-row three-col">
                         <div class="form-group">
-                            <label for="task-priority">Priority Level</label>
-                            <select id="task-priority">
-                                <option value="Low">Low</option>
-                                <option value="Medium" selected>Medium</option>
-                                <option value="High">High</option>
-                            </select>
+                            <label for="task-date-of-award">Date of Award</label>
+                            <input type="date" id="task-date-of-award">
                         </div>
                         <div class="form-group">
-                            <label for="task-category">Task Category</label>
-                            <select id="task-category">
-                                <option value="">Select Category</option>
+                            <label for="task-contractor">Contractor / Supplier</label>
+                            <input type="text" id="task-contractor" placeholder="Awarded contractor name">
+                        </div>
+                        <div class="form-group">
+                            <label for="task-contract-sum">Contract Sum (G$)</label>
+                            <input type="number" id="task-contract-sum" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Procurement Status Workflow -->
+                <div class="form-section">
+                    <h3>Procurement Status</h3>
+                    <div class="form-row two-col">
+                        <div class="form-group">
+                            <label for="task-procurement-status">Current Status <span class="required">*</span></label>
+                            <select id="task-procurement-status" required onchange="handleProcurementStatusChange()">
+                                <option value="RFQ">RFQ</option>
                                 <option value="Evaluation">Evaluation</option>
-                                <option value="Contract Award">Contract Award</option>
-                                <option value="Signing">Signing</option>
-                                <option value="Payment Processing">Payment Processing</option>
-                                <option value="Compliance Review">Compliance Review</option>
+                                <option value="Tender Board Approval Request">Tender Board Approval Request</option>
+                                <option value="Awaiting Tender Board Award">Awaiting Tender Board Award</option>
+                                <option value="Approved by Tender Board">Approved by Tender Board</option>
+                                <option value="Passed to Finance">Passed to Finance Department</option>
+                                <option value="Completed">Completed</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="task-dependency">Dependency / Waiting On</label>
-                            <select id="task-dependency">
-                                <option value="">None</option>
-                                <option value="Finance">Finance</option>
-                                <option value="Legal">Legal</option>
-                                <option value="Supplier">Supplier</option>
-                                <option value="Board Approval">Board Approval</option>
-                            </select>
+                            <label for="task-status-percentage">Status % Complete</label>
+                            <input type="number" id="task-status-percentage" min="0" max="100" placeholder="0" value="0">
+                        </div>
+                    </div>
+
+                    <!-- Conditional: Award Details (shown when "Approved by Tender Board" or later) -->
+                    <div id="award-details-section" class="conditional-section hidden">
+                        <div class="form-row two-col">
+                            <div class="form-group">
+                                <label for="task-award-number">Tender Board Award Number</label>
+                                <input type="text" id="task-award-number" placeholder="e.g., NPTA-123/2026">
+                            </div>
+                            <div class="form-group">
+                                <label for="task-award-document">Award Document (PDF)</label>
+                                <div class="file-upload-container">
+                                    <input type="file" id="task-award-document" accept=".pdf" class="file-input">
+                                    <span id="award-document-name" class="file-name">No file selected</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Conditional: Finance Details (shown when "Passed to Finance" or later) -->
+                    <div id="finance-details-section" class="conditional-section hidden">
+                        <div class="form-row two-col">
+                            <div class="form-group">
+                                <label for="task-passed-to-finance">Passed to Finance Date</label>
+                                <input type="date" id="task-passed-to-finance">
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="task-is-paid" onchange="handlePaidChange()">
+                                    <span class="checkbox-custom"></span>
+                                    <span>Paid (marks as Completed)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Implementation Details -->
+                <div class="form-section">
+                    <h3>Implementation</h3>
+                    <div class="form-row three-col">
+                        <div class="form-group">
+                            <label for="task-start-date">Start Date</label>
+                            <input type="date" id="task-start-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="task-end-date">End Date</label>
+                            <input type="date" id="task-end-date">
+                        </div>
+                        <div class="form-group">
+                            <label for="task-expected-completion">Expected Completion</label>
+                            <input type="date" id="task-expected-completion">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="task-notes">Internal Notes / Remarks</label>
-                            <textarea id="task-notes" placeholder="Add any clarifications, follow-ups, or notes about delays..."></textarea>
+                            <label for="task-remarks">Remarks</label>
+                            <textarea id="task-remarks" placeholder="e.g., Rollover, delays, notes..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -867,7 +948,7 @@
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Cancel</button>
                     <button type="submit" class="btn btn-primary" id="task-submit-btn">
-                        <span>Save Task</span>
+                        <span>Save Procurement Item</span>
                         <div class="btn-spinner hidden"></div>
                     </button>
                 </div>

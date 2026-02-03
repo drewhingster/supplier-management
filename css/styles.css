@@ -2965,6 +2965,76 @@ a:hover {
     grid-template-columns: 1fr 1fr 1fr;
 }
 
+.task-form .form-row.four-col {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+/* PSIP Modal - wider to accommodate more fields */
+.task-modal-psip {
+    max-width: 1000px;
+}
+
+/* Conditional sections - hidden by default */
+.conditional-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--color-bg);
+    border-radius: 8px;
+    border: 1px dashed var(--color-border);
+}
+
+.conditional-section.hidden {
+    display: none;
+}
+
+/* File upload container */
+.file-upload-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.file-input {
+    flex: 1;
+    padding: 0.5rem !important;
+    font-size: 0.875rem !important;
+}
+
+.file-name {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Checkbox group styling */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    padding-top: 1.5rem;
+}
+
+.checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    margin-bottom: 0 !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto !important;
+    margin: 0;
+    cursor: pointer;
+}
+
+.checkbox-custom {
+    display: none;
+}
+
 .task-form input,
 .task-form select,
 .task-form textarea {
@@ -3030,6 +3100,109 @@ a:hover {
     }
 }
 
+/* PSIP Table Styling */
+.psip-table-container {
+    overflow-x: auto;
+}
+
+.psip-table {
+    width: 100%;
+    min-width: 1000px;
+}
+
+/* PSIP Table Column Widths */
+.psip-table .col-code { width: 80px; }
+.psip-table .col-title { width: auto; min-width: 150px; }
+.psip-table .col-budget { width: 100px; }
+.psip-table .col-method { width: 80px; }
+.psip-table .col-status { width: 140px; }
+.psip-table .col-contractor { width: 130px; }
+.psip-table .col-contract { width: 100px; }
+.psip-table .col-person { width: 100px; }
+.psip-table .col-actions { width: 120px; }
+
+/* PSIP Status Badges - prevent text wrapping */
+.psip-table .badge {
+    white-space: nowrap;
+    font-size: 0.6875rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Larger action buttons for PSIP table */
+.psip-table .task-actions {
+    display: flex;
+    gap: 0.375rem;
+    flex-wrap: nowrap;
+}
+
+.psip-table .task-actions .btn-icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.psip-table .task-actions .btn-icon:hover {
+    background: var(--color-bg);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.psip-table .task-actions .btn-icon.btn-danger:hover {
+    background: var(--color-error-light);
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+.psip-table .task-actions .btn-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* PSIP Status Badge Colors */
+.badge-rfq {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.badge-evaluation {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.badge-tender-board-approval-request {
+    background: #fce4ec;
+    color: #c2185b;
+}
+
+.badge-awaiting-tender-board-award {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.badge-approved-by-tender-board {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-passed-to-finance {
+    background: #e0f7fa;
+    color: #00838f;
+}
+
+.badge-completed {
+    background: var(--color-success-light);
+    color: var(--color-success);
+}
+
 /* Responsive Tasks Table */
 @media (max-width: 1200px) {
     .tasks-table {
@@ -3039,6 +3212,10 @@ a:hover {
     .tasks-table th,
     .tasks-table td {
         padding: 0.75rem 0.625rem;
+    }
+
+    .task-form .form-row.four-col {
+        grid-template-columns: 1fr 1fr;
     }
 }
 
@@ -3053,5 +3230,9 @@ a:hover {
 
     .tasks-table {
         min-width: 900px;
+    }
+
+    .task-form .form-row.four-col {
+        grid-template-columns: 1fr;
     }
 }

@@ -42,7 +42,7 @@ const state = {
     taskFilters: {
         archived: 'active', // 'active', 'archived', 'all'
         status: '',
-        assigned_unit: ''
+        assigned_person: ''
     },
     viewMode: 'grid'
 };
@@ -180,30 +180,44 @@ const elements = {
 
     // Task elements
     taskStatusFilter: document.getElementById('task-status-filter'),
-    taskUnitFilter: document.getElementById('task-unit-filter'),
+    taskPersonFilter: document.getElementById('task-person-filter'),
     tasksTableBody: document.getElementById('tasks-table-body'),
     tasksEmptyState: document.getElementById('tasks-empty-state'),
     tasksLoadingState: document.getElementById('tasks-loading-state'),
     tasksViewTitle: document.getElementById('tasks-view-title'),
     totalTasks: document.getElementById('total-tasks'),
     activeTasks: document.getElementById('active-tasks'),
-    archivedTasks: document.getElementById('archived-tasks'),
+    completedTasks: document.getElementById('completed-tasks'),
 
-    // Task Modal
+    // Task Modal - PSIP fields
     taskModal: document.getElementById('task-modal'),
     taskModalTitle: document.getElementById('task-modal-title'),
     taskForm: document.getElementById('task-form'),
     taskId: document.getElementById('task-id'),
-    taskSupplierName: document.getElementById('task-supplier-name'),
-    taskSummary: document.getElementById('task-summary'),
-    taskContractAmount: document.getElementById('task-contract-amount'),
-    taskStatus: document.getElementById('task-status'),
-    taskAssignedUnit: document.getElementById('task-assigned-unit'),
+    taskProjectCode: document.getElementById('task-project-code'),
+    taskTitle: document.getElementById('task-title'),
+    taskBudgetAmount: document.getElementById('task-budget-amount'),
+    taskAssignedPerson: document.getElementById('task-assigned-person'),
+    taskMethod: document.getElementById('task-method'),
+    taskTenderAdvertise: document.getElementById('task-tender-advertise'),
+    taskTenderClosed: document.getElementById('task-tender-closed'),
+    taskEvalSent: document.getElementById('task-eval-sent'),
+    taskDateOfAward: document.getElementById('task-date-of-award'),
+    taskContractor: document.getElementById('task-contractor'),
+    taskContractSum: document.getElementById('task-contract-sum'),
+    taskProcurementStatus: document.getElementById('task-procurement-status'),
+    taskStatusPercentage: document.getElementById('task-status-percentage'),
+    taskAwardNumber: document.getElementById('task-award-number'),
+    taskAwardDocument: document.getElementById('task-award-document'),
+    awardDocumentName: document.getElementById('award-document-name'),
+    awardDetailsSection: document.getElementById('award-details-section'),
+    financeDetailsSection: document.getElementById('finance-details-section'),
+    taskPassedToFinance: document.getElementById('task-passed-to-finance'),
+    taskIsPaid: document.getElementById('task-is-paid'),
+    taskStartDate: document.getElementById('task-start-date'),
+    taskEndDate: document.getElementById('task-end-date'),
     taskExpectedCompletion: document.getElementById('task-expected-completion'),
-    taskPriority: document.getElementById('task-priority'),
-    taskCategory: document.getElementById('task-category'),
-    taskDependency: document.getElementById('task-dependency'),
-    taskNotes: document.getElementById('task-notes'),
+    taskRemarks: document.getElementById('task-remarks'),
     taskSubmitBtn: document.getElementById('task-submit-btn'),
 
     // Toast
@@ -277,7 +291,7 @@ function setupEventListeners() {
 
     // Task Filters
     elements.taskStatusFilter?.addEventListener('change', handleTaskFilterChange);
-    elements.taskUnitFilter?.addEventListener('input', handleTaskFilterChange);
+    elements.taskPersonFilter?.addEventListener('input', handleTaskFilterChange);
     document.querySelectorAll('input[name="task-archive-filter"]').forEach(radio => {
         radio.addEventListener('change', handleTaskArchiveFilterChange);
     });
@@ -1871,8 +1885,8 @@ async function loadTasks() {
     try {
         const filters = {
             archived: state.taskFilters.archived === 'all' ? undefined : (state.taskFilters.archived === 'archived'),
-            status: state.taskFilters.status || undefined
-            // Note: assigned_unit filter is now done client-side for partial matching
+            procurement_status: state.taskFilters.status || undefined
+            // Note: assigned_person filter is now done client-side for partial matching
         };
 
         state.tasks = await api.getTasks(filters);
@@ -1891,11 +1905,11 @@ function renderTasks() {
 
     // Apply client-side filter for assigned person (partial match)
     let filteredTasks = state.tasks;
-    const assignedFilter = state.taskFilters.assigned_unit?.trim().toLowerCase();
+    const assignedFilter = state.taskFilters.assigned_person?.trim().toLowerCase();
 
     if (assignedFilter) {
         filteredTasks = state.tasks.filter(task => {
-            const assignedTo = (task.assigned_unit || '').toLowerCase();
+            const assignedTo = (task.assigned_person || '').toLowerCase();
             return assignedTo.includes(assignedFilter);
         });
     }
@@ -1913,37 +1927,38 @@ function renderTasks() {
 }
 
 function createTaskRow(task) {
-    const amount = task.contract_amount ? `$${formatCurrency(task.contract_amount)}` : 'N/A';
-    const expectedDate = task.expected_completion_date
-        ? new Date(task.expected_completion_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-        : 'Not set';
+    const budgetAmount = task.budget_amount ? `G$${formatCurrency(task.budget_amount)}` : '-';
+    const contractSum = task.contract_sum ? `G$${formatCurrency(task.contract_sum)}` : '-';
 
-    const statusClass = task.status.toLowerCase().replace(/\s+/g, '-');
+    // Use procurement_status for the status badge
+    const status = task.procurement_status || 'RFQ';
+    const statusClass = status.toLowerCase().replace(/\s+/g, '-');
     const archivedBadge = task.archived ? '<span class="badge badge-archived">Archived</span>' : '';
 
     return `
         <tr data-task-id="${task.id}">
-            <td>${escapeHtml(task.supplier_name)}</td>
+            <td>${escapeHtml(task.project_code || '-')}</td>
             <td>
-                <div class="task-summary">${escapeHtml(task.summary)}</div>
-                ${task.notes ? `<div class="task-notes-preview">${escapeHtml(task.notes.substring(0, 100))}${task.notes.length > 100 ? '...' : ''}</div>` : ''}
+                <div class="task-title">${escapeHtml(task.title || '-')}</div>
             </td>
-            <td>${amount}</td>
+            <td>${budgetAmount}</td>
+            <td>${escapeHtml(task.method_of_procurement || '-')}</td>
             <td>
-                <span class="badge badge-${statusClass}">${escapeHtml(task.status)}</span>
+                <span class="badge badge-${statusClass}">${escapeHtml(status)}</span>
                 ${archivedBadge}
             </td>
-            <td>${escapeHtml(task.assigned_unit || 'Unassigned')}</td>
-            <td>${expectedDate}</td>
+            <td>${escapeHtml(task.contractor_supplier || '-')}</td>
+            <td>${contractSum}</td>
+            <td>${escapeHtml(task.assigned_person || '-')}</td>
             <td>
                 <div class="task-actions">
-                    <button class="btn-icon" onclick="handleTaskEdit(${task.id})" title="Edit Task">
+                    <button class="btn-icon" onclick="handleTaskEdit(${task.id})" title="Edit">
                         <svg viewBox="0 0 24 24" width="16" height="16"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     </button>
-                    <button class="btn-icon" onclick="handleTaskArchive(${task.id}, ${task.archived ? 0 : 1})" title="${task.archived ? 'Unarchive' : 'Archive'} Task">
+                    <button class="btn-icon" onclick="handleTaskArchive(${task.id}, ${task.archived ? 0 : 1})" title="${task.archived ? 'Unarchive' : 'Archive'}">
                         <svg viewBox="0 0 24 24" width="16" height="16"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     </button>
-                    <button class="btn-icon btn-danger" onclick="handleTaskDelete(${task.id})" title="Delete Task">
+                    <button class="btn-icon btn-danger" onclick="handleTaskDelete(${task.id})" title="Delete">
                         <svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     </button>
                 </div>
@@ -1956,25 +1971,51 @@ function openTaskModal(task = null) {
     state.currentTask = task;
     state.isTaskEditMode = !!task;
 
-    elements.taskModalTitle.textContent = task ? 'Edit Task' : 'Add New Task';
+    elements.taskModalTitle.textContent = task ? 'Edit Procurement Item' : 'Add Procurement Item';
+
+    // Reset conditional sections
+    elements.awardDetailsSection?.classList.add('hidden');
+    elements.financeDetailsSection?.classList.add('hidden');
 
     if (task) {
         elements.taskId.value = task.id;
-        elements.taskSupplierName.value = task.supplier_name || '';
-        elements.taskSummary.value = task.summary || '';
-        elements.taskContractAmount.value = task.contract_amount || '';
-        elements.taskStatus.value = task.status || 'Pending';
-        elements.taskAssignedUnit.value = task.assigned_unit || '';
+        elements.taskProjectCode.value = task.project_code || '';
+        elements.taskTitle.value = task.title || '';
+        elements.taskBudgetAmount.value = task.budget_amount || '';
+        elements.taskAssignedPerson.value = task.assigned_person || '';
+        elements.taskMethod.value = task.method_of_procurement || '';
+        elements.taskTenderAdvertise.value = task.tender_advertise_date || '';
+        elements.taskTenderClosed.value = task.tender_closed_date || '';
+        elements.taskEvalSent.value = task.eval_sent_date || '';
+        elements.taskDateOfAward.value = task.date_of_award || '';
+        elements.taskContractor.value = task.contractor_supplier || '';
+        elements.taskContractSum.value = task.contract_sum || '';
+        elements.taskProcurementStatus.value = task.procurement_status || 'RFQ';
+        elements.taskStatusPercentage.value = task.status_percentage || 0;
+        elements.taskAwardNumber.value = task.tender_board_award_number || '';
+        elements.taskPassedToFinance.value = task.passed_to_finance_date || '';
+        elements.taskIsPaid.checked = task.is_paid === 1;
+        elements.taskStartDate.value = task.start_date || '';
+        elements.taskEndDate.value = task.end_date || '';
         elements.taskExpectedCompletion.value = task.expected_completion_date || '';
-        elements.taskPriority.value = task.priority || 'Medium';
-        elements.taskCategory.value = task.category || '';
-        elements.taskDependency.value = task.dependency || '';
-        elements.taskNotes.value = task.notes || '';
+        elements.taskRemarks.value = task.remarks || '';
+
+        // Show award document name if exists
+        if (task.award_document_r2_key) {
+            const fileName = task.award_document_r2_key.split('/').pop();
+            elements.awardDocumentName.textContent = fileName;
+        } else {
+            elements.awardDocumentName.textContent = 'No file selected';
+        }
+
+        // Show conditional sections based on status
+        handleProcurementStatusChange();
     } else {
         elements.taskForm.reset();
         elements.taskId.value = '';
-        elements.taskPriority.value = 'Medium';
-        elements.taskStatus.value = 'Pending';
+        elements.taskProcurementStatus.value = 'RFQ';
+        elements.taskStatusPercentage.value = 0;
+        elements.awardDocumentName.textContent = 'No file selected';
     }
 
     elements.taskModal.classList.remove('hidden');
@@ -1983,9 +2024,43 @@ function openTaskModal(task = null) {
 function closeTaskModal() {
     elements.taskModal.classList.add('hidden');
     elements.taskForm.reset();
+    elements.awardDetailsSection?.classList.add('hidden');
+    elements.financeDetailsSection?.classList.add('hidden');
+    elements.awardDocumentName.textContent = 'No file selected';
     state.currentTask = null;
     state.isTaskEditMode = false;
 }
+
+// Handle procurement status change - show/hide conditional sections
+function handleProcurementStatusChange() {
+    const status = elements.taskProcurementStatus?.value;
+    const showAward = ['Approved by Tender Board', 'Passed to Finance', 'Completed'].includes(status);
+    const showFinance = ['Passed to Finance', 'Completed'].includes(status);
+
+    if (showAward) {
+        elements.awardDetailsSection?.classList.remove('hidden');
+    } else {
+        elements.awardDetailsSection?.classList.add('hidden');
+    }
+
+    if (showFinance) {
+        elements.financeDetailsSection?.classList.remove('hidden');
+    } else {
+        elements.financeDetailsSection?.classList.add('hidden');
+    }
+}
+
+// Handle paid checkbox change - auto-set status to Completed
+function handlePaidChange() {
+    if (elements.taskIsPaid?.checked) {
+        elements.taskProcurementStatus.value = 'Completed';
+        handleProcurementStatusChange();
+    }
+}
+
+// Make these globally accessible for onclick handlers in HTML
+window.handleProcurementStatusChange = handleProcurementStatusChange;
+window.handlePaidChange = handlePaidChange;
 
 async function handleTaskSubmit(e) {
     e.preventDefault();
@@ -2000,37 +2075,73 @@ async function handleTaskSubmit(e) {
 
     try {
         const taskData = {
-            supplier_name: elements.taskSupplierName.value.trim(),
-            summary: elements.taskSummary.value.trim(),
-            contract_amount: elements.taskContractAmount.value ? parseFloat(elements.taskContractAmount.value) : null,
-            status: elements.taskStatus.value,
-            assigned_unit: elements.taskAssignedUnit.value || null,
-            expected_completion_date: elements.taskExpectedCompletion.value || null,
-            priority: elements.taskPriority.value,
-            category: elements.taskCategory.value || null,
-            dependency: elements.taskDependency.value || null,
-            notes: elements.taskNotes.value.trim() || null,
+            project_code: elements.taskProjectCode?.value.trim() || null,
+            title: elements.taskTitle.value.trim(),
+            budget_amount: elements.taskBudgetAmount?.value ? parseFloat(elements.taskBudgetAmount.value) : null,
+            assigned_person: elements.taskAssignedPerson?.value.trim() || null,
+            method_of_procurement: elements.taskMethod?.value || null,
+            tender_advertise_date: elements.taskTenderAdvertise?.value || null,
+            tender_closed_date: elements.taskTenderClosed?.value || null,
+            eval_sent_date: elements.taskEvalSent?.value || null,
+            date_of_award: elements.taskDateOfAward?.value || null,
+            contractor_supplier: elements.taskContractor?.value.trim() || null,
+            contract_sum: elements.taskContractSum?.value ? parseFloat(elements.taskContractSum.value) : null,
+            procurement_status: elements.taskProcurementStatus?.value || 'RFQ',
+            status_percentage: elements.taskStatusPercentage?.value ? parseInt(elements.taskStatusPercentage.value) : 0,
+            tender_board_award_number: elements.taskAwardNumber?.value.trim() || null,
+            passed_to_finance_date: elements.taskPassedToFinance?.value || null,
+            is_paid: elements.taskIsPaid?.checked ? 1 : 0,
+            start_date: elements.taskStartDate?.value || null,
+            end_date: elements.taskEndDate?.value || null,
+            expected_completion_date: elements.taskExpectedCompletion?.value || null,
+            remarks: elements.taskRemarks?.value.trim() || null,
             archived: state.currentTask?.archived || 0
         };
 
+        let savedTask;
         if (state.isTaskEditMode) {
-            await api.updateTask(state.currentTask.id, taskData);
-            showToast('Task updated successfully', 'success');
+            savedTask = await api.updateTask(state.currentTask.id, taskData);
+            showToast('Procurement item updated successfully', 'success');
         } else {
-            await api.createTask(taskData);
-            showToast('Task created successfully', 'success');
+            savedTask = await api.createTask(taskData);
+            showToast('Procurement item created successfully', 'success');
+        }
+
+        // Handle award document upload if a file was selected
+        const awardFile = elements.taskAwardDocument?.files[0];
+        if (awardFile && savedTask?.id) {
+            await uploadAwardDocument(savedTask.id, awardFile);
         }
 
         closeTaskModal();
         await loadTasks();
 
     } catch (error) {
-        console.error('Failed to save task:', error);
-        showToast(error.message || 'Failed to save task', 'error');
+        console.error('Failed to save procurement item:', error);
+        showToast(error.message || 'Failed to save procurement item', 'error');
     } finally {
         submitBtn.disabled = false;
         spinner?.classList.add('hidden');
-        btnText.textContent = 'Save Task';
+        btnText.textContent = 'Save Procurement Item';
+    }
+}
+
+async function uploadAwardDocument(taskId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch(`${window.API_BASE_URL}/api/tasks/${taskId}/award-document`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to upload award document');
+        }
+    } catch (error) {
+        console.error('Failed to upload award document:', error);
+        showToast('Item saved but award document upload failed', 'error');
     }
 }
 
@@ -2071,8 +2182,8 @@ async function handleTaskArchive(taskId, archived) {
 }
 
 function handleTaskFilterChange() {
-    state.taskFilters.status = elements.taskStatusFilter.value;
-    state.taskFilters.assigned_unit = elements.taskUnitFilter.value;
+    state.taskFilters.status = elements.taskStatusFilter?.value || '';
+    state.taskFilters.assigned_person = elements.taskPersonFilter?.value || '';
     loadTasks();
 }
 
@@ -2081,23 +2192,23 @@ function handleTaskArchiveFilterChange(e) {
 
     // Update view title
     const titles = {
-        'active': 'Active Tasks',
-        'archived': 'Archived Tasks',
-        'all': 'All Tasks'
+        'active': 'Active Procurement Items',
+        'archived': 'Archived Procurement Items',
+        'all': 'All Procurement Items'
     };
-    elements.tasksViewTitle.textContent = titles[e.target.value] || 'Tasks';
+    elements.tasksViewTitle.textContent = titles[e.target.value] || 'Procurement Items';
 
     loadTasks();
 }
 
 function updateTaskStatistics() {
     const total = state.tasks.length;
-    const active = state.tasks.filter(t => !t.archived).length;
-    const archived = state.tasks.filter(t => t.archived).length;
+    const inProgress = state.tasks.filter(t => !t.archived && t.procurement_status !== 'Completed').length;
+    const completed = state.tasks.filter(t => t.procurement_status === 'Completed' || t.is_paid === 1).length;
 
     elements.totalTasks.textContent = total;
-    elements.activeTasks.textContent = active;
-    elements.archivedTasks.textContent = archived;
+    elements.activeTasks.textContent = inProgress;
+    elements.completedTasks.textContent = completed;
 }
 
 function showTasksLoading(show) {

@@ -264,16 +264,16 @@ class SupplierAPI {
         });
     }
 
-    // ==================== Outstanding Tasks ====================
+    // ==================== Outstanding Tasks (PSIP) ====================
 
     async getTasks(filters = {}) {
         let endpoint = '/tasks';
         const params = new URLSearchParams();
 
         if (filters.archived !== undefined) params.append('archived', filters.archived);
-        if (filters.status) params.append('status', filters.status);
-        if (filters.supplier) params.append('supplier', filters.supplier);
-        if (filters.assigned_unit) params.append('assigned_unit', filters.assigned_unit);
+        if (filters.procurement_status) params.append('procurement_status', filters.procurement_status);
+        if (filters.assigned_person) params.append('assigned_person', filters.assigned_person);
+        if (filters.is_paid !== undefined) params.append('is_paid', filters.is_paid);
 
         if (params.toString()) {
             endpoint += `?${params.toString()}`;

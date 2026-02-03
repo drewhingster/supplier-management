@@ -3176,8 +3176,7 @@ function formatAuditTimestamp(timestamp) {
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12 || 12;
     
-    return ${month} , , : ;
-});
+    return `${month} ${day}, ${year}, ${hours}:${minutes} ${ampm}`;
 }
 
 // Make audit functions globally accessible

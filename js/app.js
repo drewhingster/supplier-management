@@ -3141,11 +3141,18 @@ async function populateUserFilter() {
 }
 
 function formatAuditTime(timestamp) {
-    // Convert to Guyana timezone (UTC-4 / America/Guyana)
-    const date = new Date(timestamp);
-    const guyanaDate = new Date(date.toLocaleString('en-US', { timeZone: 'America/Guyana' }));
-    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guyana' }));
-    const diffMs = now - guyanaDate;
+    // Parse the timestamp
+    const utcDate = new Date(timestamp);
+    
+    // Guyana is UTC-4, so subtract 4 hours (14400000 milliseconds)
+    const guyanaOffset = -4 * 60 * 60 * 1000;
+    const guyanaDate = new Date(utcDate.getTime() + guyanaOffset);
+    
+    // Get current time in Guyana
+    const nowUtc = new Date();
+    const nowGuyana = new Date(nowUtc.getTime() + guyanaOffset);
+    
+    const diffMs = nowGuyana - guyanaDate;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
@@ -3154,7 +3161,13 @@ function formatAuditTime(timestamp) {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    return guyanaDate.toLocaleDateString('en-GY');
+    
+    // Format as readable date
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[guyanaDate.getUTCMonth()];
+    const day = guyanaDate.getUTCDate();
+    const year = guyanaDate.getUTCFullYear();
+    return `${month} ${day}, ${year}`;
 }
 
 function formatAuditTimestamp(timestamp) {

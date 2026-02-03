@@ -3794,3 +3794,269 @@ a:hover {
         padding-left: 1rem;
     }
 }
+
+
+/* ==========================================================================
+   Authentication Error Styles
+   ========================================================================== */
+.auth-error {
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #dc2626;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+    font-size: 0.875rem;
+    text-align: left;
+}
+
+.auth-error.hidden {
+    display: none;
+}
+
+/* ==========================================================================
+   User Info Display
+   ========================================================================== */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: 0.875rem;
+}
+
+.user-icon {
+    opacity: 0.8;
+}
+
+.user-name {
+    font-weight: 500;
+}
+
+.role-badge {
+    background-color: var(--color-accent);
+    color: var(--color-primary);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    text-transform: uppercase;
+}
+
+.role-badge.hidden {
+    display: none;
+}
+
+/* ==========================================================================
+   Audit Trail Widget (Sidebar)
+   ========================================================================== */
+.audit-widget {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-border);
+}
+
+.audit-widget-header {
+    margin-bottom: var(--space-sm);
+}
+
+.audit-widget-header .filter-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.audit-icon {
+    opacity: 0.7;
+}
+
+.audit-entries {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: var(--space-sm);
+}
+
+.audit-entry {
+    padding: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.8rem;
+}
+
+.audit-entry:last-child {
+    border-bottom: none;
+}
+
+.audit-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.audit-user {
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.audit-time {
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+}
+
+.audit-action {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.audit-action.create { background-color: #dcfce7; color: #16a34a; }
+.audit-action.update { background-color: #dbeafe; color: #2563eb; }
+.audit-action.delete { background-color: #fee2e2; color: #dc2626; }
+.audit-action.upload { background-color: #fef3c7; color: #d97706; }
+
+.audit-details {
+    color: var(--color-text-secondary);
+    word-break: break-word;
+}
+
+.audit-loading {
+    padding: var(--space-md);
+    text-align: center;
+    color: var(--color-text-muted);
+}
+
+.audit-view-all {
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+/* ==========================================================================
+   Activity Log View
+   ========================================================================== */
+.activity-main {
+    display: block;
+    padding: var(--space-xl);
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.activity-section {
+    background-color: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-xl);
+}
+
+.activity-header {
+    margin-bottom: var(--space-lg);
+}
+
+.activity-header h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin: 0 0 var(--space-xs) 0;
+    color: var(--color-primary);
+}
+
+.activity-subtitle {
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+.activity-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-md);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.activity-filters .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.activity-filters .filter-group label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+}
+
+.activity-filters .form-select {
+    min-width: 150px;
+}
+
+.activity-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: var(--space-lg);
+}
+
+.activity-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.activity-table th,
+.activity-table td {
+    padding: var(--space-sm) var(--space-md);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.activity-table th {
+    background-color: var(--color-bg-secondary);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.activity-table tbody tr:hover {
+    background-color: var(--color-bg-secondary);
+}
+
+.activity-table .loading-cell {
+    text-align: center;
+    padding: var(--space-xl);
+    color: var(--color-text-muted);
+}
+
+.activity-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+#activity-page-info {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+}
+
+/* View-only mode: hide action buttons */
+.view-only-mode .btn-primary,
+.view-only-mode .btn-danger,
+.view-only-mode [onclick*="delete"],
+.view-only-mode [onclick*="edit"],
+.view-only-mode [onclick*="openSupplierModal"],
+.view-only-mode [onclick*="openContractModal"],
+.view-only-mode [onclick*="openTaskModal"],
+.view-only-mode #add-supplier-btn,
+.view-only-mode #add-contract-btn,
+.view-only-mode #add-category-btn {
+    display: none !important;
+}

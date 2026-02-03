@@ -20,17 +20,56 @@
                 <h2>Supplier Document Management System</h2>
                 <p class="auth-subtitle">Bureau of Statistics — Ministry of Finance</p>
             </div>
+
+            <!-- Login Form -->
             <form id="auth-form">
                 <div class="form-group">
-                    <label for="auth-token">Access Token</label>
-                    <input type="password" id="auth-token" placeholder="Enter your access token" required>
+                    <label for="auth-username">Username</label>
+                    <input type="text" id="auth-username" placeholder="Enter your username" required autocomplete="username">
                 </div>
+                <div class="form-group">
+                    <label for="auth-password">Password</label>
+                    <input type="password" id="auth-password" placeholder="Enter your password" required autocomplete="current-password">
+                </div>
+                <div id="auth-error" class="auth-error hidden"></div>
                 <button type="submit" class="btn btn-primary btn-full">
-                    <span>Authenticate</span>
+                    <span>Sign In</span>
                     <svg viewBox="0 0 24 24" class="btn-icon"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                 </button>
             </form>
             <p class="auth-footer">Authorized personnel only. All access is logged and monitored.</p>
+        </div>
+    </div>
+
+    <!-- Change Password Modal (for first-time login) -->
+    <div id="change-password-modal" class="modal hidden">
+        <div class="modal-content auth-modal-content">
+            <div class="auth-header">
+                <div class="gov-seal">
+                    <img src="images/logo.png.jpg" alt="Bureau of Statistics Logo" class="seal-icon">
+                </div>
+                <h2>Set Your Password</h2>
+                <p class="auth-subtitle">You must change your password before continuing</p>
+            </div>
+            <form id="change-password-form">
+                <div class="form-group">
+                    <label for="current-password">Current Password</label>
+                    <input type="password" id="current-password" placeholder="Your current password" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" id="new-password" placeholder="Enter new password (min 6 characters)" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm New Password</label>
+                    <input type="password" id="confirm-password" placeholder="Confirm new password" required minlength="6">
+                </div>
+                <div id="password-error" class="auth-error hidden"></div>
+                <button type="submit" class="btn btn-primary btn-full">
+                    <span>Set Password & Continue</span>
+                    <svg viewBox="0 0 24 24" class="btn-icon"><path d="M5 12h14m-7-7l7 7-7 7" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </form>
         </div>
     </div>
 
@@ -62,6 +101,13 @@
                         <svg viewBox="0 0 24 24" width="18" height="18"><path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                         Outstanding Tasks
                     </button>
+                    <button id="nav-activity" class="nav-tab" onclick="switchView('activity')">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+                            <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" fill="none"/>
+                        </svg>
+                        Activity
+                    </button>
                 </div>
                 
                 <button id="add-category-btn" class="btn btn-secondary">
@@ -86,7 +132,17 @@
                     </svg>
                     <span id="notification-badge" class="notification-badge hidden">0</span>
                 </button>
-                
+
+                <!-- User Info -->
+                <div class="user-info">
+                    <svg viewBox="0 0 24 24" width="18" height="18" class="user-icon">
+                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>
+                    <span id="current-user-name" class="user-name">User</span>
+                    <span id="user-role-badge" class="role-badge hidden">View Only</span>
+                </div>
+
                 <button id="logout-btn" class="btn btn-ghost" title="Logout">
                     <svg viewBox="0 0 24 24" class="btn-icon"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5-5-5m5 5H9" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                 </button>
@@ -163,6 +219,23 @@
                             <span class="stat-value" id="needs-attention">0</span>
                             <span class="stat-label">Needs Attention</span>
                         </div>
+                    </div>
+
+                    <!-- Recent Activity Widget -->
+                    <div class="audit-widget">
+                        <div class="audit-widget-header">
+                            <h3 class="filter-title">
+                                <svg viewBox="0 0 24 24" width="16" height="16" class="audit-icon">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+                                    <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" fill="none"/>
+                                </svg>
+                                Recent Activity
+                            </h3>
+                        </div>
+                        <div id="audit-entries" class="audit-entries">
+                            <div class="audit-loading">Loading...</div>
+                        </div>
+                        <button class="btn btn-link audit-view-all" onclick="switchView('activity')">View All Activity</button>
                     </div>
                 </aside>
 
@@ -411,6 +484,84 @@
                     <div id="tasks-loading-state" class="loading-state hidden">
                         <div class="loading-spinner"></div>
                         <p>Loading procurement items...</p>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- ==================== ACTIVITY LOG VIEW ==================== -->
+        <div id="activity-view" class="view-container hidden">
+            <main class="main-content activity-main">
+                <section class="activity-section">
+                    <div class="activity-header">
+                        <h2>
+                            <svg viewBox="0 0 24 24" width="24" height="24" class="activity-icon">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                            Activity Log
+                        </h2>
+                        <p class="activity-subtitle">Immutable audit trail of all system actions</p>
+                    </div>
+
+                    <div class="activity-filters">
+                        <div class="filter-group">
+                            <label for="activity-user-filter">User</label>
+                            <select id="activity-user-filter" class="form-select">
+                                <option value="">All Users</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="activity-action-filter">Action</label>
+                            <select id="activity-action-filter" class="form-select">
+                                <option value="">All Actions</option>
+                                <option value="CREATE">Create</option>
+                                <option value="UPDATE">Update</option>
+                                <option value="DELETE">Delete</option>
+                                <option value="UPLOAD">Upload</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="activity-entity-filter">Entity</label>
+                            <select id="activity-entity-filter" class="form-select">
+                                <option value="">All Entities</option>
+                                <option value="Supplier">Supplier</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Task">Task</option>
+                                <option value="Document">Document</option>
+                                <option value="Category">Category</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary" onclick="loadActivityLogs()">
+                            <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16">
+                                <polyline points="1,4 1,10 7,10" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+
+                    <div class="activity-table-wrapper">
+                        <table class="activity-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Entity</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activity-table-body">
+                                <tr><td colspan="5" class="loading-cell">Loading activity log...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="activity-pagination">
+                        <button id="activity-prev-btn" class="btn btn-secondary" disabled onclick="loadActivityLogs('prev')">Previous</button>
+                        <span id="activity-page-info">Page 1</span>
+                        <button id="activity-next-btn" class="btn btn-secondary" onclick="loadActivityLogs('next')">Next</button>
                     </div>
                 </section>
             </main>

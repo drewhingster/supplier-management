@@ -1,27 +1,47 @@
 /**
  * Supplier Document Management System
- * API Client - VERSION 4 (with Contracts)
- * 
+ * API Client - VERSION 5 (with User Authentication & Audit)
+ *
  * Bureau of Statistics — Procurement Unit
  */
 
 class SupplierAPI {
     constructor(baseUrl) {
         this.baseUrl = baseUrl;
-        this.token = localStorage.getItem('auth_token');
+        this.token = localStorage.getItem('session_token');
+        this.currentUser = null;
     }
 
     setToken(token) {
         this.token = token;
-        localStorage.setItem('auth_token', token);
+        localStorage.setItem('session_token', token);
     }
 
     getToken() {
-        return this.token || localStorage.getItem('auth_token');
+        return this.token || localStorage.getItem('session_token');
+    }
+
+    setCurrentUser(user) {
+        this.currentUser = user;
+        localStorage.setItem('current_user', JSON.stringify(user));
+    }
+
+    getCurrentUser() {
+        if (this.currentUser) return this.currentUser;
+        const stored = localStorage.getItem('current_user');
+        if (stored) {
+            this.currentUser = JSON.parse(stored);
+            return this.currentUser;
+        }
+        return null;
     }
 
     logout() {
         this.token = null;
+        this.currentUser = null;
+        localStorage.removeItem('session_token');
+        localStorage.removeItem('current_user');
+        // Also remove legacy token
         localStorage.removeItem('auth_token');
     }
 
@@ -29,9 +49,14 @@ class SupplierAPI {
         return !!this.getToken();
     }
 
+    isViewOnly() {
+        const user = this.getCurrentUser();
+        return user && user.role === 'view_only';
+    }
+
     async request(endpoint, options = {}) {
         const url = `${this.baseUrl}${endpoint}`;
-        
+
         const headers = {
             'Content-Type': 'application/json',
             ...options.headers
@@ -54,6 +79,65 @@ class SupplierAPI {
         return response.json();
     }
 
+    // ==================== Authentication ====================
+
+    async login(username, password) {
+        const response = await fetch(`${this.baseUrl}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.token) {
+            this.setToken(data.token);
+            this.setCurrentUser(data.user);
+        }
+
+        return { success: response.ok, ...data };
+    }
+
+    async checkSession() {
+        const token = this.getToken();
+        if (!token) return { success: false };
+
+        try {
+            const response = await fetch(`${this.baseUrl}/auth/me`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.setCurrentUser(data.user);
+                return { success: true, user: data.user };
+            } else {
+                this.logout();
+                return { success: false };
+            }
+        } catch (error) {
+            console.error('Session check failed:', error);
+            return { success: false };
+        }
+    }
+
+    async changePassword(currentPassword, newPassword) {
+        return await this.request('/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+    }
+
+    async logoutSession() {
+        try {
+            await this.request('/auth/logout', { method: 'POST' });
+        } catch (error) {
+            console.error('Logout request failed:', error);
+        }
+        this.logout();
+    }
+
+    // Legacy auth for backward compatibility
     async authenticate(token) {
         const response = await fetch(`${this.baseUrl}/auth/verify`, {
             method: 'POST',
@@ -68,6 +152,28 @@ class SupplierAPI {
         }
 
         return data;
+    }
+
+    // ==================== Audit Logs ====================
+
+    async getRecentAuditLogs(limit = 10) {
+        return await this.request(`/audit-logs/recent?limit=${limit}`);
+    }
+
+    async getAuditLogs(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.user_id) params.append('user_id', filters.user_id);
+        if (filters.action) params.append('action', filters.action);
+        if (filters.entity_type) params.append('entity_type', filters.entity_type);
+        if (filters.limit) params.append('limit', filters.limit);
+        if (filters.offset) params.append('offset', filters.offset);
+
+        const endpoint = '/audit-logs' + (params.toString() ? `?${params.toString()}` : '');
+        return await this.request(endpoint);
+    }
+
+    async getUsers() {
+        return await this.request('/users');
     }
 
     // ==================== Categories ====================

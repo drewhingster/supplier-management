@@ -207,7 +207,21 @@ const elements = {
     // Auth
     authModal: document.getElementById('auth-modal'),
     authForm: document.getElementById('auth-form'),
-    authToken: document.getElementById('auth-token'),
+    authUsername: document.getElementById('auth-username'),
+    authPassword: document.getElementById('auth-password'),
+    authError: document.getElementById('auth-error'),
+
+    // Change Password Modal
+    changePasswordModal: document.getElementById('change-password-modal'),
+    changePasswordForm: document.getElementById('change-password-form'),
+    currentPassword: document.getElementById('current-password'),
+    newPassword: document.getElementById('new-password'),
+    confirmPassword: document.getElementById('confirm-password'),
+    passwordError: document.getElementById('password-error'),
+
+    // User Info Display
+    currentUserName: document.getElementById('current-user-name'),
+    userRoleBadge: document.getElementById('user-role-badge'),
 
     // App
     app: document.getElementById('app'),
@@ -216,9 +230,11 @@ const elements = {
     navSuppliers: document.getElementById('nav-suppliers'),
     navContracts: document.getElementById('nav-contracts'),
     navTasks: document.getElementById('nav-tasks'),
+    navActivity: document.getElementById('nav-activity'),
     suppliersView: document.getElementById('suppliers-view'),
     contractsView: document.getElementById('contracts-view'),
     tasksView: document.getElementById('tasks-view'),
+    activityView: document.getElementById('activity-view'),
 
     // Buttons
     addSupplierBtn: document.getElementById('add-supplier-btn'),
@@ -382,19 +398,43 @@ const elements = {
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
+    setupEventListeners();
+
     if (api.isAuthenticated()) {
-        showApp();
-        await loadInitialData();
+        // Validate session is still valid
+        const result = await api.checkSession();
+        if (result.success) {
+            updateUserDisplay();
+            showApp();
+            await loadInitialData();
+            loadRecentAuditLogs(); // Load sidebar audit widget
+        } else {
+            showAuth();
+        }
     } else {
         showAuth();
     }
+}
 
-    setupEventListeners();
+function updateUserDisplay() {
+    const user = api.getCurrentUser();
+    if (user) {
+        elements.currentUserName.textContent = user.fullName || user.username;
+
+        if (user.role === 'view_only') {
+            elements.userRoleBadge.classList.remove('hidden');
+            document.body.classList.add('view-only-mode');
+        } else {
+            elements.userRoleBadge.classList.add('hidden');
+            document.body.classList.remove('view-only-mode');
+        }
+    }
 }
 
 function setupEventListeners() {
     // Authentication
-    elements.authForm.addEventListener('submit', handleAuth);
+    elements.authForm.addEventListener('submit', handleLogin);
+    elements.changePasswordForm?.addEventListener('submit', handlePasswordChange);
     elements.logoutBtn.addEventListener('click', handleLogout);
 
     // Navigation
@@ -502,11 +542,13 @@ function switchView(view) {
     elements.navSuppliers.classList.toggle('active', view === 'suppliers');
     elements.navContracts.classList.toggle('active', view === 'contracts');
     elements.navTasks?.classList.toggle('active', view === 'tasks');
+    elements.navActivity?.classList.toggle('active', view === 'activity');
 
     // Show/hide views
     elements.suppliersView.classList.toggle('hidden', view !== 'suppliers');
     elements.contractsView.classList.toggle('hidden', view !== 'contracts');
     elements.tasksView?.classList.toggle('hidden', view !== 'tasks');
+    elements.activityView?.classList.toggle('hidden', view !== 'activity');
 
     // Show/hide action buttons
     elements.addSupplierBtn.classList.toggle('hidden', view !== 'suppliers');
@@ -520,6 +562,9 @@ function switchView(view) {
     }
     if (view === 'tasks' && state.tasks.length === 0) {
         loadTasks();
+    }
+    if (view === 'activity') {
+        loadActivityLogs();
     }
 }
 
@@ -535,37 +580,135 @@ function showApp() {
     elements.app.classList.remove('hidden');
 }
 
-async function handleAuth(e) {
+async function handleLogin(e) {
     e.preventDefault();
 
-    const token = elements.authToken.value.trim();
+    const username = elements.authUsername.value.trim();
+    const password = elements.authPassword.value;
 
-    if (!token) {
-        showToast('Please enter an access token', 'error');
+    if (!username || !password) {
+        showAuthError('Please enter username and password');
         return;
     }
 
     try {
-        const response = await api.authenticate(token);
+        const response = await api.login(username, password);
 
         if (response.success) {
-            showApp();
-            await loadInitialData();
-            showToast('Authentication successful');
+            hideAuthError();
+
+            // Check if user must change password
+            if (response.user && response.user.mustChangePassword) {
+                showChangePasswordModal();
+            } else {
+                updateUserDisplay();
+                showApp();
+                await loadInitialData();
+                loadRecentAuditLogs();
+                showToast(`Welcome, ${response.user.fullName}!`);
+            }
         } else {
-            showToast('Invalid access token', 'error');
+            showAuthError(response.error || 'Invalid username or password');
         }
     } catch (error) {
-        showToast(error.message || 'Authentication failed', 'error');
+        showAuthError(error.message || 'Login failed');
+    }
+}
+
+async function handlePasswordChange(e) {
+    e.preventDefault();
+
+    const currentPassword = elements.currentPassword.value;
+    const newPassword = elements.newPassword.value;
+    const confirmPassword = elements.confirmPassword.value;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        showPasswordError('All fields are required');
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        showPasswordError('New password must be at least 6 characters');
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        showPasswordError('Passwords do not match');
+        return;
+    }
+
+    try {
+        const response = await api.changePassword(currentPassword, newPassword);
+
+        if (response.success) {
+            hidePasswordError();
+            hideChangePasswordModal();
+            updateUserDisplay();
+            showApp();
+            await loadInitialData();
+            loadRecentAuditLogs();
+            showToast('Password changed successfully!');
+        } else {
+            showPasswordError(response.error || 'Failed to change password');
+        }
+    } catch (error) {
+        showPasswordError(error.message || 'Failed to change password');
     }
 }
 
 function handleLogout() {
     if (confirm('Are you sure you want to logout?')) {
-        api.logout();
+        api.logoutSession();
         showAuth();
-        elements.authToken.value = '';
+        clearAuthForms();
     }
+}
+
+function showAuthError(message) {
+    if (elements.authError) {
+        elements.authError.textContent = message;
+        elements.authError.classList.remove('hidden');
+    }
+}
+
+function hideAuthError() {
+    if (elements.authError) {
+        elements.authError.classList.add('hidden');
+    }
+}
+
+function showPasswordError(message) {
+    if (elements.passwordError) {
+        elements.passwordError.textContent = message;
+        elements.passwordError.classList.remove('hidden');
+    }
+}
+
+function hidePasswordError() {
+    if (elements.passwordError) {
+        elements.passwordError.classList.add('hidden');
+    }
+}
+
+function showChangePasswordModal() {
+    if (elements.changePasswordModal) {
+        elements.changePasswordModal.classList.remove('hidden');
+    }
+}
+
+function hideChangePasswordModal() {
+    if (elements.changePasswordModal) {
+        elements.changePasswordModal.classList.add('hidden');
+        elements.changePasswordForm.reset();
+    }
+}
+
+function clearAuthForms() {
+    if (elements.authUsername) elements.authUsername.value = '';
+    if (elements.authPassword) elements.authPassword.value = '';
+    if (elements.changePasswordForm) elements.changePasswordForm.reset();
+    hideAuthError();
+    hidePasswordError();
 }
 
 // ==================== Data Loading ====================
@@ -2874,3 +3017,144 @@ window.toggleTaskExpand = toggleTaskExpand;
 window.handleStageToggle = handleStageToggle;
 window.updateModalStageProgress = updateModalStageProgress;
 window.openContractModalFromTask = openContractModalFromTask;
+
+// ==================== Audit Log Functions ====================
+
+// Audit log pagination state
+let auditLogState = {
+    currentPage: 1,
+    pageSize: 50,
+    totalLogs: 0
+};
+
+async function loadRecentAuditLogs() {
+    const container = document.getElementById('audit-entries');
+    if (!container) return;
+
+    try {
+        const response = await api.getRecentAuditLogs(8);
+
+        if (response.logs && response.logs.length > 0) {
+            container.innerHTML = response.logs.map(log => `
+                <div class="audit-entry">
+                    <div class="audit-entry-header">
+                        <span class="audit-user">${escapeHtml(log.user_name)}</span>
+                        <span class="audit-time">${formatAuditTime(log.timestamp)}</span>
+                    </div>
+                    <span class="audit-action ${log.action.toLowerCase()}">${log.action}</span>
+                    <span class="audit-details">${escapeHtml(log.entity_type)}: ${escapeHtml(log.entity_name || '')}</span>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="audit-loading">No recent activity</div>';
+        }
+    } catch (error) {
+        console.error('Failed to load recent audit logs:', error);
+        container.innerHTML = '<div class="audit-loading">Failed to load activity</div>';
+    }
+}
+
+async function loadActivityLogs(direction) {
+    const tableBody = document.getElementById('activity-table-body');
+    if (!tableBody) return;
+
+    // Handle pagination
+    if (direction === 'next') {
+        auditLogState.currentPage++;
+    } else if (direction === 'prev' && auditLogState.currentPage > 1) {
+        auditLogState.currentPage--;
+    } else if (!direction) {
+        auditLogState.currentPage = 1;
+    }
+
+    // Get filter values
+    const userFilter = document.getElementById('activity-user-filter')?.value || '';
+    const actionFilter = document.getElementById('activity-action-filter')?.value || '';
+    const entityFilter = document.getElementById('activity-entity-filter')?.value || '';
+
+    try {
+        tableBody.innerHTML = '<tr><td colspan="5" class="loading-cell">Loading...</td></tr>';
+
+        const response = await api.getAuditLogs({
+            user_id: userFilter,
+            action: actionFilter,
+            entity_type: entityFilter,
+            limit: auditLogState.pageSize,
+            offset: (auditLogState.currentPage - 1) * auditLogState.pageSize
+        });
+
+        if (response.logs && response.logs.length > 0) {
+            tableBody.innerHTML = response.logs.map(log => `
+                <tr>
+                    <td>${formatAuditTimestamp(log.timestamp)}</td>
+                    <td>${escapeHtml(log.user_name)}</td>
+                    <td><span class="audit-action ${log.action.toLowerCase()}">${log.action}</span></td>
+                    <td>${escapeHtml(log.entity_type)} ${log.entity_id ? '#' + log.entity_id : ''}</td>
+                    <td>${escapeHtml(log.details || '')}</td>
+                </tr>
+            `).join('');
+        } else {
+            tableBody.innerHTML = '<tr><td colspan="5" class="loading-cell">No activity logs found</td></tr>';
+        }
+
+        // Update pagination
+        document.getElementById('activity-page-info').textContent = `Page ${auditLogState.currentPage}`;
+        document.getElementById('activity-prev-btn').disabled = auditLogState.currentPage <= 1;
+        document.getElementById('activity-next-btn').disabled = response.logs?.length < auditLogState.pageSize;
+
+        // Populate user filter if not already done
+        populateUserFilter();
+    } catch (error) {
+        console.error('Failed to load activity logs:', error);
+        tableBody.innerHTML = '<tr><td colspan="5" class="loading-cell">Failed to load activity logs</td></tr>';
+    }
+}
+
+async function populateUserFilter() {
+    const userFilter = document.getElementById('activity-user-filter');
+    if (!userFilter || userFilter.options.length > 1) return;
+
+    try {
+        const response = await api.getUsers();
+        if (response.users) {
+            response.users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.full_name;
+                userFilter.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Failed to load users for filter:', error);
+    }
+}
+
+function formatAuditTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+}
+
+function formatAuditTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleString('en-GY', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// Make audit functions globally accessible
+window.loadActivityLogs = loadActivityLogs;
+window.switchView = switchView;

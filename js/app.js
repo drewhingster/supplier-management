@@ -1967,7 +1967,7 @@ function createTaskRow(task) {
     `;
 }
 
-function openTaskModal(task = null) {
+async function openTaskModal(task = null) {
     state.currentTask = task;
     state.isTaskEditMode = !!task;
 
@@ -1976,6 +1976,9 @@ function openTaskModal(task = null) {
     // Reset conditional sections
     elements.awardDetailsSection?.classList.add('hidden');
     elements.financeDetailsSection?.classList.add('hidden');
+
+    // Populate contractor dropdown with suppliers from database
+    await populateContractorDropdown(task?.contractor_supplier || '');
 
     if (task) {
         elements.taskId.value = task.id;
@@ -1988,7 +1991,6 @@ function openTaskModal(task = null) {
         elements.taskTenderClosed.value = task.tender_closed_date || '';
         elements.taskEvalSent.value = task.eval_sent_date || '';
         elements.taskDateOfAward.value = task.date_of_award || '';
-        elements.taskContractor.value = task.contractor_supplier || '';
         elements.taskContractSum.value = task.contract_sum || '';
         elements.taskProcurementStatus.value = task.procurement_status || 'RFQ';
         elements.taskStatusPercentage.value = task.status_percentage || 0;
@@ -2014,11 +2016,50 @@ function openTaskModal(task = null) {
         elements.taskForm.reset();
         elements.taskId.value = '';
         elements.taskProcurementStatus.value = 'RFQ';
-        elements.taskStatusPercentage.value = 0;
+        elements.taskStatusPercentage.value = STATUS_PERCENTAGES['RFQ'];
         elements.awardDocumentName.textContent = 'No file selected';
     }
 
     elements.taskModal.classList.remove('hidden');
+}
+
+// Populate contractor dropdown with suppliers from database
+async function populateContractorDropdown(selectedValue = '') {
+    const dropdown = elements.taskContractor;
+    if (!dropdown) return;
+
+    // Clear existing options
+    dropdown.innerHTML = '<option value="">Select Supplier</option>';
+
+    try {
+        const suppliers = await api.getSuppliers();
+
+        // Sort suppliers alphabetically by name
+        suppliers.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Add supplier options
+        suppliers.forEach(supplier => {
+            const option = document.createElement('option');
+            option.value = supplier.name;
+            option.textContent = supplier.name;
+            dropdown.appendChild(option);
+        });
+
+        // Set selected value if provided
+        if (selectedValue) {
+            dropdown.value = selectedValue;
+        }
+    } catch (error) {
+        console.error('Failed to load suppliers for dropdown:', error);
+        // Add the selected value as an option even if loading fails
+        if (selectedValue) {
+            const option = document.createElement('option');
+            option.value = selectedValue;
+            option.textContent = selectedValue;
+            dropdown.appendChild(option);
+            dropdown.value = selectedValue;
+        }
+    }
 }
 
 function closeTaskModal() {
@@ -2031,7 +2072,18 @@ function closeTaskModal() {
     state.isTaskEditMode = false;
 }
 
-// Handle procurement status change - show/hide conditional sections
+// Status to percentage mapping
+const STATUS_PERCENTAGES = {
+    'RFQ': 10,
+    'Evaluation': 25,
+    'Tender Board Approval Request': 40,
+    'Awaiting Tender Board Award': 55,
+    'Approved by Tender Board': 70,
+    'Passed to Finance': 85,
+    'Completed': 100
+};
+
+// Handle procurement status change - show/hide conditional sections and auto-calculate percentage
 function handleProcurementStatusChange() {
     const status = elements.taskProcurementStatus?.value;
     const showAward = ['Approved by Tender Board', 'Passed to Finance', 'Completed'].includes(status);
@@ -2047,6 +2099,11 @@ function handleProcurementStatusChange() {
         elements.financeDetailsSection?.classList.remove('hidden');
     } else {
         elements.financeDetailsSection?.classList.add('hidden');
+    }
+
+    // Auto-calculate status percentage based on procurement status
+    if (status && STATUS_PERCENTAGES[status] !== undefined) {
+        elements.taskStatusPercentage.value = STATUS_PERCENTAGES[status];
     }
 }
 

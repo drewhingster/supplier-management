@@ -2762,51 +2762,67 @@ async function toggleMultiSupplier() {
 }
 
 async function addSupplierRow(supplierData = null) {
-    const supplierList = document.getElementById('supplier-list');
-    if (!supplierList) return;
-
-    // Ensure suppliers are loaded from database
-    if (!state.suppliers || state.suppliers.length === 0) {
-        try {
-            state.suppliers = await api.getSuppliers();
-        } catch (error) {
-            console.error('Failed to load suppliers:', error);
+    try {
+        console.log('addSupplierRow called');
+        const supplierList = document.getElementById('supplier-list');
+        if (!supplierList) {
+            console.error('supplier-list element not found');
+            showToast('Error: Supplier list container not found', 'error');
+            return;
         }
+
+        // Ensure suppliers are loaded from database
+        if (!state.suppliers || state.suppliers.length === 0) {
+            console.log('Loading suppliers from database...');
+            try {
+                state.suppliers = await api.getSuppliers();
+                console.log('Suppliers loaded:', state.suppliers.length);
+            } catch (error) {
+                console.error('Failed to load suppliers:', error);
+                showToast('Failed to load suppliers. Please try again.', 'error');
+                return;
+            }
+        }
+
+        const tempId = `temp_${++supplierIdCounter}`;
+        const supplier = {
+            tempId: tempId,
+            id: supplierData?.id || null,
+            supplier_name: supplierData?.supplier_name || '',
+            amount: supplierData?.amount || 0,
+            notes: supplierData?.notes || ''
+        };
+        modalSuppliers.push(supplier);
+
+        // Sort suppliers alphabetically for the dropdown
+        const sortedSuppliers = [...(state.suppliers || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        console.log('Sorted suppliers for dropdown:', sortedSuppliers.length);
+
+        const row = document.createElement('div');
+        row.className = 'supplier-row';
+        row.dataset.tempId = tempId;
+        row.innerHTML = `
+            <select class="supplier-select" onchange="updateSupplierData('${tempId}', 'supplier_name', this.value)">
+                <option value="">Select Supplier</option>
+                ${sortedSuppliers.map(s => `<option value="${escapeHtml(s.name || '')}" ${(s.name || '') === supplier.supplier_name ? 'selected' : ''}>${escapeHtml(s.name || '')}</option>`).join('')}
+            </select>
+            <input type="number" class="supplier-amount" placeholder="Amount" step="0.01" min="0"
+                value="${supplier.amount || ''}"
+                onchange="updateSupplierData('${tempId}', 'amount', this.value)">
+            <input type="text" class="supplier-notes" placeholder="Notes (optional)"
+                value="${escapeHtml(supplier.notes || '')}"
+                onchange="updateSupplierData('${tempId}', 'notes', this.value)">
+            <button type="button" class="remove-supplier-btn" onclick="removeSupplierRow('${tempId}')" title="Remove supplier">
+                <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+            </button>
+        `;
+        supplierList.appendChild(row);
+        console.log('Supplier row added successfully');
+        updateSupplierSum();
+    } catch (error) {
+        console.error('Error in addSupplierRow:', error);
+        showToast('Error adding supplier row: ' + error.message, 'error');
     }
-
-    const tempId = `temp_${++supplierIdCounter}`;
-    const supplier = {
-        tempId: tempId,
-        id: supplierData?.id || null,
-        supplier_name: supplierData?.supplier_name || '',
-        amount: supplierData?.amount || 0,
-        notes: supplierData?.notes || ''
-    };
-    modalSuppliers.push(supplier);
-
-    // Sort suppliers alphabetically for the dropdown
-    const sortedSuppliers = [...state.suppliers].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-    const row = document.createElement('div');
-    row.className = 'supplier-row';
-    row.dataset.tempId = tempId;
-    row.innerHTML = `
-        <select class="supplier-select" onchange="updateSupplierData('${tempId}', 'supplier_name', this.value)">
-            <option value="">Select Supplier</option>
-            ${sortedSuppliers.map(s => `<option value="${escapeHtml(s.name)}" ${s.name === supplier.supplier_name ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('')}
-        </select>
-        <input type="number" class="supplier-amount" placeholder="Amount" step="0.01" min="0"
-            value="${supplier.amount || ''}"
-            onchange="updateSupplierData('${tempId}', 'amount', this.value)">
-        <input type="text" class="supplier-notes" placeholder="Notes (optional)"
-            value="${escapeHtml(supplier.notes || '')}"
-            onchange="updateSupplierData('${tempId}', 'notes', this.value)">
-        <button type="button" class="remove-supplier-btn" onclick="removeSupplierRow('${tempId}')" title="Remove supplier">
-            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-        </button>
-    `;
-    supplierList.appendChild(row);
-    updateSupplierSum();
 }
 
 function updateSupplierData(tempId, field, value) {

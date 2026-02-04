@@ -2743,10 +2743,14 @@ function handleContractToggle() {
 let modalSuppliers = [];
 let supplierIdCounter = 0;
 
-function toggleMultiSupplier() {
+// Toggle multi-supplier mode - exposed globally for inline handler
+window.toggleMultiSupplier = function() {
+    console.log('toggleMultiSupplier called');
     const isEnabled = document.getElementById('enable-multi-supplier')?.checked;
     const container = document.getElementById('multi-supplier-container');
     const contractorSection = document.getElementById('contractor-single-section');
+
+    console.log('isEnabled:', isEnabled, 'container:', !!container, 'contractorSection:', !!contractorSection);
 
     if (container && contractorSection) {
         if (isEnabled) {
@@ -2755,8 +2759,9 @@ function toggleMultiSupplier() {
             container.classList.remove('hidden');
             updateSupplierBudgetDisplay();
             // Add first supplier row if empty
+            console.log('modalSuppliers.length:', modalSuppliers.length);
             if (modalSuppliers.length === 0) {
-                createSupplierRow();
+                window.createSupplierRow();
             }
         } else {
             // Show single contractor dropdown, hide multi-supplier section
@@ -2764,12 +2769,16 @@ function toggleMultiSupplier() {
             container.classList.add('hidden');
         }
     }
-}
+};
 
-// Create a supplier row - synchronous version that uses already-loaded suppliers
-function createSupplierRow(supplierData = null) {
+// Create a supplier row - exposed globally for button click
+window.createSupplierRow = function(supplierData = null) {
+    console.log('createSupplierRow called');
     const supplierList = document.getElementById('supplier-list');
-    if (!supplierList) return;
+    if (!supplierList) {
+        console.error('supplier-list not found');
+        return;
+    }
 
     const tempId = `temp_${++supplierIdCounter}`;
     const supplier = {
@@ -2783,6 +2792,7 @@ function createSupplierRow(supplierData = null) {
 
     // Use state.suppliers which should already be loaded
     const sortedSuppliers = [...(state.suppliers || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    console.log('sortedSuppliers count:', sortedSuppliers.length);
 
     const row = document.createElement('div');
     row.className = 'supplier-row';
@@ -2831,8 +2841,9 @@ function createSupplierRow(supplierData = null) {
     });
 
     supplierList.appendChild(row);
+    console.log('Row appended to supplier-list');
     updateSupplierSum();
-}
+};
 
 function updateSupplierData(tempId, field, value) {
     const supplier = modalSuppliers.find(s => s.tempId === tempId);

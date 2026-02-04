@@ -1072,7 +1072,7 @@
                     <!-- Multi-Supplier Toggle (always visible at top) -->
                     <div class="multi-supplier-toggle-section">
                         <label class="checkbox-label">
-                            <input type="checkbox" id="enable-multi-supplier" onchange="toggleMultiSupplier()">
+                            <input type="checkbox" id="enable-multi-supplier" onchange="window.toggleMultiSupplier()">
                             <span class="checkbox-custom"></span>
                             <span>Split across multiple suppliers</span>
                         </label>
@@ -1110,7 +1110,7 @@
                         <div id="supplier-list" class="supplier-list">
                             <!-- Supplier rows will be added dynamically -->
                         </div>
-                        <button type="button" class="btn btn-secondary btn-sm" id="add-split-supplier-btn">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.createSupplierRow()">
                             <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                             Add Another Supplier
                         </button>

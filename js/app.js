@@ -2752,12 +2752,8 @@ window.toggleMultiSupplier = async function() {
             // Hide single contractor dropdown, show multi-supplier section
             contractorSection.classList.add('hidden');
             container.classList.remove('hidden');
-            updateSupplierBudgetDisplay();
 
-            // Populate the static first row dropdown
-            await populateSplitSupplierDropdowns();
-
-            // Initialize modalSuppliers with the static row if empty
+            // Initialize modalSuppliers with the static row FIRST (before event listeners)
             if (modalSuppliers.length === 0) {
                 modalSuppliers.push({
                     tempId: 'static_1',
@@ -2766,7 +2762,13 @@ window.toggleMultiSupplier = async function() {
                     amount: 0,
                     notes: ''
                 });
+                console.log('Initialized modalSuppliers with static_1');
             }
+
+            // Populate the static first row dropdown
+            await populateSplitSupplierDropdowns();
+
+            updateSupplierBudgetDisplay();
         } else {
             // Show single contractor dropdown, hide multi-supplier section
             contractorSection.classList.remove('hidden');
@@ -2956,14 +2958,30 @@ async function maybeAddNewSupplierRow() {
 }
 
 function updateSupplierData(tempId, field, value) {
-    const supplier = modalSuppliers.find(s => s.tempId === tempId);
-    if (supplier) {
-        if (field === 'amount') {
-            supplier[field] = parseFloat(value) || 0;
-        } else {
-            supplier[field] = value;
-        }
+    console.log('updateSupplierData called:', tempId, field, value);
+    let supplier = modalSuppliers.find(s => s.tempId === tempId);
+
+    // If supplier doesn't exist in array, create it (handles static row case)
+    if (!supplier) {
+        console.log('Creating new supplier entry for tempId:', tempId);
+        supplier = {
+            tempId: tempId,
+            id: null,
+            supplier_name: '',
+            amount: 0,
+            notes: ''
+        };
+        modalSuppliers.push(supplier);
     }
+
+    if (field === 'amount') {
+        supplier[field] = parseFloat(value) || 0;
+    } else {
+        supplier[field] = value;
+    }
+
+    console.log('Updated supplier:', supplier);
+    console.log('modalSuppliers:', modalSuppliers);
     updateSupplierSum();
 }
 

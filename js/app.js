@@ -496,11 +496,6 @@ function setupEventListeners() {
     // Task Form
     elements.taskForm?.addEventListener('submit', handleTaskSubmit);
 
-    // Add Split Supplier button
-    document.getElementById('add-split-supplier-btn')?.addEventListener('click', function() {
-        createSupplierRow();
-    });
-
     // Award Document file input - update display when file is selected
     elements.taskAwardDocument?.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -2826,6 +2821,8 @@ window.createSupplierRow = function(supplierData = null) {
 
     select.addEventListener('change', function() {
         updateSupplierData(tempId, 'supplier_name', this.value);
+        // Auto-add a new row if this is the last row and a supplier was selected
+        maybeAddNewSupplierRow();
     });
 
     amountInput.addEventListener('change', function() {
@@ -2844,6 +2841,16 @@ window.createSupplierRow = function(supplierData = null) {
     console.log('Row appended to supplier-list');
     updateSupplierSum();
 };
+
+// Check if we need to add a new empty row (when all existing rows have suppliers selected)
+function maybeAddNewSupplierRow() {
+    // Check if there's already an empty row (no supplier selected)
+    const hasEmptyRow = modalSuppliers.some(s => !s.supplier_name || s.supplier_name === '');
+    if (!hasEmptyRow && modalSuppliers.length > 0) {
+        // All rows have suppliers selected, add a new empty row
+        window.createSupplierRow();
+    }
+}
 
 function updateSupplierData(tempId, field, value) {
     const supplier = modalSuppliers.find(s => s.tempId === tempId);

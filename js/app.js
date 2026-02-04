@@ -2746,7 +2746,6 @@ window.toggleMultiSupplier = async function() {
     const contractorSection = document.getElementById('contractor-single-section');
 
     console.log('isEnabled:', isEnabled, 'container:', !!container, 'contractorSection:', !!contractorSection);
-    console.log('state.suppliers count:', state.suppliers?.length || 0);
 
     if (container && contractorSection) {
         if (isEnabled) {
@@ -2754,10 +2753,19 @@ window.toggleMultiSupplier = async function() {
             contractorSection.classList.add('hidden');
             container.classList.remove('hidden');
             updateSupplierBudgetDisplay();
-            // Add first supplier row if empty
-            console.log('modalSuppliers.length:', modalSuppliers.length);
+
+            // Populate the static first row dropdown
+            await populateSplitSupplierDropdowns();
+
+            // Initialize modalSuppliers with the static row if empty
             if (modalSuppliers.length === 0) {
-                await window.createSupplierRow();
+                modalSuppliers.push({
+                    tempId: 'static_1',
+                    id: null,
+                    supplier_name: '',
+                    amount: 0,
+                    notes: ''
+                });
             }
         } else {
             // Show single contractor dropdown, hide multi-supplier section
@@ -2766,6 +2774,87 @@ window.toggleMultiSupplier = async function() {
         }
     }
 };
+
+// Populate all split supplier dropdowns with suppliers from database
+async function populateSplitSupplierDropdowns() {
+    console.log('populateSplitSupplierDropdowns called');
+
+    // Ensure suppliers are loaded
+    if (!state.suppliers || state.suppliers.length === 0) {
+        console.log('Fetching suppliers...');
+        try {
+            state.suppliers = await api.getSuppliers();
+            console.log('Fetched suppliers:', state.suppliers.length);
+        } catch (error) {
+            console.error('Failed to fetch suppliers:', error);
+            showToast('Failed to load suppliers', 'error');
+            return;
+        }
+    }
+
+    // Sort suppliers alphabetically
+    const sortedSuppliers = [...state.suppliers].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    console.log('Sorted suppliers count:', sortedSuppliers.length);
+
+    // Find all supplier dropdowns in the supplier-list
+    const dropdowns = document.querySelectorAll('#supplier-list .supplier-select');
+    console.log('Found dropdowns:', dropdowns.length);
+
+    dropdowns.forEach(dropdown => {
+        // Save current value
+        const currentValue = dropdown.value;
+
+        // Clear and rebuild options
+        dropdown.innerHTML = '<option value="">Select Supplier</option>';
+        sortedSuppliers.forEach(s => {
+            const option = document.createElement('option');
+            option.value = s.name || '';
+            option.textContent = s.name || '';
+            if (s.name === currentValue) {
+                option.selected = true;
+            }
+            dropdown.appendChild(option);
+        });
+    });
+
+    // Attach event listeners to the static row elements if not already attached
+    attachSplitSupplierEventListeners();
+}
+
+// Attach event listeners to split supplier row elements
+function attachSplitSupplierEventListeners() {
+    const supplierList = document.getElementById('supplier-list');
+    if (!supplierList) return;
+
+    // Use event delegation on the supplier-list container
+    if (!supplierList.dataset.listenersAttached) {
+        supplierList.addEventListener('change', function(e) {
+            const target = e.target;
+            const tempId = target.dataset.tempId;
+
+            if (target.classList.contains('supplier-select')) {
+                updateSupplierData(tempId, 'supplier_name', target.value);
+                maybeAddNewSupplierRow();
+            } else if (target.classList.contains('supplier-amount')) {
+                updateSupplierData(tempId, 'amount', target.value);
+            } else if (target.classList.contains('supplier-notes')) {
+                updateSupplierData(tempId, 'notes', target.value);
+            }
+        });
+
+        supplierList.addEventListener('input', function(e) {
+            const target = e.target;
+            const tempId = target.dataset.tempId;
+
+            if (target.classList.contains('supplier-amount')) {
+                updateSupplierData(tempId, 'amount', target.value);
+            }
+        });
+
+        supplierList.dataset.listenersAttached = 'true';
+        console.log('Event listeners attached to supplier-list');
+    }
+}
 
 // Create a supplier row - exposed globally for button click
 window.createSupplierRow = async function(supplierData = null) {

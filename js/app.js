@@ -2739,13 +2739,14 @@ let modalSuppliers = [];
 let supplierIdCounter = 0;
 
 // Toggle multi-supplier mode - exposed globally for inline handler
-window.toggleMultiSupplier = function() {
+window.toggleMultiSupplier = async function() {
     console.log('toggleMultiSupplier called');
     const isEnabled = document.getElementById('enable-multi-supplier')?.checked;
     const container = document.getElementById('multi-supplier-container');
     const contractorSection = document.getElementById('contractor-single-section');
 
     console.log('isEnabled:', isEnabled, 'container:', !!container, 'contractorSection:', !!contractorSection);
+    console.log('state.suppliers count:', state.suppliers?.length || 0);
 
     if (container && contractorSection) {
         if (isEnabled) {
@@ -2756,7 +2757,7 @@ window.toggleMultiSupplier = function() {
             // Add first supplier row if empty
             console.log('modalSuppliers.length:', modalSuppliers.length);
             if (modalSuppliers.length === 0) {
-                window.createSupplierRow();
+                await window.createSupplierRow();
             }
         } else {
             // Show single contractor dropdown, hide multi-supplier section
@@ -2767,12 +2768,25 @@ window.toggleMultiSupplier = function() {
 };
 
 // Create a supplier row - exposed globally for button click
-window.createSupplierRow = function(supplierData = null) {
+window.createSupplierRow = async function(supplierData = null) {
     console.log('createSupplierRow called');
     const supplierList = document.getElementById('supplier-list');
     if (!supplierList) {
         console.error('supplier-list not found');
         return;
+    }
+
+    // Ensure suppliers are loaded - fetch if not available
+    if (!state.suppliers || state.suppliers.length === 0) {
+        console.log('Fetching suppliers because state.suppliers is empty');
+        try {
+            state.suppliers = await api.getSuppliers();
+            console.log('Fetched suppliers:', state.suppliers.length);
+        } catch (error) {
+            console.error('Failed to fetch suppliers:', error);
+            showToast('Failed to load suppliers', 'error');
+            return;
+        }
     }
 
     const tempId = `temp_${++supplierIdCounter}`;
@@ -2785,7 +2799,7 @@ window.createSupplierRow = function(supplierData = null) {
     };
     modalSuppliers.push(supplier);
 
-    // Use state.suppliers which should already be loaded
+    // Use state.suppliers which should now be loaded
     const sortedSuppliers = [...(state.suppliers || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     console.log('sortedSuppliers count:', sortedSuppliers.length);
 
@@ -2843,12 +2857,12 @@ window.createSupplierRow = function(supplierData = null) {
 };
 
 // Check if we need to add a new empty row (when all existing rows have suppliers selected)
-function maybeAddNewSupplierRow() {
+async function maybeAddNewSupplierRow() {
     // Check if there's already an empty row (no supplier selected)
     const hasEmptyRow = modalSuppliers.some(s => !s.supplier_name || s.supplier_name === '');
     if (!hasEmptyRow && modalSuppliers.length > 0) {
         // All rows have suppliers selected, add a new empty row
-        window.createSupplierRow();
+        await window.createSupplierRow();
     }
 }
 

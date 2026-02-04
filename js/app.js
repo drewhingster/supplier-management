@@ -2656,7 +2656,7 @@ async function openTaskModal(task = null) {
             document.getElementById('enable-multi-supplier').checked = true;
             document.getElementById('multi-supplier-container')?.classList.remove('hidden');
             updateSupplierBudgetDisplay();
-            suppliers.forEach(s => addSupplierRow(s));
+            suppliers.forEach(s => window.createSupplierRow(s));
         }
     } else {
         elements.taskForm.reset();
@@ -3559,8 +3559,6 @@ window.toggleTaskExpand = toggleTaskExpand;
 window.handleStageToggle = handleStageToggle;
 window.updateModalStageProgress = updateModalStageProgress;
 window.openContractModalFromTask = openContractModalFromTask;
-window.toggleMultiSupplier = toggleMultiSupplier;
-window.addSupplierRow = addSupplierRow;
 window.updateSupplierData = updateSupplierData;
 window.removeSupplierRow = removeSupplierRow;
 window.toggleColumnSort = toggleColumnSort;

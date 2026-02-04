@@ -2826,35 +2826,48 @@ async function populateSplitSupplierDropdowns() {
 // Attach event listeners to split supplier row elements
 function attachSplitSupplierEventListeners() {
     const supplierList = document.getElementById('supplier-list');
-    if (!supplierList) return;
+    if (!supplierList) {
+        console.error('supplier-list not found in attachSplitSupplierEventListeners');
+        return;
+    }
+
+    console.log('attachSplitSupplierEventListeners called, listenersAttached:', supplierList.dataset.listenersAttached);
 
     // Use event delegation on the supplier-list container
     if (!supplierList.dataset.listenersAttached) {
         supplierList.addEventListener('change', function(e) {
+            console.log('CHANGE event fired on supplier-list');
             const target = e.target;
             const tempId = target.dataset.tempId;
+            console.log('Change target:', target.className, 'tempId:', tempId, 'value:', target.value);
 
             if (target.classList.contains('supplier-select')) {
+                console.log('Updating supplier_name');
                 updateSupplierData(tempId, 'supplier_name', target.value);
                 maybeAddNewSupplierRow();
             } else if (target.classList.contains('supplier-amount')) {
+                console.log('Updating amount from change');
                 updateSupplierData(tempId, 'amount', target.value);
             } else if (target.classList.contains('supplier-notes')) {
+                console.log('Updating notes');
                 updateSupplierData(tempId, 'notes', target.value);
             }
         });
 
         supplierList.addEventListener('input', function(e) {
+            console.log('INPUT event fired on supplier-list');
             const target = e.target;
             const tempId = target.dataset.tempId;
+            console.log('Input target:', target.className, 'tempId:', tempId, 'value:', target.value);
 
             if (target.classList.contains('supplier-amount')) {
+                console.log('Updating amount from input');
                 updateSupplierData(tempId, 'amount', target.value);
             }
         });
 
         supplierList.dataset.listenersAttached = 'true';
-        console.log('Event listeners attached to supplier-list');
+        console.log('Event listeners attached to supplier-list SUCCESSFULLY');
     }
 }
 

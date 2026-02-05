@@ -3391,7 +3391,7 @@ function viewTaskAwardDocument() {
     if (!state.currentTask || !state.currentTask.award_document_r2_key) return;
 
     const token = api.getToken();
-    const url = `${window.API_BASE_URL}/api/tasks/${state.currentTask.id}/award-document?token=${encodeURIComponent(token)}`;
+    const url = `${api.baseUrl}/tasks/${state.currentTask.id}/award-document?token=${encodeURIComponent(token)}`;
     window.open(url, '_blank');
 }
 
@@ -3500,7 +3500,7 @@ async function uploadAwardDocument(taskId, file) {
 
     try {
         const token = api.getToken();
-        const url = `${window.API_BASE_URL}/api/tasks/${taskId}/award-document`;
+        const url = `${api.baseUrl}/tasks/${taskId}/award-document`;
         console.log('Uploading to:', url);
 
         const response = await fetch(url, {

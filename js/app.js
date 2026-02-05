@@ -2739,79 +2739,76 @@ let modalSuppliers = [];
 let supplierIdCounter = 0;
 
 // Toggle multi-supplier mode - exposed globally for inline handler
-window.toggleMultiSupplier = async function() {
-    console.log('toggleMultiSupplier called');
-    const isEnabled = document.getElementById('enable-multi-supplier')?.checked;
-    const container = document.getElementById('multi-supplier-container');
-    const contractorSection = document.getElementById('contractor-single-section');
+window.toggleMultiSupplier = function() {
+    try {
+        console.log('toggleMultiSupplier START');
+        const checkbox = document.getElementById('enable-multi-supplier');
+        const isEnabled = checkbox ? checkbox.checked : false;
+        const container = document.getElementById('multi-supplier-container');
+        const contractorSection = document.getElementById('contractor-single-section');
 
-    console.log('isEnabled:', isEnabled);
-    console.log('container found:', !!container);
-    console.log('contractorSection found:', !!contractorSection);
+        console.log('isEnabled:', isEnabled, 'container:', !!container, 'contractorSection:', !!contractorSection);
 
-    if (container && contractorSection) {
-        console.log('Both container and contractorSection found');
+        if (!container || !contractorSection) {
+            console.error('Missing elements!');
+            return;
+        }
+
         if (isEnabled) {
-            console.log('Multi-supplier is ENABLED, showing container');
-            // Hide single contractor dropdown, show multi-supplier section
+            console.log('Enabling multi-supplier mode');
             contractorSection.classList.add('hidden');
             container.classList.remove('hidden');
 
-            // Clear and create 4 supplier rows
-            console.log('About to call initializeSupplierRows');
-            try {
-                await initializeSupplierRows();
-                console.log('initializeSupplierRows completed');
-            } catch (error) {
-                console.error('Error in initializeSupplierRows:', error);
-            }
-
+            // Create supplier rows synchronously
+            initializeSupplierRows();
             updateSupplierBudgetDisplay();
         } else {
-            console.log('Multi-supplier is DISABLED, hiding container');
-            // Show single contractor dropdown, hide multi-supplier section
+            console.log('Disabling multi-supplier mode');
             contractorSection.classList.remove('hidden');
             container.classList.add('hidden');
         }
-    } else {
-        console.error('Missing elements - container:', !!container, 'contractorSection:', !!contractorSection);
+        console.log('toggleMultiSupplier END');
+    } catch (error) {
+        console.error('Error in toggleMultiSupplier:', error);
     }
 };
 
-// Initialize supplier rows - creates 4 empty rows
-async function initializeSupplierRows() {
-    console.log('initializeSupplierRows called');
-    const supplierList = document.getElementById('supplier-list');
-    console.log('supplierList element:', supplierList);
-    if (!supplierList) {
-        console.error('supplier-list not found!');
-        return;
+// Initialize supplier rows - creates 4 empty rows (SYNCHRONOUS)
+function initializeSupplierRows() {
+    try {
+        console.log('initializeSupplierRows START');
+        const supplierList = document.getElementById('supplier-list');
+
+        if (!supplierList) {
+            console.error('supplier-list element not found!');
+            return;
+        }
+
+        // Clear existing rows
+        supplierList.innerHTML = '';
+        modalSuppliers = [];
+
+        console.log('state.suppliers count:', state.suppliers ? state.suppliers.length : 'undefined');
+
+        if (!state.suppliers || state.suppliers.length === 0) {
+            console.error('No suppliers in state!');
+            supplierList.innerHTML = '<p style="color:red;">No suppliers loaded. Please refresh.</p>';
+            return;
+        }
+
+        // Create 4 supplier rows
+        for (let i = 1; i <= 4; i++) {
+            console.log('Creating row', i);
+            createSupplierRowSync(i);
+        }
+
+        console.log('Created', modalSuppliers.length, 'rows');
+        console.log('supplierList children:', supplierList.children.length);
+        updateSupplierSum();
+        console.log('initializeSupplierRows END');
+    } catch (error) {
+        console.error('Error in initializeSupplierRows:', error);
     }
-
-    // Clear existing rows
-    supplierList.innerHTML = '';
-    modalSuppliers = [];
-
-    // Use already-loaded suppliers from state (loaded during app init)
-    console.log('state.suppliers count:', state.suppliers?.length || 0);
-
-    // If suppliers aren't loaded yet, wait a moment and try to use them
-    if (!state.suppliers || state.suppliers.length === 0) {
-        console.warn('state.suppliers is empty - suppliers should have been loaded at app init');
-        // Don't try to fetch again - just show an error
-        showToast('Suppliers not loaded. Please refresh the page.', 'error');
-        return;
-    }
-
-    console.log('About to create 4 supplier rows');
-    // Create 4 supplier rows
-    for (let i = 1; i <= 4; i++) {
-        console.log('Creating row', i);
-        createSupplierRowSync(i);
-    }
-    console.log('Finished creating rows, modalSuppliers:', modalSuppliers.length);
-
-    updateSupplierSum();
 }
 
 // Create a supplier row synchronously (suppliers already loaded)

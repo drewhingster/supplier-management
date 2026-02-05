@@ -503,45 +503,38 @@
                                 Name
                                 <svg class="sort-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M7 10l5-5 5 5M7 14l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                             </div>
-                            <div class="clickup-col-budget clickup-col-sortable" onclick="toggleColumnSort('budget')">
-                                Budget (G$)
+                            <div class="clickup-col-start clickup-col-sortable" onclick="toggleColumnSort('start_date')">
+                                Start
                                 <svg class="sort-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M7 10l5-5 5 5M7 14l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                             </div>
-                            <div class="clickup-col-tier clickup-col-filterable">
-                                Tier
-                                <button class="col-filter-btn" onclick="toggleColumnFilter(event, 'tier')" title="Filter by tier">
+                            <div class="clickup-col-due clickup-col-sortable" onclick="toggleColumnSort('end_date')">
+                                Due date
+                                <svg class="sort-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M7 10l5-5 5 5M7 14l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            </div>
+                            <div class="clickup-col-priority clickup-col-filterable">
+                                Priority
+                                <button class="col-filter-btn" onclick="toggleColumnFilter(event, 'priority')" title="Filter by priority">
                                     <svg viewBox="0 0 24 24" width="14" height="14"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                                 </button>
-                                <div id="tier-filter-dropdown" class="col-filter-dropdown hidden">
-                                    <div class="col-filter-options" id="tier-filter-options"></div>
-                                    <button class="col-filter-clear" onclick="clearColumnFilter('tier')">Clear Filter</button>
+                                <div id="priority-filter-dropdown" class="col-filter-dropdown hidden">
+                                    <div class="col-filter-options" id="priority-filter-options"></div>
+                                    <button class="col-filter-clear" onclick="clearColumnFilter('priority')">Clear Filter</button>
                                 </div>
                             </div>
-                            <div class="clickup-col-contractor clickup-col-filterable">
-                                Contractor
-                                <button class="col-filter-btn" onclick="toggleColumnFilter(event, 'contractor')" title="Filter by contractor">
+                            <div class="clickup-col-status clickup-col-filterable">
+                                Status
+                                <button class="col-filter-btn" onclick="toggleColumnFilter(event, 'status')" title="Filter by status">
                                     <svg viewBox="0 0 24 24" width="14" height="14"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                                 </button>
-                                <div id="contractor-filter-dropdown" class="col-filter-dropdown hidden">
-                                    <div class="col-filter-options" id="contractor-filter-options"></div>
-                                    <button class="col-filter-clear" onclick="clearColumnFilter('contractor')">Clear Filter</button>
-                                </div>
-                            </div>
-                            <div class="clickup-col-assigned clickup-col-filterable">
-                                Assigned
-                                <button class="col-filter-btn" onclick="toggleColumnFilter(event, 'assigned')" title="Filter by assigned person">
-                                    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                                </button>
-                                <div id="assigned-filter-dropdown" class="col-filter-dropdown hidden">
-                                    <div class="col-filter-options" id="assigned-filter-options"></div>
-                                    <button class="col-filter-clear" onclick="clearColumnFilter('assigned')">Clear Filter</button>
+                                <div id="status-filter-dropdown" class="col-filter-dropdown hidden">
+                                    <div class="col-filter-options" id="status-filter-options"></div>
+                                    <button class="col-filter-clear" onclick="clearColumnFilter('status')">Clear Filter</button>
                                 </div>
                             </div>
                             <div class="clickup-col-progress clickup-col-sortable" onclick="toggleColumnSort('progress')">
                                 Progress
                                 <svg class="sort-icon" viewBox="0 0 24 24" width="14" height="14"><path d="M7 10l5-5 5 5M7 14l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                             </div>
-                            <div class="clickup-col-actions">Actions</div>
                         </div>
                         <div id="tasks-list-body" class="clickup-list-body">
                             <!-- Tasks will be rendered here dynamically -->
@@ -1037,7 +1030,7 @@
                 <!-- Section 1: Basic Information -->
                 <div class="form-section">
                     <h3>Project Information</h3>
-                    <div class="form-row three-col">
+                    <div class="form-row four-col">
                         <div class="form-group">
                             <label for="task-project-code">Project Code</label>
                             <input type="text" id="task-project-code" placeholder="e.g., 2601200">
@@ -1049,6 +1042,14 @@
                         <div class="form-group">
                             <label for="task-assigned-person">Assigned Person</label>
                             <input type="text" id="task-assigned-person" placeholder="e.g., Andrew Hing">
+                        </div>
+                        <div class="form-group">
+                            <label for="task-priority">Priority</label>
+                            <select id="task-priority">
+                                <option value="Normal">Normal</option>
+                                <option value="Urgent">Urgent</option>
+                                <option value="Low">Low</option>
+                            </select>
                         </div>
                     </div>
                     <div class="form-row">

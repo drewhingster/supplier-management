@@ -373,6 +373,7 @@ const elements = {
     taskTitle: document.getElementById('task-title'),
     taskBudgetAmount: document.getElementById('task-budget-amount'),
     taskAssignedPerson: document.getElementById('task-assigned-person'),
+    taskPriority: document.getElementById('task-priority'),
     taskContractor: document.getElementById('task-contractor'),
     taskContractSum: document.getElementById('task-contract-sum'),
     taskRequiresContract: document.getElementById('task-requires-contract'),
@@ -2287,18 +2288,26 @@ function renderTasks() {
     }
 
     // Apply column filters
-    if (columnFilters.tier) {
+    if (columnFilters.priority) {
         filteredTasks = filteredTasks.filter(task => {
-            if (!task.budget_amount) return false;
-            const tier = getProcurementTier(task.budget_amount);
-            return tier && tier.name === columnFilters.tier;
+            const taskPriority = task.priority || 'Normal';
+            return taskPriority === columnFilters.priority;
         });
     }
-    if (columnFilters.contractor) {
-        filteredTasks = filteredTasks.filter(task => task.contractor_supplier === columnFilters.contractor);
-    }
-    if (columnFilters.assigned) {
-        filteredTasks = filteredTasks.filter(task => task.assigned_person === columnFilters.assigned);
+    if (columnFilters.status) {
+        filteredTasks = filteredTasks.filter(task => {
+            const tier = task.budget_amount ? getProcurementTier(task.budget_amount) : null;
+            const stages = tier ? getTierStages(tier, task.requires_contract === 1) : [];
+            let completedStages = [];
+            try {
+                completedStages = JSON.parse(task.completed_stages || '[]');
+            } catch (e) {
+                completedStages = [];
+            }
+            const progress = calculateProgress(completedStages, stages.length);
+            const status = progress === 100 ? 'Complete' : progress > 0 ? 'In Progress' : 'Not Started';
+            return status === columnFilters.status;
+        });
     }
 
     // Apply sorting
@@ -2317,10 +2326,7 @@ function renderTasks() {
 }
 
 function createTaskRow(task) {
-    const budgetAmount = task.budget_amount ? `G$${formatCurrency(task.budget_amount)}` : '-';
     const tier = task.budget_amount ? getProcurementTier(task.budget_amount) : null;
-    const tierName = tier ? tier.name : '-';
-    const tierClass = tier ? `tier-${tier.id.replace(/_/g, '-')}` : '';
 
     // Parse completed stages
     let completedStages = [];
@@ -2334,6 +2340,33 @@ function createTaskRow(task) {
     const stages = tier ? getTierStages(tier, task.requires_contract === 1) : [];
     const progress = calculateProgress(completedStages, stages.length);
     const progressClass = progress === 100 ? 'progress-complete' : progress >= 70 ? 'progress-high' : progress >= 40 ? 'progress-medium' : 'progress-low';
+
+    // Format dates
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+    const startDate = formatDate(task.start_date);
+    const dueDate = formatDate(task.end_date);
+
+    // Check if overdue
+    const isOverdue = task.end_date && new Date(task.end_date) < new Date() && progress < 100;
+
+    // Priority styling
+    const priority = task.priority || 'Normal';
+    const priorityClass = `priority-${priority.toLowerCase()}`;
+    const priorityHtml = `
+        <div class="clickup-priority ${priorityClass}">
+            <svg class="priority-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2"/></svg>
+            ${escapeHtml(priority)}
+        </div>
+    `;
+
+    // Status badge
+    const status = progress === 100 ? 'Complete' : progress > 0 ? 'In Progress' : 'Not Started';
+    const statusClass = progress === 100 ? 'status-complete' : progress > 0 ? 'status-in-progress' : 'status-not-started';
+    const statusHtml = `<span class="clickup-status ${statusClass}">${status}</span>`;
 
     // Build subtasks HTML
     const subtasksHtml = stages.map(stage => {
@@ -2354,37 +2387,26 @@ function createTaskRow(task) {
 
     return `
         <div class="clickup-task-row" data-task-id="${task.id}">
-            <div class="clickup-task-main">
-                <div>
-                    <button class="clickup-expand-btn" onclick="event.stopPropagation(); toggleTaskExpand(${task.id})">
+            <div class="clickup-task-main" onclick="handleTaskView(${task.id})">
+                <div onclick="event.stopPropagation()">
+                    <button class="clickup-expand-btn" onclick="toggleTaskExpand(${task.id})">
                         <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     </button>
                 </div>
-                <div class="clickup-task-name" onclick="handleTaskView(${task.id})" style="cursor: pointer;">
+                <div class="clickup-task-name">
                     ${escapeHtml(task.title || '-')}
                     ${task.project_code ? `<span class="task-code">${escapeHtml(task.project_code)}</span>` : ''}
                     ${task.archived ? '<span class="badge badge-archived" style="margin-left:0.5rem;">Archived</span>' : ''}
                 </div>
-                <div class="clickup-task-budget">${budgetAmount}</div>
-                <div><span class="tier-badge ${tierClass}">${escapeHtml(tierName)}</span></div>
-                <div class="clickup-task-contractor">${escapeHtml(task.contractor_supplier || '-')}</div>
-                <div class="clickup-task-assigned">${escapeHtml(task.assigned_person || '-')}</div>
+                <div class="clickup-task-date">${startDate}</div>
+                <div class="clickup-task-date ${isOverdue ? 'overdue' : ''}">${dueDate}</div>
+                <div>${priorityHtml}</div>
+                <div>${statusHtml}</div>
                 <div class="clickup-progress">
                     <div class="progress-bar-container">
                         <div class="progress-bar-fill ${progressClass}" style="width: ${progress}%"></div>
                     </div>
                     <span class="progress-text">${progress}%</span>
-                </div>
-                <div class="clickup-task-actions" onclick="event.stopPropagation()">
-                    <button class="btn-icon" onclick="handleTaskView(${task.id})" title="View Details">
-                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-                    </button>
-                    <button class="btn-icon" onclick="handleTaskEdit(${task.id})" title="Edit">
-                        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                    </button>
-                    <button class="btn-icon btn-danger" onclick="handleTaskDelete(${task.id})" title="Delete">
-                        <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                    </button>
                 </div>
             </div>
             <div class="clickup-subtasks">
@@ -2543,18 +2565,26 @@ function renderTasksKeepExpanded(expandedTaskId) {
     }
 
     // Apply column filters
-    if (columnFilters.tier) {
+    if (columnFilters.priority) {
         filteredTasks = filteredTasks.filter(task => {
-            if (!task.budget_amount) return false;
-            const tier = getProcurementTier(task.budget_amount);
-            return tier && tier.name === columnFilters.tier;
+            const taskPriority = task.priority || 'Normal';
+            return taskPriority === columnFilters.priority;
         });
     }
-    if (columnFilters.contractor) {
-        filteredTasks = filteredTasks.filter(task => task.contractor_supplier === columnFilters.contractor);
-    }
-    if (columnFilters.assigned) {
-        filteredTasks = filteredTasks.filter(task => task.assigned_person === columnFilters.assigned);
+    if (columnFilters.status) {
+        filteredTasks = filteredTasks.filter(task => {
+            const tier = task.budget_amount ? getProcurementTier(task.budget_amount) : null;
+            const stages = tier ? getTierStages(tier, task.requires_contract === 1) : [];
+            let completedStages = [];
+            try {
+                completedStages = JSON.parse(task.completed_stages || '[]');
+            } catch (e) {
+                completedStages = [];
+            }
+            const progress = calculateProgress(completedStages, stages.length);
+            const status = progress === 100 ? 'Complete' : progress > 0 ? 'In Progress' : 'Not Started';
+            return status === columnFilters.status;
+        });
     }
 
     // Apply sorting
@@ -2602,6 +2632,7 @@ async function openTaskModal(task = null) {
         elements.taskTitle.value = task.title || '';
         elements.taskBudgetAmount.value = task.budget_amount || '';
         elements.taskAssignedPerson.value = task.assigned_person || '';
+        elements.taskPriority.value = task.priority || 'Normal';
         elements.taskContractSum.value = task.contract_sum || '';
         elements.taskRequiresContract.checked = task.requires_contract === 1;
         elements.taskApprover.value = task.approver || '';
@@ -3395,6 +3426,7 @@ async function handleTaskSubmit(e) {
             contractor_supplier: elements.taskContractor?.value.trim() || null,
             contract_sum: elements.taskContractSum?.value ? parseFloat(elements.taskContractSum.value) : null,
             assigned_person: elements.taskAssignedPerson?.value.trim() || null,
+            priority: elements.taskPriority?.value || 'Normal',
             start_date: elements.taskStartDate?.value || null,
             end_date: elements.taskEndDate?.value || null,
             expected_completion_date: elements.taskExpectedCompletion?.value || null,
@@ -3633,7 +3665,7 @@ function showTasksLoading(show) {
 let columnSortState = { field: 'date', direction: 'desc' };
 
 // Track column filter state
-let columnFilters = { tier: null, contractor: null, assigned: null };
+let columnFilters = { priority: null, status: null };
 
 function toggleColumnSort(field) {
     if (columnSortState.field === field) {
@@ -3694,19 +3726,13 @@ function populateFilterOptions(filterType) {
     let values = [];
 
     switch (filterType) {
-        case 'tier':
-            // Get unique tiers from tasks
-            values = [...new Set(state.tasks.map(t => {
-                if (!t.budget_amount) return null;
-                const tier = getProcurementTier(t.budget_amount);
-                return tier ? tier.name : null;
-            }).filter(Boolean))].sort();
+        case 'priority':
+            // Fixed priority options
+            values = ['Urgent', 'Normal', 'Low'];
             break;
-        case 'contractor':
-            values = [...new Set(state.tasks.map(t => t.contractor_supplier).filter(Boolean))].sort();
-            break;
-        case 'assigned':
-            values = [...new Set(state.tasks.map(t => t.assigned_person).filter(Boolean))].sort();
+        case 'status':
+            // Status options based on progress
+            values = ['Complete', 'In Progress', 'Not Started'];
             break;
     }
 

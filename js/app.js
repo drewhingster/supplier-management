@@ -2354,13 +2354,13 @@ function createTaskRow(task) {
 
     return `
         <div class="clickup-task-row" data-task-id="${task.id}">
-            <div class="clickup-task-main" onclick="toggleTaskExpand(${task.id})">
+            <div class="clickup-task-main">
                 <div>
                     <button class="clickup-expand-btn" onclick="event.stopPropagation(); toggleTaskExpand(${task.id})">
                         <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     </button>
                 </div>
-                <div class="clickup-task-name">
+                <div class="clickup-task-name" onclick="handleTaskView(${task.id})" style="cursor: pointer;">
                     ${escapeHtml(task.title || '-')}
                     ${task.project_code ? `<span class="task-code">${escapeHtml(task.project_code)}</span>` : ''}
                     ${task.archived ? '<span class="badge badge-archived" style="margin-left:0.5rem;">Archived</span>' : ''}
@@ -2376,6 +2376,9 @@ function createTaskRow(task) {
                     <span class="progress-text">${progress}%</span>
                 </div>
                 <div class="clickup-task-actions" onclick="event.stopPropagation()">
+                    <button class="btn-icon" onclick="handleTaskView(${task.id})" title="View Details">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                    </button>
                     <button class="btn-icon" onclick="handleTaskEdit(${task.id})" title="Edit">
                         <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     </button>
@@ -3224,6 +3227,130 @@ function closeTaskModal(skipConfirm = false) {
     state.isTaskEditMode = false;
 }
 
+// ==================== Task Detail Modal (View Mode) ====================
+
+async function openTaskDetailModal(task) {
+    state.currentTask = task;
+
+    // Populate basic info
+    document.getElementById('task-detail-title').textContent = task.title || 'Procurement Item';
+    document.getElementById('task-detail-project-code').textContent = task.project_code || '-';
+    document.getElementById('task-detail-title-text').textContent = task.title || '-';
+    document.getElementById('task-detail-budget').textContent = task.budget_amount
+        ? `G$${parseFloat(task.budget_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+        : '-';
+    document.getElementById('task-detail-tier').textContent = task.procurement_tier || '-';
+    document.getElementById('task-detail-assigned').textContent = task.assigned_person || '-';
+
+    // Populate suppliers section
+    const suppliersSection = document.getElementById('task-detail-suppliers');
+    const taskSuppliers = await loadTaskSuppliers(task.id);
+
+    if (taskSuppliers.length > 0) {
+        let suppliersHtml = '<div class="detail-suppliers-list">';
+        taskSuppliers.forEach(s => {
+            suppliersHtml += `
+                <div class="detail-supplier-item">
+                    <span class="supplier-name">${escapeHtml(s.supplier_name)}</span>
+                    <span class="supplier-amount">G$${parseFloat(s.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    ${s.notes ? `<span class="supplier-notes">${escapeHtml(s.notes)}</span>` : ''}
+                </div>
+            `;
+        });
+        const total = taskSuppliers.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+        suppliersHtml += `
+            <div class="detail-supplier-total">
+                <span>Total:</span>
+                <span>G$${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+            </div>
+        </div>`;
+        suppliersSection.innerHTML = suppliersHtml;
+    } else if (task.contractor_supplier) {
+        suppliersSection.innerHTML = `
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Contractor</span>
+                    <span class="detail-value">${escapeHtml(task.contractor_supplier)}</span>
+                </div>
+            </div>
+        `;
+    } else {
+        suppliersSection.innerHTML = '<p class="text-muted">No contractor/supplier assigned</p>';
+    }
+
+    // Populate award details
+    document.getElementById('task-detail-award-number').textContent = task.award_number || '-';
+    document.getElementById('task-detail-contract-sum').textContent = task.contract_sum
+        ? `G$${parseFloat(task.contract_sum).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+        : '-';
+    document.getElementById('task-detail-approver').textContent = task.approver || '-';
+
+    // Show/hide award document
+    const awardDocSection = document.getElementById('task-detail-award-document');
+    if (task.award_document_r2_key) {
+        const fileName = task.award_document_r2_key.split('/').pop();
+        document.getElementById('task-detail-award-filename').textContent = fileName;
+        awardDocSection.style.display = 'flex';
+    } else {
+        awardDocSection.style.display = 'none';
+    }
+
+    // Populate timeline
+    document.getElementById('task-detail-start-date').textContent = task.start_date ? formatDate(task.start_date) : '-';
+    document.getElementById('task-detail-end-date').textContent = task.end_date ? formatDate(task.end_date) : '-';
+    document.getElementById('task-detail-expected').textContent = task.expected_completion_date ? formatDate(task.expected_completion_date) : '-';
+    document.getElementById('task-detail-created').textContent = task.created_at ? formatDate(task.created_at) : '-';
+
+    // Show remarks if exists
+    const remarksSection = document.getElementById('task-detail-remarks-section');
+    if (task.remarks) {
+        document.getElementById('task-detail-remarks').textContent = task.remarks;
+        remarksSection.style.display = 'block';
+    } else {
+        remarksSection.style.display = 'none';
+    }
+
+    document.getElementById('task-detail-modal').classList.remove('hidden');
+}
+
+function closeTaskDetailModal() {
+    document.getElementById('task-detail-modal').classList.add('hidden');
+    state.currentTask = null;
+}
+
+function handleTaskEditFromDetail() {
+    if (state.currentTask) {
+        const taskToEdit = { ...state.currentTask };
+        closeTaskDetailModal();
+        openTaskModal(taskToEdit);
+    }
+}
+
+async function handleTaskDeleteFromDetail() {
+    if (!state.currentTask) return;
+
+    if (!confirm(`Are you sure you want to delete "${state.currentTask.title}"?\n\nThis action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        await api.deleteTask(state.currentTask.id);
+        closeTaskDetailModal();
+        await loadTasks();
+        showToast('Procurement item deleted successfully');
+    } catch (error) {
+        showToast(error.message || 'Failed to delete procurement item', 'error');
+    }
+}
+
+function viewTaskAwardDocument() {
+    if (!state.currentTask || !state.currentTask.award_document_r2_key) return;
+
+    const token = api.getToken();
+    const url = `${window.API_BASE_URL}/api/tasks/${state.currentTask.id}/award-document?token=${encodeURIComponent(token)}`;
+    window.open(url, '_blank');
+}
+
 async function handleTaskSubmit(e) {
     e.preventDefault();
 
@@ -3338,6 +3465,13 @@ async function handleTaskEdit(taskId) {
     const task = state.tasks.find(t => t.id === taskId);
     if (task) {
         openTaskModal(task);
+    }
+}
+
+async function handleTaskView(taskId) {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (task) {
+        openTaskDetailModal(task);
     }
 }
 
@@ -3624,7 +3758,13 @@ document.addEventListener('click', (e) => {
 // Make task functions globally accessible
 window.openTaskModal = openTaskModal;
 window.closeTaskModal = closeTaskModal;
+window.openTaskDetailModal = openTaskDetailModal;
+window.closeTaskDetailModal = closeTaskDetailModal;
+window.handleTaskEditFromDetail = handleTaskEditFromDetail;
+window.handleTaskDeleteFromDetail = handleTaskDeleteFromDetail;
+window.viewTaskAwardDocument = viewTaskAwardDocument;
 window.handleTaskEdit = handleTaskEdit;
+window.handleTaskView = handleTaskView;
 window.handleTaskDelete = handleTaskDelete;
 window.handleTaskArchive = handleTaskArchive;
 window.handleBudgetChange = handleBudgetChange;

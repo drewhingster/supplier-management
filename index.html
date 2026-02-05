@@ -1210,6 +1210,126 @@
         </div>
     </div>
 
+    <!-- Task Detail Modal (View Mode) -->
+    <div id="task-detail-modal" class="modal hidden">
+        <div class="modal-content detail-modal-content task-detail-modal">
+            <div class="modal-header">
+                <h2 id="task-detail-title">Procurement Item Details</h2>
+                <button class="modal-close" onclick="closeTaskDetailModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+
+            <div class="detail-content">
+                <div class="detail-section">
+                    <h3>Basic Information</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Project Code</span>
+                            <span class="detail-value" id="task-detail-project-code">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Budget Amount</span>
+                            <span class="detail-value" id="task-detail-budget">-</span>
+                        </div>
+                        <div class="detail-item full-width">
+                            <span class="detail-label">Title</span>
+                            <span class="detail-value" id="task-detail-title-text">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Procurement Tier</span>
+                            <span class="detail-value" id="task-detail-tier">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Assigned Person</span>
+                            <span class="detail-value" id="task-detail-assigned">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>Contractor/Suppliers</h3>
+                    <div id="task-detail-suppliers" class="detail-suppliers-section">
+                        <!-- Supplier info populated by JS -->
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>Award Details</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Award Number</span>
+                            <span class="detail-value" id="task-detail-award-number">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Contract Sum</span>
+                            <span class="detail-value" id="task-detail-contract-sum">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Approver</span>
+                            <span class="detail-value" id="task-detail-approver">-</span>
+                        </div>
+                    </div>
+                    <div id="task-detail-award-document" class="document-card-single" style="display: none;">
+                        <svg viewBox="0 0 24 24" class="doc-icon">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <polyline points="9,15 12,18 17,13" fill="none" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        <div class="doc-details">
+                            <span class="doc-label">Award Document</span>
+                            <span class="doc-filename" id="task-detail-award-filename">Document.pdf</span>
+                            <div class="doc-actions-row">
+                                <button type="button" class="btn btn-sm btn-outline" onclick="viewTaskAwardDocument()">
+                                    <svg viewBox="0 0 24 24" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                    View PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>Timeline</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Start Date</span>
+                            <span class="detail-value" id="task-detail-start-date">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">End Date</span>
+                            <span class="detail-value" id="task-detail-end-date">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Expected Completion</span>
+                            <span class="detail-value" id="task-detail-expected">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Created</span>
+                            <span class="detail-value" id="task-detail-created">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section" id="task-detail-remarks-section" style="display: none;">
+                    <h3>Remarks</h3>
+                    <p id="task-detail-remarks" class="detail-remarks-text">-</p>
+                </div>
+            </div>
+
+            <div class="detail-actions">
+                <button class="btn btn-danger" onclick="handleTaskDeleteFromDetail()">
+                    <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Delete
+                </button>
+                <button class="btn btn-primary" onclick="handleTaskEditFromDetail()">
+                    <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M17 3a2.85 2.85 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Edit
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="toast hidden">
         <div class="toast-content">

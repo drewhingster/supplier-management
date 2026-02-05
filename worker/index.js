@@ -2214,10 +2214,15 @@ async function saveTaskSuppliers(taskId, request, env, currentUser) {
     // Delete all existing suppliers for this task
     await env.DB.prepare('DELETE FROM task_suppliers WHERE task_id = ?').bind(taskId).run();
 
-    // Insert new suppliers
+    // Insert new suppliers and calculate total
     const insertedSuppliers = [];
+    let totalContractSum = 0;
+
     for (const supplier of suppliers) {
         if (!supplier.supplier_name?.trim() || !supplier.amount) continue;
+
+        const amount = parseFloat(supplier.amount);
+        totalContractSum += amount;
 
         const result = await env.DB.prepare(`
             INSERT INTO task_suppliers (task_id, supplier_name, amount, notes, created_at)
@@ -2225,7 +2230,7 @@ async function saveTaskSuppliers(taskId, request, env, currentUser) {
         `).bind(
             taskId,
             supplier.supplier_name.trim(),
-            parseFloat(supplier.amount),
+            amount,
             supplier.notes?.trim() || null
         ).run();
 
@@ -2234,10 +2239,17 @@ async function saveTaskSuppliers(taskId, request, env, currentUser) {
         insertedSuppliers.push(insertedSupplier);
     }
 
-    // Log audit entry
-    await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'TaskSuppliers', taskId, task.title, `Updated suppliers for task: ${task.title} (${insertedSuppliers.length} suppliers)`, request);
+    // Update the task's contract_sum with the total of all supplier amounts
+    if (insertedSuppliers.length > 0) {
+        await env.DB.prepare(`
+            UPDATE tasks SET contract_sum = ?, updated_at = datetime("now") WHERE id = ?
+        `).bind(totalContractSum, taskId).run();
+    }
 
-    return jsonResponse({ success: true, suppliers: insertedSuppliers });
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'TaskSuppliers', taskId, task.title, `Updated suppliers for task: ${task.title} (${insertedSuppliers.length} suppliers, total: ${totalContractSum})`, request);
+
+    return jsonResponse({ success: true, suppliers: insertedSuppliers, contractSum: totalContractSum });
 }
 
 async function deleteTaskSupplier(taskId, supplierId, env, currentUser, request) {

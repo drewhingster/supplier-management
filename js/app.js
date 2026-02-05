@@ -3448,28 +3448,35 @@ async function handleTaskSubmit(e) {
         };
 
         let savedTask;
+        let taskId;
         if (state.isTaskEditMode) {
-            savedTask = await api.updateTask(state.currentTask.id, taskData);
+            const response = await api.updateTask(state.currentTask.id, taskData);
+            savedTask = response.task || response; // Handle both { task: {...} } and direct task object
+            taskId = savedTask?.id || state.currentTask.id; // Fallback to current task id
             showToast('Procurement item updated successfully', 'success');
         } else {
-            savedTask = await api.createTask(taskData);
+            const response = await api.createTask(taskData);
+            savedTask = response.task || response;
+            taskId = savedTask?.id;
             showToast('Procurement item created successfully', 'success');
         }
 
+        console.log('Task saved, taskId:', taskId, 'savedTask:', savedTask);
+
         // Handle award document upload if a file was selected
         const awardFile = elements.taskAwardDocument?.files[0];
-        console.log('Award file check:', awardFile, 'savedTask:', savedTask?.id);
-        if (awardFile && savedTask?.id) {
+        console.log('Award file check:', awardFile, 'taskId:', taskId);
+        if (awardFile && taskId) {
             console.log('Uploading award document...');
-            await uploadAwardDocument(savedTask.id, awardFile);
+            await uploadAwardDocument(taskId, awardFile);
         } else {
-            console.log('No award file to upload or no savedTask id');
+            console.log('No award file to upload or no taskId');
         }
 
         // Save multi-supplier allocations if enabled
-        console.log('About to save task suppliers for task:', savedTask?.id);
-        if (savedTask?.id) {
-            await saveTaskSuppliers(savedTask.id);
+        console.log('About to save task suppliers for task:', taskId);
+        if (taskId) {
+            await saveTaskSuppliers(taskId);
         }
 
         closeTaskModal(true); // Skip confirmation since we just saved

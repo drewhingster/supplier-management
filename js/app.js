@@ -2777,18 +2777,15 @@ async function initializeSupplierRows() {
     supplierList.innerHTML = '';
     modalSuppliers = [];
 
-    // Ensure suppliers are loaded
-    console.log('state.suppliers before fetch:', state.suppliers?.length || 0);
+    // Use already-loaded suppliers from state (loaded during app init)
+    console.log('state.suppliers count:', state.suppliers?.length || 0);
+
+    // If suppliers aren't loaded yet, wait a moment and try to use them
     if (!state.suppliers || state.suppliers.length === 0) {
-        console.log('Fetching suppliers from API...');
-        try {
-            state.suppliers = await api.getSuppliers();
-            console.log('Fetched suppliers:', state.suppliers?.length || 0);
-        } catch (error) {
-            console.error('Failed to fetch suppliers:', error);
-            showToast('Failed to load suppliers', 'error');
-            return;
-        }
+        console.warn('state.suppliers is empty - suppliers should have been loaded at app init');
+        // Don't try to fetch again - just show an error
+        showToast('Suppliers not loaded. Please refresh the page.', 'error');
+        return;
     }
 
     console.log('About to create 4 supplier rows');
@@ -2884,15 +2881,12 @@ window.onSupplierNotesChange = function(tempId, value) {
 };
 
 // Add another supplier row
-window.addSupplierRow = async function() {
-    // Ensure suppliers are loaded
+window.addSupplierRow = function() {
+    // Use already-loaded suppliers from state
     if (!state.suppliers || state.suppliers.length === 0) {
-        try {
-            state.suppliers = await api.getSuppliers();
-        } catch (error) {
-            console.error('Failed to fetch suppliers:', error);
-            return;
-        }
+        console.error('No suppliers loaded');
+        showToast('Suppliers not loaded. Please refresh the page.', 'error');
+        return;
     }
 
     const nextRowNum = modalSuppliers.length + 1;

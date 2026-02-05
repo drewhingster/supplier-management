@@ -2314,8 +2314,11 @@ function renderTasks() {
     filteredTasks = sortTasks(filteredTasks);
 
     if (!filteredTasks || filteredTasks.length === 0) {
+        // Show empty state but keep the list container visible for filter controls
         elements.tasksEmptyState.classList.remove('hidden');
-        elements.tasksListContainer?.classList.add('hidden');
+        // Keep the container visible so filter buttons remain accessible
+        elements.tasksListContainer?.classList.remove('hidden');
+        listBody.innerHTML = ''; // Clear the task rows but keep header
         return;
     }
 
@@ -2591,8 +2594,10 @@ function renderTasksKeepExpanded(expandedTaskId) {
     filteredTasks = sortTasks(filteredTasks);
 
     if (!filteredTasks || filteredTasks.length === 0) {
+        // Show empty state but keep the list container visible for filter controls
         elements.tasksEmptyState.classList.remove('hidden');
-        elements.tasksListContainer?.classList.add('hidden');
+        elements.tasksListContainer?.classList.remove('hidden');
+        listBody.innerHTML = ''; // Clear the task rows but keep header
         return;
     }
 
@@ -3065,9 +3070,16 @@ async function loadTaskSuppliers(taskId) {
 }
 
 async function saveTaskSuppliers(taskId) {
-    const isEnabled = document.getElementById('enable-multi-supplier')?.checked;
+    console.log('saveTaskSuppliers called for taskId:', taskId);
+    console.log('modalSuppliers at save time:', JSON.stringify(modalSuppliers));
+
+    const checkbox = document.getElementById('enable-multi-supplier');
+    const isEnabled = checkbox?.checked;
+    console.log('enable-multi-supplier checkbox:', checkbox, 'checked:', isEnabled);
+
     if (!isEnabled) {
         // If multi-supplier is disabled, clear all suppliers for this task
+        console.log('Multi-supplier disabled, clearing suppliers');
         try {
             await api.saveTaskSuppliers(taskId, []);
         } catch (e) {
@@ -3078,6 +3090,7 @@ async function saveTaskSuppliers(taskId) {
 
     // Filter out empty rows (no supplier selected)
     const suppliersToSave = modalSuppliers.filter(s => s.supplier_name?.trim() && s.amount > 0);
+    console.log('suppliersToSave:', JSON.stringify(suppliersToSave));
 
     if (suppliersToSave.length === 0) {
         console.log('No valid suppliers to save');
@@ -3085,8 +3098,8 @@ async function saveTaskSuppliers(taskId) {
     }
 
     try {
-        await api.saveTaskSuppliers(taskId, suppliersToSave);
-        console.log(`Saved ${suppliersToSave.length} suppliers for task ${taskId}`);
+        const result = await api.saveTaskSuppliers(taskId, suppliersToSave);
+        console.log(`Saved ${suppliersToSave.length} suppliers for task ${taskId}`, result);
     } catch (error) {
         console.error('Failed to save task suppliers:', error);
         showToast('Failed to save supplier allocations', 'error');
@@ -3445,11 +3458,16 @@ async function handleTaskSubmit(e) {
 
         // Handle award document upload if a file was selected
         const awardFile = elements.taskAwardDocument?.files[0];
+        console.log('Award file check:', awardFile, 'savedTask:', savedTask?.id);
         if (awardFile && savedTask?.id) {
+            console.log('Uploading award document...');
             await uploadAwardDocument(savedTask.id, awardFile);
+        } else {
+            console.log('No award file to upload or no savedTask id');
         }
 
         // Save multi-supplier allocations if enabled
+        console.log('About to save task suppliers for task:', savedTask?.id);
         if (savedTask?.id) {
             await saveTaskSuppliers(savedTask.id);
         }
@@ -3468,12 +3486,17 @@ async function handleTaskSubmit(e) {
 }
 
 async function uploadAwardDocument(taskId, file) {
+    console.log('uploadAwardDocument called for taskId:', taskId, 'file:', file?.name, 'size:', file?.size);
+
     const formData = new FormData();
     formData.append('file', file);
 
     try {
         const token = api.getToken();
-        const response = await fetch(`${window.API_BASE_URL}/api/tasks/${taskId}/award-document`, {
+        const url = `${window.API_BASE_URL}/api/tasks/${taskId}/award-document`;
+        console.log('Uploading to:', url);
+
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -3481,11 +3504,16 @@ async function uploadAwardDocument(taskId, file) {
             body: formData
         });
 
+        console.log('Upload response status:', response.status);
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+            console.error('Upload error response:', errorData);
             throw new Error(errorData.error || 'Failed to upload award document');
         }
 
+        const result = await response.json();
+        console.log('Upload success:', result);
         showToast('Award document uploaded successfully', 'success');
     } catch (error) {
         console.error('Failed to upload award document:', error);

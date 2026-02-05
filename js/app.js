@@ -2777,10 +2777,10 @@ window.toggleMultiSupplier = function() {
 function initializeSupplierRows() {
     try {
         console.log('initializeSupplierRows START');
-        const supplierList = document.getElementById('supplier-list');
+        const supplierList = document.getElementById('split-supplier-list');
 
         if (!supplierList) {
-            console.error('supplier-list element not found!');
+            console.error('split-supplier-list element not found!');
             return;
         }
 
@@ -2814,9 +2814,9 @@ function initializeSupplierRows() {
 // Create a supplier row synchronously (suppliers already loaded)
 function createSupplierRowSync(rowNum, supplierData = null) {
     console.log('createSupplierRowSync called with rowNum:', rowNum);
-    const supplierList = document.getElementById('supplier-list');
+    const supplierList = document.getElementById('split-supplier-list');
     if (!supplierList) {
-        console.error('supplier-list not found in createSupplierRowSync');
+        console.error('split-supplier-list not found in createSupplierRowSync');
         return;
     }
 
@@ -2993,7 +2993,7 @@ function isSplitSupplierValid() {
 function resetSupplierModal() {
     modalSuppliers = [];
     supplierIdCounter = 0;
-    const supplierList = document.getElementById('supplier-list');
+    const supplierList = document.getElementById('split-supplier-list');
     if (supplierList) supplierList.innerHTML = '';
     const enableCheckbox = document.getElementById('enable-multi-supplier');
     if (enableCheckbox) enableCheckbox.checked = false;

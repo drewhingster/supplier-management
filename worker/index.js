@@ -450,21 +450,19 @@ async function handleLogout(request, env) {
 // Verify authentication and return user info
 async function verifyAuth(request, env) {
     const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        // Also check for legacy token auth (backward compatibility)
+    let token = null;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+    } else {
+        // Check for token in query string (for file downloads opened in new tab)
         const url = new URL(request.url);
-        const queryToken = url.searchParams.get('token');
-        if (queryToken && queryToken === env.AUTH_TOKEN) {
-            // Return a system user for legacy auth
-            return {
-                authenticated: true,
-                user: { id: 0, username: 'system', fullName: 'System', role: 'admin' }
-            };
-        }
-        return { authenticated: false };
+        token = url.searchParams.get('token');
     }
 
-    const token = authHeader.substring(7);
+    if (!token) {
+        return { authenticated: false };
+    }
 
     // Check if it's the legacy auth token
     if (token === env.AUTH_TOKEN) {

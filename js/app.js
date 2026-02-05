@@ -2765,17 +2765,25 @@ window.toggleMultiSupplier = async function() {
 
 // Initialize supplier rows - creates 4 empty rows
 async function initializeSupplierRows() {
+    console.log('initializeSupplierRows called');
     const supplierList = document.getElementById('supplier-list');
-    if (!supplierList) return;
+    console.log('supplierList element:', supplierList);
+    if (!supplierList) {
+        console.error('supplier-list not found!');
+        return;
+    }
 
     // Clear existing rows
     supplierList.innerHTML = '';
     modalSuppliers = [];
 
     // Ensure suppliers are loaded
+    console.log('state.suppliers before fetch:', state.suppliers?.length || 0);
     if (!state.suppliers || state.suppliers.length === 0) {
+        console.log('Fetching suppliers from API...');
         try {
             state.suppliers = await api.getSuppliers();
+            console.log('Fetched suppliers:', state.suppliers?.length || 0);
         } catch (error) {
             console.error('Failed to fetch suppliers:', error);
             showToast('Failed to load suppliers', 'error');
@@ -2783,18 +2791,25 @@ async function initializeSupplierRows() {
         }
     }
 
+    console.log('About to create 4 supplier rows');
     // Create 4 supplier rows
     for (let i = 1; i <= 4; i++) {
+        console.log('Creating row', i);
         createSupplierRowSync(i);
     }
+    console.log('Finished creating rows, modalSuppliers:', modalSuppliers.length);
 
     updateSupplierSum();
 }
 
 // Create a supplier row synchronously (suppliers already loaded)
 function createSupplierRowSync(rowNum, supplierData = null) {
+    console.log('createSupplierRowSync called with rowNum:', rowNum);
     const supplierList = document.getElementById('supplier-list');
-    if (!supplierList) return;
+    if (!supplierList) {
+        console.error('supplier-list not found in createSupplierRowSync');
+        return;
+    }
 
     const tempId = `row_${rowNum}`;
     const supplier = {
@@ -2805,9 +2820,11 @@ function createSupplierRowSync(rowNum, supplierData = null) {
         notes: supplierData?.notes || ''
     };
     modalSuppliers.push(supplier);
+    console.log('Added to modalSuppliers:', tempId);
 
     // Sort suppliers alphabetically
     const sortedSuppliers = [...(state.suppliers || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    console.log('sortedSuppliers count:', sortedSuppliers.length);
 
     // Build options HTML
     let optionsHtml = '<option value="">Select Supplier</option>';
@@ -2838,6 +2855,7 @@ function createSupplierRowSync(rowNum, supplierData = null) {
     `;
 
     supplierList.appendChild(row);
+    console.log('Row appended:', tempId, 'supplierList children:', supplierList.children.length);
 }
 
 // Global event handlers for supplier rows

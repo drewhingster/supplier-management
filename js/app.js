@@ -3290,6 +3290,9 @@ async function openTaskDetailModal(task) {
     const suppliersSection = document.getElementById('task-detail-suppliers');
     const taskSuppliers = await loadTaskSuppliers(task.id);
 
+    // Calculate total from suppliers (used for contract sum if multi-supplier)
+    let suppliersTotal = 0;
+
     if (taskSuppliers.length > 0) {
         let suppliersHtml = '<div class="detail-suppliers-list">';
         taskSuppliers.forEach(s => {
@@ -3301,11 +3304,11 @@ async function openTaskDetailModal(task) {
                 </div>
             `;
         });
-        const total = taskSuppliers.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+        suppliersTotal = taskSuppliers.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
         suppliersHtml += `
             <div class="detail-supplier-total">
                 <span>Total:</span>
-                <span>G$${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span>G$${suppliersTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
             </div>
         </div>`;
         suppliersSection.innerHTML = suppliersHtml;
@@ -3324,8 +3327,10 @@ async function openTaskDetailModal(task) {
 
     // Populate award details
     document.getElementById('task-detail-award-number').textContent = task.award_number || '-';
-    document.getElementById('task-detail-contract-sum').textContent = task.contract_sum
-        ? `G$${parseFloat(task.contract_sum).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+    // Use suppliers total if multi-supplier, otherwise use task.contract_sum
+    const contractSumValue = suppliersTotal > 0 ? suppliersTotal : task.contract_sum;
+    document.getElementById('task-detail-contract-sum').textContent = contractSumValue
+        ? `G$${parseFloat(contractSumValue).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
         : '-';
     document.getElementById('task-detail-approver').textContent = task.approver || '-';
 

@@ -2745,21 +2745,36 @@ window.toggleMultiSupplier = async function() {
     const container = document.getElementById('multi-supplier-container');
     const contractorSection = document.getElementById('contractor-single-section');
 
+    console.log('isEnabled:', isEnabled);
+    console.log('container found:', !!container);
+    console.log('contractorSection found:', !!contractorSection);
+
     if (container && contractorSection) {
+        console.log('Both container and contractorSection found');
         if (isEnabled) {
+            console.log('Multi-supplier is ENABLED, showing container');
             // Hide single contractor dropdown, show multi-supplier section
             contractorSection.classList.add('hidden');
             container.classList.remove('hidden');
 
             // Clear and create 4 supplier rows
-            await initializeSupplierRows();
+            console.log('About to call initializeSupplierRows');
+            try {
+                await initializeSupplierRows();
+                console.log('initializeSupplierRows completed');
+            } catch (error) {
+                console.error('Error in initializeSupplierRows:', error);
+            }
 
             updateSupplierBudgetDisplay();
         } else {
+            console.log('Multi-supplier is DISABLED, hiding container');
             // Show single contractor dropdown, hide multi-supplier section
             contractorSection.classList.remove('hidden');
             container.classList.add('hidden');
         }
+    } else {
+        console.error('Missing elements - container:', !!container, 'contractorSection:', !!contractorSection);
     }
 };
 

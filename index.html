@@ -1108,20 +1108,9 @@
                             <span id="supplier-balance" class="supplier-balance balanced">Balanced</span>
                         </div>
                         <div id="supplier-list" class="supplier-list">
-                            <!-- First supplier row - always present -->
-                            <div class="supplier-row" data-temp-id="static_1">
-                                <select class="supplier-select" id="split-supplier-1" data-temp-id="static_1">
-                                    <option value="">Select Supplier</option>
-                                    <!-- Options populated by JavaScript -->
-                                </select>
-                                <input type="number" class="supplier-amount" id="split-amount-1" data-temp-id="static_1" placeholder="Amount" step="0.01" min="0">
-                                <input type="text" class="supplier-notes" id="split-notes-1" data-temp-id="static_1" placeholder="Notes (optional)">
-                                <button type="button" class="remove-supplier-btn" data-temp-id="static_1" title="Remove supplier" onclick="window.removeSupplierRow('static_1')">
-                                    <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                                </button>
-                            </div>
+                            <!-- Supplier rows will be created by JavaScript -->
                         </div>
-                        <p class="supplier-hint">Select a supplier and enter amount. A new row appears automatically when you fill one.</p>
+                        <button type="button" id="add-supplier-row-btn" class="btn-secondary" onclick="window.addSupplierRow()">+ Add Another Supplier</button>
                     </div>
 
                     <!-- Contract Linking (shown when contract is required) -->

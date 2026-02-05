@@ -2745,28 +2745,14 @@ window.toggleMultiSupplier = async function() {
     const container = document.getElementById('multi-supplier-container');
     const contractorSection = document.getElementById('contractor-single-section');
 
-    console.log('isEnabled:', isEnabled, 'container:', !!container, 'contractorSection:', !!contractorSection);
-
     if (container && contractorSection) {
         if (isEnabled) {
             // Hide single contractor dropdown, show multi-supplier section
             contractorSection.classList.add('hidden');
             container.classList.remove('hidden');
 
-            // Initialize modalSuppliers with the static row FIRST (before event listeners)
-            if (modalSuppliers.length === 0) {
-                modalSuppliers.push({
-                    tempId: 'static_1',
-                    id: null,
-                    supplier_name: '',
-                    amount: 0,
-                    notes: ''
-                });
-                console.log('Initialized modalSuppliers with static_1');
-            }
-
-            // Populate the static first row dropdown
-            await populateSplitSupplierDropdowns();
+            // Clear and create 4 supplier rows
+            await initializeSupplierRows();
 
             updateSupplierBudgetDisplay();
         } else {
@@ -2777,16 +2763,19 @@ window.toggleMultiSupplier = async function() {
     }
 };
 
-// Populate all split supplier dropdowns with suppliers from database
-async function populateSplitSupplierDropdowns() {
-    console.log('populateSplitSupplierDropdowns called');
+// Initialize supplier rows - creates 4 empty rows
+async function initializeSupplierRows() {
+    const supplierList = document.getElementById('supplier-list');
+    if (!supplierList) return;
+
+    // Clear existing rows
+    supplierList.innerHTML = '';
+    modalSuppliers = [];
 
     // Ensure suppliers are loaded
     if (!state.suppliers || state.suppliers.length === 0) {
-        console.log('Fetching suppliers...');
         try {
             state.suppliers = await api.getSuppliers();
-            console.log('Fetched suppliers:', state.suppliers.length);
         } catch (error) {
             console.error('Failed to fetch suppliers:', error);
             showToast('Failed to load suppliers', 'error');
@@ -2794,106 +2783,20 @@ async function populateSplitSupplierDropdowns() {
         }
     }
 
-    // Sort suppliers alphabetically
-    const sortedSuppliers = [...state.suppliers].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    console.log('Sorted suppliers count:', sortedSuppliers.length);
+    // Create 4 supplier rows
+    for (let i = 1; i <= 4; i++) {
+        createSupplierRowSync(i);
+    }
 
-    // Find all supplier dropdowns in the supplier-list
-    const dropdowns = document.querySelectorAll('#supplier-list .supplier-select');
-    console.log('Found dropdowns:', dropdowns.length);
-
-    dropdowns.forEach(dropdown => {
-        // Save current value
-        const currentValue = dropdown.value;
-
-        // Clear and rebuild options
-        dropdown.innerHTML = '<option value="">Select Supplier</option>';
-        sortedSuppliers.forEach(s => {
-            const option = document.createElement('option');
-            option.value = s.name || '';
-            option.textContent = s.name || '';
-            if (s.name === currentValue) {
-                option.selected = true;
-            }
-            dropdown.appendChild(option);
-        });
-    });
-
-    // Attach event listeners to the static row elements if not already attached
-    attachSplitSupplierEventListeners();
+    updateSupplierSum();
 }
 
-// Attach event listeners to split supplier row elements
-function attachSplitSupplierEventListeners() {
+// Create a supplier row synchronously (suppliers already loaded)
+function createSupplierRowSync(rowNum, supplierData = null) {
     const supplierList = document.getElementById('supplier-list');
-    if (!supplierList) {
-        console.error('supplier-list not found in attachSplitSupplierEventListeners');
-        return;
-    }
+    if (!supplierList) return;
 
-    console.log('attachSplitSupplierEventListeners called, listenersAttached:', supplierList.dataset.listenersAttached);
-
-    // Use event delegation on the supplier-list container
-    if (!supplierList.dataset.listenersAttached) {
-        supplierList.addEventListener('change', function(e) {
-            console.log('CHANGE event fired on supplier-list');
-            const target = e.target;
-            const tempId = target.dataset.tempId;
-            console.log('Change target:', target.className, 'tempId:', tempId, 'value:', target.value);
-
-            if (target.classList.contains('supplier-select')) {
-                console.log('Updating supplier_name');
-                updateSupplierData(tempId, 'supplier_name', target.value);
-                maybeAddNewSupplierRow();
-            } else if (target.classList.contains('supplier-amount')) {
-                console.log('Updating amount from change');
-                updateSupplierData(tempId, 'amount', target.value);
-            } else if (target.classList.contains('supplier-notes')) {
-                console.log('Updating notes');
-                updateSupplierData(tempId, 'notes', target.value);
-            }
-        });
-
-        supplierList.addEventListener('input', function(e) {
-            console.log('INPUT event fired on supplier-list');
-            const target = e.target;
-            const tempId = target.dataset.tempId;
-            console.log('Input target:', target.className, 'tempId:', tempId, 'value:', target.value);
-
-            if (target.classList.contains('supplier-amount')) {
-                console.log('Updating amount from input');
-                updateSupplierData(tempId, 'amount', target.value);
-            }
-        });
-
-        supplierList.dataset.listenersAttached = 'true';
-        console.log('Event listeners attached to supplier-list SUCCESSFULLY');
-    }
-}
-
-// Create a supplier row - exposed globally for button click
-window.createSupplierRow = async function(supplierData = null) {
-    console.log('createSupplierRow called');
-    const supplierList = document.getElementById('supplier-list');
-    if (!supplierList) {
-        console.error('supplier-list not found');
-        return;
-    }
-
-    // Ensure suppliers are loaded - fetch if not available
-    if (!state.suppliers || state.suppliers.length === 0) {
-        console.log('Fetching suppliers because state.suppliers is empty');
-        try {
-            state.suppliers = await api.getSuppliers();
-            console.log('Fetched suppliers:', state.suppliers.length);
-        } catch (error) {
-            console.error('Failed to fetch suppliers:', error);
-            showToast('Failed to load suppliers', 'error');
-            return;
-        }
-    }
-
-    const tempId = `temp_${++supplierIdCounter}`;
+    const tempId = `row_${rowNum}`;
     const supplier = {
         tempId: tempId,
         id: supplierData?.id || null,
@@ -2903,13 +2806,8 @@ window.createSupplierRow = async function(supplierData = null) {
     };
     modalSuppliers.push(supplier);
 
-    // Use state.suppliers which should now be loaded
+    // Sort suppliers alphabetically
     const sortedSuppliers = [...(state.suppliers || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    console.log('sortedSuppliers count:', sortedSuppliers.length);
-
-    const row = document.createElement('div');
-    row.className = 'supplier-row';
-    row.dataset.tempId = tempId;
 
     // Build options HTML
     let optionsHtml = '<option value="">Select Supplier</option>';
@@ -2920,55 +2818,69 @@ window.createSupplierRow = async function(supplierData = null) {
         optionsHtml += `<option value="${escaped}" ${selected}>${escaped}</option>`;
     }
 
+    const row = document.createElement('div');
+    row.className = 'supplier-row';
+    row.id = `supplier-row-${tempId}`;
+
     row.innerHTML = `
-        <select class="supplier-select" data-temp-id="${tempId}">
+        <select class="supplier-select" onchange="window.onSupplierChange('${tempId}', this.value)">
             ${optionsHtml}
         </select>
-        <input type="number" class="supplier-amount" data-temp-id="${tempId}" placeholder="Amount" step="0.01" min="0" value="${supplier.amount || ''}">
-        <input type="text" class="supplier-notes" data-temp-id="${tempId}" placeholder="Notes (optional)" value="${escapeHtml(supplier.notes || '')}">
-        <button type="button" class="remove-supplier-btn" data-temp-id="${tempId}" title="Remove supplier">
+        <input type="number" class="supplier-amount" placeholder="Amount" step="0.01" min="0"
+               value="${supplier.amount || ''}"
+               oninput="window.onSupplierAmountChange('${tempId}', this.value)">
+        <input type="text" class="supplier-notes" placeholder="Notes (optional)"
+               value="${escapeHtml(supplier.notes || '')}"
+               onchange="window.onSupplierNotesChange('${tempId}', this.value)">
+        <button type="button" class="remove-supplier-btn" onclick="window.removeSupplierRow('${tempId}')" title="Remove supplier">
             <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
         </button>
     `;
 
-    // Attach event listeners directly
-    const select = row.querySelector('.supplier-select');
-    const amountInput = row.querySelector('.supplier-amount');
-    const notesInput = row.querySelector('.supplier-notes');
-    const removeBtn = row.querySelector('.remove-supplier-btn');
-
-    select.addEventListener('change', function() {
-        updateSupplierData(tempId, 'supplier_name', this.value);
-        // Auto-add a new row if this is the last row and a supplier was selected
-        maybeAddNewSupplierRow();
-    });
-
-    amountInput.addEventListener('change', function() {
-        updateSupplierData(tempId, 'amount', this.value);
-    });
-
-    notesInput.addEventListener('change', function() {
-        updateSupplierData(tempId, 'notes', this.value);
-    });
-
-    removeBtn.addEventListener('click', function() {
-        removeSupplierRow(tempId);
-    });
-
     supplierList.appendChild(row);
-    console.log('Row appended to supplier-list');
+}
+
+// Global event handlers for supplier rows
+window.onSupplierChange = function(tempId, value) {
+    console.log('onSupplierChange:', tempId, value);
+    const supplier = modalSuppliers.find(s => s.tempId === tempId);
+    if (supplier) {
+        supplier.supplier_name = value;
+    }
+};
+
+window.onSupplierAmountChange = function(tempId, value) {
+    console.log('onSupplierAmountChange:', tempId, value);
+    const supplier = modalSuppliers.find(s => s.tempId === tempId);
+    if (supplier) {
+        supplier.amount = parseFloat(value) || 0;
+    }
     updateSupplierSum();
 };
 
-// Check if we need to add a new empty row (when all existing rows have suppliers selected)
-async function maybeAddNewSupplierRow() {
-    // Check if there's already an empty row (no supplier selected)
-    const hasEmptyRow = modalSuppliers.some(s => !s.supplier_name || s.supplier_name === '');
-    if (!hasEmptyRow && modalSuppliers.length > 0) {
-        // All rows have suppliers selected, add a new empty row
-        await window.createSupplierRow();
+window.onSupplierNotesChange = function(tempId, value) {
+    const supplier = modalSuppliers.find(s => s.tempId === tempId);
+    if (supplier) {
+        supplier.notes = value;
     }
-}
+};
+
+// Add another supplier row
+window.addSupplierRow = async function() {
+    // Ensure suppliers are loaded
+    if (!state.suppliers || state.suppliers.length === 0) {
+        try {
+            state.suppliers = await api.getSuppliers();
+        } catch (error) {
+            console.error('Failed to fetch suppliers:', error);
+            return;
+        }
+    }
+
+    const nextRowNum = modalSuppliers.length + 1;
+    createSupplierRowSync(nextRowNum);
+    updateSupplierSum();
+};
 
 function updateSupplierData(tempId, field, value) {
     console.log('updateSupplierData called:', tempId, field, value);
@@ -3000,7 +2912,7 @@ function updateSupplierData(tempId, field, value) {
 
 function removeSupplierRow(tempId) {
     modalSuppliers = modalSuppliers.filter(s => s.tempId !== tempId);
-    const row = document.querySelector(`.supplier-row[data-temp-id="${tempId}"]`);
+    const row = document.getElementById(`supplier-row-${tempId}`);
     if (row) row.remove();
     updateSupplierSum();
 }

@@ -212,6 +212,7 @@ export default {
                 const taskId = parseInt(path.split('/')[3]);
                 if (request.method === 'GET') return await getTaskSuppliers(taskId, env);
                 if (request.method === 'POST') return await addTaskSupplier(taskId, request, env, currentUser);
+                if (request.method === 'PUT') return await saveTaskSuppliers(taskId, request, env, currentUser);
             }
 
             if (path.match(/^\/api\/tasks\/\d+\/suppliers\/\d+$/)) {
@@ -2191,6 +2192,44 @@ async function addTaskSupplier(taskId, request, env, currentUser) {
     await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'TaskSupplier', supplierId, body.supplier_name.trim(), `Added supplier "${body.supplier_name.trim()}" to task: ${task.title}`, request);
 
     return jsonResponse({ success: true, supplier }, 201);
+}
+
+async function saveTaskSuppliers(taskId, request, env, currentUser) {
+    const task = await env.DB.prepare('SELECT id, title FROM tasks WHERE id = ?').bind(taskId).first();
+    if (!task) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+
+    const body = await request.json();
+    const suppliers = body.suppliers || [];
+
+    // Delete all existing suppliers for this task
+    await env.DB.prepare('DELETE FROM task_suppliers WHERE task_id = ?').bind(taskId).run();
+
+    // Insert new suppliers
+    const insertedSuppliers = [];
+    for (const supplier of suppliers) {
+        if (!supplier.supplier_name?.trim() || !supplier.amount) continue;
+
+        const result = await env.DB.prepare(`
+            INSERT INTO task_suppliers (task_id, supplier_name, amount, notes, created_at)
+            VALUES (?, ?, ?, ?, datetime("now"))
+        `).bind(
+            taskId,
+            supplier.supplier_name.trim(),
+            parseFloat(supplier.amount),
+            supplier.notes?.trim() || null
+        ).run();
+
+        const insertedId = result.meta.last_row_id;
+        const insertedSupplier = await env.DB.prepare('SELECT * FROM task_suppliers WHERE id = ?').bind(insertedId).first();
+        insertedSuppliers.push(insertedSupplier);
+    }
+
+    // Log audit entry
+    await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'TaskSuppliers', taskId, task.title, `Updated suppliers for task: ${task.title} (${insertedSuppliers.length} suppliers)`, request);
+
+    return jsonResponse({ success: true, suppliers: insertedSuppliers });
 }
 
 async function deleteTaskSupplier(taskId, supplierId, env, currentUser, request) {

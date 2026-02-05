@@ -414,6 +414,20 @@ class SupplierAPI {
         });
     }
 
+    // ==================== Task Suppliers (Multi-Supplier Split) ====================
+
+    async getTaskSuppliers(taskId) {
+        const response = await this.request(`/tasks/${taskId}/suppliers`);
+        return response.suppliers || [];
+    }
+
+    async saveTaskSuppliers(taskId, suppliers) {
+        return await this.request(`/tasks/${taskId}/suppliers`, {
+            method: 'PUT',
+            body: JSON.stringify({ suppliers })
+        });
+    }
+
     // ==================== Statistics ====================
 
     async getStatistics() {

@@ -2648,10 +2648,18 @@ async function openTaskModal(task = null) {
         resetSupplierModal();
         const suppliers = await loadTaskSuppliers(task.id);
         if (suppliers.length > 0) {
+            // Enable multi-supplier mode
             document.getElementById('enable-multi-supplier').checked = true;
             document.getElementById('multi-supplier-container')?.classList.remove('hidden');
+            document.getElementById('contractor-single-section')?.classList.add('hidden');
             updateSupplierBudgetDisplay();
-            suppliers.forEach(s => window.createSupplierRow(s));
+
+            // Create rows for each saved supplier
+            let rowNum = 1;
+            for (const s of suppliers) {
+                createSupplierRowSync(rowNum++, s);
+            }
+            updateSupplierSum();
         }
     } else {
         elements.taskForm.reset();
@@ -2774,6 +2782,7 @@ window.toggleMultiSupplier = function() {
 };
 
 // Initialize supplier rows - creates 4 empty rows (SYNCHRONOUS)
+// Only creates rows if modalSuppliers is empty (prevents overwriting loaded data)
 function initializeSupplierRows() {
     try {
         console.log('initializeSupplierRows START');
@@ -2784,7 +2793,14 @@ function initializeSupplierRows() {
             return;
         }
 
-        // Clear existing rows
+        // If we already have suppliers loaded (from editing existing task), don't overwrite
+        if (modalSuppliers.length > 0) {
+            console.log('Suppliers already loaded, skipping initialization');
+            updateSupplierSum();
+            return;
+        }
+
+        // Clear existing DOM rows
         supplierList.innerHTML = '';
         modalSuppliers = [];
 
@@ -2796,7 +2812,7 @@ function initializeSupplierRows() {
             return;
         }
 
-        // Create 4 supplier rows
+        // Create 4 empty supplier rows
         for (let i = 1; i <= 4; i++) {
             console.log('Creating row', i);
             createSupplierRowSync(i);
@@ -3006,13 +3022,8 @@ function resetSupplierModal() {
 
 async function loadTaskSuppliers(taskId) {
     try {
-        const response = await fetch(`${window.API_BASE_URL}/api/tasks/${taskId}/suppliers`, {
-            headers: { 'Authorization': `Bearer ${api.getToken()}` }
-        });
-        if (response.ok) {
-            const data = await response.json();
-            return data.suppliers || [];
-        }
+        const suppliers = await api.getTaskSuppliers(taskId);
+        return suppliers || [];
     } catch (error) {
         console.error('Failed to load task suppliers:', error);
     }
@@ -3021,44 +3032,30 @@ async function loadTaskSuppliers(taskId) {
 
 async function saveTaskSuppliers(taskId) {
     const isEnabled = document.getElementById('enable-multi-supplier')?.checked;
-    if (!isEnabled) return;
-
-    const token = api.getToken();
-
-    // Get existing suppliers from server
-    const existing = await loadTaskSuppliers(taskId);
-    const existingIds = existing.map(s => s.id);
-
-    // Delete suppliers that were removed
-    for (const existingSupplier of existing) {
-        const stillExists = modalSuppliers.find(s => s.id === existingSupplier.id);
-        if (!stillExists) {
-            await fetch(`${window.API_BASE_URL}/api/tasks/${taskId}/suppliers/${existingSupplier.id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+    if (!isEnabled) {
+        // If multi-supplier is disabled, clear all suppliers for this task
+        try {
+            await api.saveTaskSuppliers(taskId, []);
+        } catch (e) {
+            console.log('No suppliers to clear');
         }
+        return;
     }
 
-    // Add or update suppliers
-    for (const supplier of modalSuppliers) {
-        if (!supplier.supplier_name?.trim()) continue;
+    // Filter out empty rows (no supplier selected)
+    const suppliersToSave = modalSuppliers.filter(s => s.supplier_name?.trim() && s.amount > 0);
 
-        if (!supplier.id) {
-            // New supplier - add it
-            await fetch(`${window.API_BASE_URL}/api/tasks/${taskId}/suppliers`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    supplier_name: supplier.supplier_name,
-                    amount: supplier.amount,
-                    notes: supplier.notes
-                })
-            });
-        }
+    if (suppliersToSave.length === 0) {
+        console.log('No valid suppliers to save');
+        return;
+    }
+
+    try {
+        await api.saveTaskSuppliers(taskId, suppliersToSave);
+        console.log(`Saved ${suppliersToSave.length} suppliers for task ${taskId}`);
+    } catch (error) {
+        console.error('Failed to save task suppliers:', error);
+        showToast('Failed to save supplier allocations', 'error');
     }
 }
 

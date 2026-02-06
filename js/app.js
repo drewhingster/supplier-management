@@ -619,11 +619,17 @@ function switchView(view) {
 function showAuth() {
     elements.authModal.classList.remove('hidden');
     elements.app.classList.add('hidden');
+    // Hide mobile navigation when not logged in
+    document.getElementById('mobile-bottom-nav')?.classList.add('hidden');
+    document.getElementById('mobile-fab')?.classList.add('hidden');
 }
 
 function showApp() {
     elements.authModal.classList.add('hidden');
     elements.app.classList.remove('hidden');
+    // Show mobile navigation
+    document.getElementById('mobile-bottom-nav')?.classList.remove('hidden');
+    document.getElementById('mobile-fab')?.classList.remove('hidden');
 }
 
 async function handleLogin(e) {

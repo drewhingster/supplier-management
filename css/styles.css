@@ -4777,7 +4777,7 @@ a:hover {
 
 /* Mobile Bottom Navigation */
 .mobile-bottom-nav {
-    display: none;
+    display: none; /* Hidden on desktop by default */
     position: fixed;
     bottom: 0;
     left: 0;
@@ -4789,6 +4789,13 @@ a:hover {
     padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
     z-index: 9999;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Show mobile nav on mobile screens when not hidden */
+@media (max-width: 768px) {
+    .mobile-bottom-nav:not(.hidden) {
+        display: block;
+    }
 }
 
 .mobile-nav-items {
@@ -5118,7 +5125,7 @@ a:hover {
 }
 
 @media (max-width: 768px) {
-    .mobile-fab {
+    .mobile-fab:not(.hidden) {
         display: flex;
     }
 }

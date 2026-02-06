@@ -1851,6 +1851,18 @@ async function acknowledgeAlert(request, env, currentUser) {
             return jsonResponse({ error: 'supplier_id and alert_type are required' }, 400);
         }
 
+        // Ensure table exists first
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS acknowledged_alerts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                supplier_id INTEGER NOT NULL,
+                alert_type TEXT NOT NULL,
+                acknowledged_by TEXT,
+                acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(supplier_id, alert_type)
+            )
+        `).run();
+
         // Use INSERT OR REPLACE to handle duplicates
         await env.DB.prepare(`
             INSERT OR REPLACE INTO acknowledged_alerts (supplier_id, alert_type, acknowledged_by, acknowledged_at)

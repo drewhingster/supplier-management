@@ -578,11 +578,17 @@ function setupEventListeners() {
 function switchView(view) {
     state.currentView = view;
 
-    // Update nav tabs
+    // Update desktop nav tabs
     elements.navSuppliers.classList.toggle('active', view === 'suppliers');
     elements.navContracts.classList.toggle('active', view === 'contracts');
     elements.navTasks?.classList.toggle('active', view === 'tasks');
     elements.navActivity?.classList.toggle('active', view === 'activity');
+
+    // Update mobile nav tabs
+    document.getElementById('mobile-nav-suppliers')?.classList.toggle('active', view === 'suppliers');
+    document.getElementById('mobile-nav-contracts')?.classList.toggle('active', view === 'contracts');
+    document.getElementById('mobile-nav-tasks')?.classList.toggle('active', view === 'tasks');
+    document.getElementById('mobile-nav-activity')?.classList.toggle('active', view === 'activity');
 
     // Show/hide views
     elements.suppliersView.classList.toggle('hidden', view !== 'suppliers');
@@ -4398,3 +4404,20 @@ function formatAuditTimestamp(timestamp) {
 // Make audit functions globally accessible
 window.loadActivityLogs = loadActivityLogs;
 window.switchView = switchView;
+
+// Mobile FAB click handler - opens the appropriate add modal based on current view
+window.handleMobileFabClick = function() {
+    switch (state.currentView) {
+        case 'suppliers':
+            openSupplierModal();
+            break;
+        case 'contracts':
+            openContractModal();
+            break;
+        case 'tasks':
+            openTaskModal();
+            break;
+        default:
+            openSupplierModal();
+    }
+};

@@ -880,10 +880,16 @@ function closeNotificationPanel() {
     elements.notificationPanel?.classList.add('hidden');
 }
 
+// Get unique alert key for a specific alert
+function getAlertKey(alert) {
+    // Combine type and field for uniqueness (e.g., "expired_nis", "missing_doc_NIS Certificate")
+    return `${alert.type}_${alert.field || alert.doc_type || ''}`;
+}
+
 // Check if a specific alert is acknowledged
-function isAlertAcknowledged(supplierId, alertType) {
+function isAlertAcknowledged(supplierId, alertKey) {
     return state.acknowledgedAlerts.some(
-        a => a.supplier_id === supplierId && a.alert_type === alertType
+        a => a.supplier_id === supplierId && a.alert_type === alertKey
     );
 }
 
@@ -891,7 +897,7 @@ function isAlertAcknowledged(supplierId, alertType) {
 function isSupplierFullyAcknowledged(supplier) {
     const alertDetails = supplier.alert_details || [];
     if (alertDetails.length === 0) return false;
-    return alertDetails.every(alert => isAlertAcknowledged(supplier.id, alert.type));
+    return alertDetails.every(alert => isAlertAcknowledged(supplier.id, getAlertKey(alert)));
 }
 
 // Load acknowledged alerts from API
@@ -1036,14 +1042,15 @@ window.acknowledgeSupplierAlerts = async function(supplierId) {
     if (!supplier || !supplier.alert_details) return;
 
     try {
-        // Acknowledge each alert type for this supplier
+        // Acknowledge each alert for this supplier
         for (const alert of supplier.alert_details) {
-            await api.acknowledgeAlert(supplierId, alert.type);
+            const alertKey = getAlertKey(alert);
+            await api.acknowledgeAlert(supplierId, alertKey);
             // Add to local state
-            if (!isAlertAcknowledged(supplierId, alert.type)) {
+            if (!isAlertAcknowledged(supplierId, alertKey)) {
                 state.acknowledgedAlerts.push({
                     supplier_id: supplierId,
-                    alert_type: alert.type
+                    alert_type: alertKey
                 });
             }
         }
@@ -1061,9 +1068,10 @@ window.unacknowledgeSupplierAlerts = async function(supplierId) {
     if (!supplier || !supplier.alert_details) return;
 
     try {
-        // Unacknowledge each alert type for this supplier
+        // Unacknowledge each alert for this supplier
         for (const alert of supplier.alert_details) {
-            await api.unacknowledgeAlert(supplierId, alert.type);
+            const alertKey = getAlertKey(alert);
+            await api.unacknowledgeAlert(supplierId, alertKey);
         }
         // Remove from local state
         state.acknowledgedAlerts = state.acknowledgedAlerts.filter(a => a.supplier_id !== supplierId);

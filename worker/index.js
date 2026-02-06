@@ -1825,6 +1825,13 @@ async function setupTasksTable(env) {
             // Column already exists, ignore
         }
 
+        // Add single_source_procurement column if it doesn't exist
+        try {
+            await env.DB.prepare(`ALTER TABLE tasks ADD COLUMN single_source_procurement INTEGER DEFAULT 0`).run();
+        } catch (e) {
+            // Column already exists, ignore
+        }
+
         await env.DB.prepare(`
             CREATE INDEX IF NOT EXISTS idx_tasks_tier ON tasks(procurement_tier)
         `).run();
@@ -1922,8 +1929,8 @@ async function createTask(request, env, currentUser) {
             approver, award_number, award_document_r2_key,
             contractor_supplier, contract_sum, assigned_person,
             remarks, start_date, end_date, expected_completion_date,
-            archived, priority, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, datetime("now"), datetime("now"))
+            archived, priority, single_source_procurement, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime("now"), datetime("now"))
     `).bind(
         body.project_code?.trim() || null,
         body.title.trim(),
@@ -1942,7 +1949,8 @@ async function createTask(request, env, currentUser) {
         body.start_date || null,
         body.end_date || null,
         body.expected_completion_date || null,
-        body.priority || 'Normal'
+        body.priority || 'Normal',
+        body.single_source_procurement ? 1 : 0
     ).run();
 
     const taskId = result.meta.last_row_id;
@@ -1979,7 +1987,7 @@ async function updateTask(id, request, env, currentUser) {
             approver = ?, award_number = ?, award_document_r2_key = ?,
             contractor_supplier = ?, contract_sum = ?, assigned_person = ?,
             remarks = ?, start_date = ?, end_date = ?, expected_completion_date = ?,
-            archived = ?, priority = ?, updated_at = datetime("now")
+            archived = ?, priority = ?, single_source_procurement = ?, updated_at = datetime("now")
         WHERE id = ?
     `).bind(
         body.project_code?.trim() || null,
@@ -2001,6 +2009,7 @@ async function updateTask(id, request, env, currentUser) {
         body.expected_completion_date || null,
         body.archived ? 1 : 0,
         body.priority || 'Normal',
+        body.single_source_procurement ? 1 : 0,
         id
     ).run();
 

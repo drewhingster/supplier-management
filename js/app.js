@@ -377,6 +377,7 @@ const elements = {
     taskContractor: document.getElementById('task-contractor'),
     taskContractSum: document.getElementById('task-contract-sum'),
     taskRequiresContract: document.getElementById('task-requires-contract'),
+    taskSingleSource: document.getElementById('task-single-source'),
     taskLinkedContract: document.getElementById('task-linked-contract'),
     contractLinkSection: document.getElementById('contract-link-section'),
     tierBadge: document.getElementById('tier-badge'),
@@ -2309,6 +2310,12 @@ function renderTasks() {
             return status === columnFilters.status;
         });
     }
+    if (columnFilters.assigned) {
+        filteredTasks = filteredTasks.filter(task => {
+            const assignedPerson = task.assigned_person?.trim() || '';
+            return assignedPerson === columnFilters.assigned;
+        });
+    }
 
     // Apply sorting
     filteredTasks = sortTasks(filteredTasks);
@@ -2403,6 +2410,7 @@ function createTaskRow(task) {
                 </div>
                 <div class="clickup-task-date">${startDate}</div>
                 <div class="clickup-task-date ${isOverdue ? 'overdue' : ''}">${dueDate}</div>
+                <div class="clickup-task-assigned">${escapeHtml(task.assigned_person || '-')}</div>
                 <div>${priorityHtml}</div>
                 <div>${statusHtml}</div>
                 <div class="clickup-progress">
@@ -2589,6 +2597,12 @@ function renderTasksKeepExpanded(expandedTaskId) {
             return status === columnFilters.status;
         });
     }
+    if (columnFilters.assigned) {
+        filteredTasks = filteredTasks.filter(task => {
+            const assignedPerson = task.assigned_person?.trim() || '';
+            return assignedPerson === columnFilters.assigned;
+        });
+    }
 
     // Apply sorting
     filteredTasks = sortTasks(filteredTasks);
@@ -2640,6 +2654,9 @@ async function openTaskModal(task = null) {
         elements.taskPriority.value = task.priority || 'Normal';
         elements.taskContractSum.value = task.contract_sum || '';
         elements.taskRequiresContract.checked = task.requires_contract === 1;
+        if (elements.taskSingleSource) {
+            elements.taskSingleSource.checked = task.single_source_procurement === 1;
+        }
         elements.taskApprover.value = task.approver || '';
         elements.taskAwardNumber.value = task.award_number || '';
         elements.taskStartDate.value = task.start_date || '';
@@ -2890,13 +2907,12 @@ function createSupplierRowSync(rowNum, supplierData = null) {
     const sortedSuppliers = [...(state.suppliers || [])].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     console.log('sortedSuppliers count:', sortedSuppliers.length);
 
-    // Build options HTML
-    let optionsHtml = '<option value="">Select Supplier</option>';
+    // Build datalist options for searchable input
+    let datalistOptionsHtml = '';
     for (const s of sortedSuppliers) {
         const name = s.name || '';
         const escaped = escapeHtml(name);
-        const selected = name === supplier.supplier_name ? 'selected' : '';
-        optionsHtml += `<option value="${escaped}" ${selected}>${escaped}</option>`;
+        datalistOptionsHtml += `<option value="${escaped}">`;
     }
 
     const row = document.createElement('div');
@@ -2904,9 +2920,16 @@ function createSupplierRowSync(rowNum, supplierData = null) {
     row.id = `supplier-row-${tempId}`;
 
     row.innerHTML = `
-        <select class="supplier-select" onchange="window.onSupplierChange('${tempId}', this.value)">
-            ${optionsHtml}
-        </select>
+        <div class="supplier-search-container">
+            <input type="text" class="supplier-search-input" list="supplier-list-${tempId}"
+                   placeholder="Type to search suppliers..."
+                   value="${escapeHtml(supplier.supplier_name || '')}"
+                   oninput="window.onSupplierSearchInput('${tempId}', this.value)"
+                   onchange="window.onSupplierChange('${tempId}', this.value)">
+            <datalist id="supplier-list-${tempId}">
+                ${datalistOptionsHtml}
+            </datalist>
+        </div>
         <input type="number" class="supplier-amount" placeholder="Amount" step="0.01" min="0"
                value="${supplier.amount || ''}"
                oninput="window.onSupplierAmountChange('${tempId}', this.value)">
@@ -2923,8 +2946,49 @@ function createSupplierRowSync(rowNum, supplierData = null) {
 }
 
 // Global event handlers for supplier rows
+
+// Check for duplicate supplier
+function checkDuplicateSupplier(tempId, supplierName) {
+    if (!supplierName?.trim()) return false;
+
+    // Check if this supplier is already selected in another row
+    const duplicate = modalSuppliers.find(s =>
+        s.tempId !== tempId &&
+        s.supplier_name?.trim().toLowerCase() === supplierName.trim().toLowerCase()
+    );
+
+    return !!duplicate;
+}
+
+window.onSupplierSearchInput = function(tempId, value) {
+    // This is called on every keystroke for real-time feedback
+    const supplier = modalSuppliers.find(s => s.tempId === tempId);
+    if (supplier) {
+        supplier.supplier_name = value;
+    }
+};
+
 window.onSupplierChange = function(tempId, value) {
     console.log('onSupplierChange:', tempId, value);
+
+    // Check for duplicate supplier
+    if (checkDuplicateSupplier(tempId, value)) {
+        showToast(`"${value}" is already added. Please select a different supplier.`, 'error');
+
+        // Clear the input and reset the supplier name
+        const row = document.getElementById(`supplier-row-${tempId}`);
+        const input = row?.querySelector('.supplier-search-input');
+        if (input) {
+            input.value = '';
+        }
+
+        const supplier = modalSuppliers.find(s => s.tempId === tempId);
+        if (supplier) {
+            supplier.supplier_name = '';
+        }
+        return;
+    }
+
     const supplier = modalSuppliers.find(s => s.tempId === tempId);
     if (supplier) {
         supplier.supplier_name = value;
@@ -3286,6 +3350,12 @@ async function openTaskDetailModal(task) {
     document.getElementById('task-detail-tier').textContent = task.procurement_tier || '-';
     document.getElementById('task-detail-assigned').textContent = task.assigned_person || '-';
 
+    // Show single source procurement status
+    const singleSourceContainer = document.getElementById('task-detail-single-source-container');
+    if (singleSourceContainer) {
+        singleSourceContainer.style.display = task.single_source_procurement === 1 ? 'block' : 'none';
+    }
+
     // Populate suppliers section
     const suppliersSection = document.getElementById('task-detail-suppliers');
     const taskSuppliers = await loadTaskSuppliers(task.id);
@@ -3438,6 +3508,7 @@ async function handleTaskSubmit(e) {
             procurement_tier: tier ? tier.id : null,
             completed_stages: JSON.stringify(completedStages),
             requires_contract: elements.taskRequiresContract?.checked ? 1 : 0,
+            single_source_procurement: elements.taskSingleSource?.checked ? 1 : 0,
             linked_contract_id: elements.taskLinkedContract?.value ? parseInt(elements.taskLinkedContract.value) : null,
             approver: elements.taskApprover?.value.trim() || null,
             award_number: elements.taskAwardNumber?.value.trim() || null,
@@ -3705,7 +3776,7 @@ function showTasksLoading(show) {
 let columnSortState = { field: 'date', direction: 'desc' };
 
 // Track column filter state
-let columnFilters = { priority: null, status: null };
+let columnFilters = { priority: null, status: null, assigned: null };
 
 function toggleColumnSort(field) {
     if (columnSortState.field === field) {
@@ -3773,6 +3844,16 @@ function populateFilterOptions(filterType) {
         case 'status':
             // Status options based on progress
             values = ['Complete', 'In Progress', 'Not Started'];
+            break;
+        case 'assigned':
+            // Get unique assigned persons from tasks
+            const assignedPersons = new Set();
+            (state.tasks || []).forEach(task => {
+                if (task.assigned_person?.trim()) {
+                    assignedPersons.add(task.assigned_person.trim());
+                }
+            });
+            values = Array.from(assignedPersons).sort();
             break;
     }
 

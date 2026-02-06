@@ -3102,6 +3102,31 @@ a:hover {
     box-shadow: 0 0 0 3px rgba(5, 102, 141, 0.1);
 }
 
+/* Supplier search input container */
+.supplier-search-container {
+    position: relative;
+    width: 100%;
+}
+
+.supplier-search-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: white;
+}
+
+.supplier-search-input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(5, 102, 141, 0.1);
+}
+
+.supplier-search-input::placeholder {
+    color: var(--color-text-muted);
+}
+
 .supplier-row .remove-supplier-btn {
     width: 36px;
     height: 36px;
@@ -3495,8 +3520,8 @@ a:hover {
 /* ClickUp List Header */
 .clickup-list-header {
     display: grid;
-    grid-template-columns: 40px minmax(200px, 2fr) 100px 100px 90px 110px minmax(130px, 1fr);
-    min-width: 800px;
+    grid-template-columns: 40px minmax(200px, 2fr) 100px 100px 120px 90px 110px minmax(130px, 1fr);
+    min-width: 1000px;
     background: var(--color-bg-secondary);
     border-bottom: 2px solid var(--color-border);
     padding: 0.75rem 1rem;
@@ -3648,12 +3673,13 @@ a:hover {
 
 .clickup-task-main {
     display: grid;
-    grid-template-columns: 40px minmax(200px, 2fr) 100px 100px 90px 110px minmax(130px, 1fr);
+    grid-template-columns: 40px minmax(200px, 2fr) 100px 100px 120px 90px 110px minmax(130px, 1fr);
     padding: 0.875rem 1rem;
     align-items: center;
     transition: background-color 0.15s ease;
     cursor: pointer;
     gap: 0.75rem;
+    min-width: 1000px;
 }
 
 /* Ensure text is readable */
@@ -3790,6 +3816,15 @@ a:hover {
 .clickup-task-date.overdue {
     color: var(--color-error);
     font-weight: 500;
+}
+
+/* ClickUp-style Assigned Person */
+.clickup-task-assigned {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ClickUp-style Priority Flags */

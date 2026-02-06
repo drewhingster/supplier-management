@@ -2545,9 +2545,19 @@ async function handleStageToggle(taskId, stageId, isChecked) {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    // Get the tier and stages for this task
-    const tier = task.budget_amount ? getProcurementTier(task.budget_amount) : null;
+    // Get the tier and stages for this task (check for single source first)
+    const isSingleSource = task.single_source_procurement === 1;
+    const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE
+        : (task.budget_amount ? getProcurementTier(task.budget_amount) : null);
     const stages = tier ? getTierStages(tier, task.requires_contract === 1) : [];
+
+    // Parse N/A stages to exclude them from auto-check
+    let naStages = [];
+    try {
+        naStages = JSON.parse(task.na_stages || '[]');
+    } catch (e) {
+        naStages = [];
+    }
 
     // Find the index of the clicked stage
     const clickedStageIndex = stages.findIndex(s => s.id === stageId);
@@ -2562,8 +2572,10 @@ async function handleStageToggle(taskId, stageId, isChecked) {
 
     // Update completed stages
     if (isChecked) {
-        // Auto-check all previous stages when checking a stage
+        // Auto-check all previous stages when checking a stage (skip N/A stages)
         for (let i = 0; i <= clickedStageIndex; i++) {
+            // Skip N/A stages - they shouldn't be auto-checked
+            if (naStages.includes(stages[i].id)) continue;
             if (!completedStages.includes(stages[i].id)) {
                 completedStages.push(stages[i].id);
             }
@@ -2581,7 +2593,9 @@ async function handleStageToggle(taskId, stageId, isChecked) {
             budget_amount: task.budget_amount || null,
             procurement_tier: task.procurement_tier || null,
             completed_stages: JSON.stringify(completedStages),
+            na_stages: task.na_stages || '[]',
             requires_contract: task.requires_contract || 0,
+            single_source_procurement: task.single_source_procurement || 0,
             linked_contract_id: task.linked_contract_id || null,
             approver: task.approver || null,
             award_number: task.award_number || null,
@@ -2589,6 +2603,7 @@ async function handleStageToggle(taskId, stageId, isChecked) {
             contractor_supplier: task.contractor_supplier || null,
             contract_sum: task.contract_sum || null,
             assigned_person: task.assigned_person || null,
+            priority: task.priority || 'Normal',
             remarks: task.remarks || null,
             start_date: task.start_date || null,
             end_date: task.end_date || null,

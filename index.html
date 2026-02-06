@@ -165,7 +165,29 @@
                 </button>
             </div>
             <div class="notification-summary" id="notification-summary"></div>
-            <div class="notification-list" id="notification-list"></div>
+
+            <!-- New/Unacknowledged Alerts -->
+            <div class="notification-section">
+                <div class="notification-section-header">
+                    <span class="notification-section-title">New Alerts</span>
+                    <span class="notification-section-count" id="new-alerts-count">0</span>
+                </div>
+                <div class="notification-list" id="notification-list"></div>
+            </div>
+
+            <!-- Acknowledged Alerts -->
+            <div class="notification-section acknowledged-section">
+                <div class="notification-section-header" onclick="toggleAcknowledgedSection()">
+                    <span class="notification-section-title">
+                        <svg viewBox="0 0 24 24" width="14" height="14" class="section-toggle-icon">
+                            <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" fill="none"/>
+                        </svg>
+                        Acknowledged
+                    </span>
+                    <span class="notification-section-count muted" id="acknowledged-alerts-count">0</span>
+                </div>
+                <div class="notification-list acknowledged-list hidden" id="acknowledged-list"></div>
+            </div>
         </div>
 
         <!-- ==================== SUPPLIERS VIEW ==================== -->

@@ -176,6 +176,30 @@ class SupplierAPI {
         return await this.request('/users');
     }
 
+    // ==================== Acknowledged Alerts ====================
+
+    async getAcknowledgedAlerts() {
+        return await this.request('/alerts/acknowledged');
+    }
+
+    async acknowledgeAlert(supplierId, alertType) {
+        return await this.request('/alerts/acknowledge', {
+            method: 'POST',
+            body: JSON.stringify({ supplier_id: supplierId, alert_type: alertType })
+        });
+    }
+
+    async unacknowledgeAlert(supplierId, alertType) {
+        return await this.request('/alerts/unacknowledge', {
+            method: 'POST',
+            body: JSON.stringify({ supplier_id: supplierId, alert_type: alertType })
+        });
+    }
+
+    async setupAcknowledgedAlertsTable() {
+        return await this.request('/setup/acknowledged-alerts', { method: 'POST' });
+    }
+
     // ==================== Categories ====================
 
     async getCategories() {

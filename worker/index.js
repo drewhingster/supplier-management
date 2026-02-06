@@ -176,6 +176,20 @@ export default {
                 return await getAlerts(env);
             }
 
+            // Acknowledged alerts routes
+            if (path === '/api/alerts/acknowledged' && request.method === 'GET') {
+                return await getAcknowledgedAlerts(env);
+            }
+            if (path === '/api/alerts/acknowledge' && request.method === 'POST') {
+                return await acknowledgeAlert(request, env, currentUser);
+            }
+            if (path === '/api/alerts/unacknowledge' && request.method === 'POST') {
+                return await unacknowledgeAlert(request, env, currentUser);
+            }
+            if (path === '/api/setup/acknowledged-alerts' && request.method === 'POST') {
+                return await setupAcknowledgedAlertsTable(env);
+            }
+
             // Seed routes
             if (path === '/api/seed/categories' && request.method === 'POST') {
                 return await seedCategories(request, env);
@@ -1785,6 +1799,89 @@ async function getAlerts(env) {
             total: alerts.length
         }
     });
+}
+
+// ==================== Acknowledged Alerts ====================
+
+async function setupAcknowledgedAlertsTable(env) {
+    try {
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS acknowledged_alerts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                supplier_id INTEGER NOT NULL,
+                alert_type TEXT NOT NULL,
+                acknowledged_by TEXT,
+                acknowledged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(supplier_id, alert_type)
+            )
+        `).run();
+
+        await env.DB.prepare(`
+            CREATE INDEX IF NOT EXISTS idx_acknowledged_alerts_supplier
+            ON acknowledged_alerts(supplier_id)
+        `).run();
+
+        return jsonResponse({ success: true, message: 'Acknowledged alerts table created' });
+    } catch (error) {
+        console.error('Setup acknowledged alerts table error:', error);
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function getAcknowledgedAlerts(env) {
+    try {
+        const result = await env.DB.prepare(`
+            SELECT supplier_id, alert_type, acknowledged_by, acknowledged_at
+            FROM acknowledged_alerts
+        `).all();
+
+        return jsonResponse({ acknowledged: result.results || [] });
+    } catch (error) {
+        // Table might not exist yet
+        return jsonResponse({ acknowledged: [] });
+    }
+}
+
+async function acknowledgeAlert(request, env, currentUser) {
+    try {
+        const body = await request.json();
+        const { supplier_id, alert_type } = body;
+
+        if (!supplier_id || !alert_type) {
+            return jsonResponse({ error: 'supplier_id and alert_type are required' }, 400);
+        }
+
+        // Use INSERT OR REPLACE to handle duplicates
+        await env.DB.prepare(`
+            INSERT OR REPLACE INTO acknowledged_alerts (supplier_id, alert_type, acknowledged_by, acknowledged_at)
+            VALUES (?, ?, ?, datetime('now'))
+        `).bind(supplier_id, alert_type, currentUser.name).run();
+
+        return jsonResponse({ success: true, message: 'Alert acknowledged' });
+    } catch (error) {
+        console.error('Acknowledge alert error:', error);
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function unacknowledgeAlert(request, env, currentUser) {
+    try {
+        const body = await request.json();
+        const { supplier_id, alert_type } = body;
+
+        if (!supplier_id || !alert_type) {
+            return jsonResponse({ error: 'supplier_id and alert_type are required' }, 400);
+        }
+
+        await env.DB.prepare(`
+            DELETE FROM acknowledged_alerts WHERE supplier_id = ? AND alert_type = ?
+        `).bind(supplier_id, alert_type).run();
+
+        return jsonResponse({ success: true, message: 'Alert unacknowledged' });
+    } catch (error) {
+        console.error('Unacknowledge alert error:', error);
+        return jsonResponse({ error: error.message }, 500);
+    }
 }
 
 // ==================== OUTSTANDING TASKS MODULE (PSIP Format) ====================

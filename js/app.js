@@ -189,6 +189,8 @@ const state = {
     categories: [],
     contracts: [],
     tasks: [],
+    acknowledgedAlerts: [], // { supplier_id, alert_type, acknowledged_by, acknowledged_at }
+    acknowledgedSectionOpen: false,
     currentSupplier: null,
     currentContract: null,
     currentTask: null,
@@ -774,6 +776,9 @@ async function loadInitialData() {
         // Render suppliers
         renderSuppliers();
 
+        // Load acknowledged alerts before updating notifications
+        await loadAcknowledgedAlerts();
+
         // Update stats and notifications
         updateStatistics();
         updateNotifications();
@@ -788,6 +793,13 @@ async function loadInitialData() {
         // Setup tasks table if needed (silent fail is OK)
         try {
             await api.setupTasksTable();
+        } catch (e) {
+            // Table might already exist
+        }
+
+        // Setup acknowledged alerts table if needed (silent fail is OK)
+        try {
+            await api.setupAcknowledgedAlertsTable();
         } catch (e) {
             // Table might already exist
         }
@@ -868,21 +880,48 @@ function closeNotificationPanel() {
     elements.notificationPanel?.classList.add('hidden');
 }
 
+// Check if a specific alert is acknowledged
+function isAlertAcknowledged(supplierId, alertType) {
+    return state.acknowledgedAlerts.some(
+        a => a.supplier_id === supplierId && a.alert_type === alertType
+    );
+}
+
+// Check if ALL alerts for a supplier are acknowledged
+function isSupplierFullyAcknowledged(supplier) {
+    const alertDetails = supplier.alert_details || [];
+    if (alertDetails.length === 0) return false;
+    return alertDetails.every(alert => isAlertAcknowledged(supplier.id, alert.type));
+}
+
+// Load acknowledged alerts from API
+async function loadAcknowledgedAlerts() {
+    try {
+        const response = await api.getAcknowledgedAlerts();
+        state.acknowledgedAlerts = response.acknowledged || [];
+    } catch (error) {
+        console.error('Failed to load acknowledged alerts:', error);
+        state.acknowledgedAlerts = [];
+    }
+}
+
 function updateNotifications() {
     const alertSuppliers = state.suppliers.filter(s => s.alert_level !== null);
-    const alertCount = alertSuppliers.length;
+
+    // Count only unacknowledged alerts for badge
+    const unacknowledgedCount = alertSuppliers.filter(s => !isSupplierFullyAcknowledged(s)).length;
 
     if (elements.notificationBadge) {
-        elements.notificationBadge.textContent = alertCount;
-        elements.notificationBadge.classList.toggle('hidden', alertCount === 0);
+        elements.notificationBadge.textContent = unacknowledgedCount;
+        elements.notificationBadge.classList.toggle('hidden', unacknowledgedCount === 0);
     }
 
     if (elements.needsAttention) {
-        elements.needsAttention.textContent = alertCount;
+        elements.needsAttention.textContent = unacknowledgedCount;
     }
 
     if (elements.needsAttentionCard) {
-        elements.needsAttentionCard.classList.toggle('no-alerts', alertCount === 0);
+        elements.needsAttentionCard.classList.toggle('no-alerts', unacknowledgedCount === 0);
     }
 
     if (state.notificationPanelOpen) {
@@ -900,19 +939,31 @@ function renderNotificationPanel() {
             return (priority[a.alert_level] || 99) - (priority[b.alert_level] || 99);
         });
 
-    const counts = {
-        critical: alertSuppliers.filter(s => s.alert_level === 'critical').length,
-        warning: alertSuppliers.filter(s => s.alert_level === 'warning').length,
-        action_needed: alertSuppliers.filter(s => s.alert_level === 'action_needed').length
+    // Separate into new and acknowledged
+    const newAlerts = alertSuppliers.filter(s => !isSupplierFullyAcknowledged(s));
+    const acknowledgedAlerts = alertSuppliers.filter(s => isSupplierFullyAcknowledged(s));
+
+    // Update counts
+    const newCounts = {
+        critical: newAlerts.filter(s => s.alert_level === 'critical').length,
+        warning: newAlerts.filter(s => s.alert_level === 'warning').length,
+        action_needed: newAlerts.filter(s => s.alert_level === 'action_needed').length
     };
 
     elements.notificationSummary.innerHTML = `
-        ${counts.critical > 0 ? `<span class="summary-badge critical">${counts.critical} Expired</span>` : ''}
-        ${counts.warning > 0 ? `<span class="summary-badge warning">${counts.warning} Expiring Soon</span>` : ''}
-        ${counts.action_needed > 0 ? `<span class="summary-badge action-needed">${counts.action_needed} Incomplete</span>` : ''}
+        ${newCounts.critical > 0 ? `<span class="summary-badge critical">${newCounts.critical} Expired</span>` : ''}
+        ${newCounts.warning > 0 ? `<span class="summary-badge warning">${newCounts.warning} Expiring Soon</span>` : ''}
+        ${newCounts.action_needed > 0 ? `<span class="summary-badge action-needed">${newCounts.action_needed} Incomplete</span>` : ''}
     `;
 
-    if (alertSuppliers.length === 0) {
+    // Update section counts
+    const newCountEl = document.getElementById('new-alerts-count');
+    const ackCountEl = document.getElementById('acknowledged-alerts-count');
+    if (newCountEl) newCountEl.textContent = newAlerts.length;
+    if (ackCountEl) ackCountEl.textContent = acknowledgedAlerts.length;
+
+    // Render new alerts
+    if (newAlerts.length === 0) {
         elements.notificationList.innerHTML = `
             <div class="notification-empty">
                 <svg viewBox="0 0 24 24">
@@ -920,31 +971,109 @@ function renderNotificationPanel() {
                     <polyline points="22,4 12,14.01 9,11.01" stroke="currentColor" stroke-width="2" fill="none"/>
                 </svg>
                 <h4>All Clear!</h4>
-                <p>No suppliers require attention at this time.</p>
+                <p>No new alerts require attention.</p>
             </div>
         `;
-        return;
+    } else {
+        elements.notificationList.innerHTML = newAlerts.map(supplier => renderNotificationItem(supplier, false)).join('');
     }
 
-    elements.notificationList.innerHTML = alertSuppliers.map(supplier => {
-        const iconSvg = getAlertIcon(supplier.alert_level);
-        const messages = (supplier.alert_details || []).map(alert =>
-            `<span class="notification-message-item">• ${alert.message}</span>`
-        ).join('');
+    // Render acknowledged alerts
+    const acknowledgedList = document.getElementById('acknowledged-list');
+    if (acknowledgedList) {
+        if (acknowledgedAlerts.length === 0) {
+            acknowledgedList.innerHTML = `<div class="notification-empty-small">No acknowledged alerts</div>`;
+        } else {
+            acknowledgedList.innerHTML = acknowledgedAlerts.map(supplier => renderNotificationItem(supplier, true)).join('');
+        }
 
-        return `
-            <div class="notification-item" onclick="openSupplierFromNotification(${supplier.id})">
-                <div class="notification-icon ${supplier.alert_level}">
-                    ${iconSvg}
-                </div>
-                <div class="notification-content">
-                    <div class="notification-supplier">${escapeHtml(supplier.name)}</div>
-                    <div class="notification-message">${messages}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
+        // Update section visibility
+        acknowledgedList.classList.toggle('hidden', !state.acknowledgedSectionOpen);
+        const toggleIcon = document.querySelector('.section-toggle-icon');
+        if (toggleIcon) {
+            toggleIcon.style.transform = state.acknowledgedSectionOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+        }
+    }
 }
+
+function renderNotificationItem(supplier, isAcknowledged) {
+    const iconSvg = getAlertIcon(supplier.alert_level);
+    const messages = (supplier.alert_details || []).map(alert =>
+        `<span class="notification-message-item">• ${alert.message}</span>`
+    ).join('');
+
+    const acknowledgeBtn = isAcknowledged
+        ? `<button class="notification-action-btn unack-btn" onclick="event.stopPropagation(); unacknowledgeSupplierAlerts(${supplier.id})" title="Mark as unread">
+               <svg viewBox="0 0 24 24" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+           </button>`
+        : `<button class="notification-action-btn ack-btn" onclick="event.stopPropagation(); acknowledgeSupplierAlerts(${supplier.id})" title="Mark as read">
+               <svg viewBox="0 0 24 24" width="16" height="16"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="22,4 12,14.01 9,11.01" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+           </button>`;
+
+    return `
+        <div class="notification-item ${isAcknowledged ? 'acknowledged' : ''}" onclick="openSupplierFromNotification(${supplier.id})">
+            <div class="notification-icon ${supplier.alert_level}">
+                ${iconSvg}
+            </div>
+            <div class="notification-content">
+                <div class="notification-supplier">${escapeHtml(supplier.name)}</div>
+                <div class="notification-message">${messages}</div>
+            </div>
+            ${acknowledgeBtn}
+        </div>
+    `;
+}
+
+// Toggle acknowledged section visibility
+window.toggleAcknowledgedSection = function() {
+    state.acknowledgedSectionOpen = !state.acknowledgedSectionOpen;
+    renderNotificationPanel();
+};
+
+// Acknowledge all alerts for a supplier
+window.acknowledgeSupplierAlerts = async function(supplierId) {
+    const supplier = state.suppliers.find(s => s.id === supplierId);
+    if (!supplier || !supplier.alert_details) return;
+
+    try {
+        // Acknowledge each alert type for this supplier
+        for (const alert of supplier.alert_details) {
+            await api.acknowledgeAlert(supplierId, alert.type);
+            // Add to local state
+            if (!isAlertAcknowledged(supplierId, alert.type)) {
+                state.acknowledgedAlerts.push({
+                    supplier_id: supplierId,
+                    alert_type: alert.type
+                });
+            }
+        }
+        updateNotifications();
+        showToast('Alert acknowledged', 'success');
+    } catch (error) {
+        console.error('Failed to acknowledge alert:', error);
+        showToast('Failed to acknowledge alert', 'error');
+    }
+};
+
+// Unacknowledge all alerts for a supplier
+window.unacknowledgeSupplierAlerts = async function(supplierId) {
+    const supplier = state.suppliers.find(s => s.id === supplierId);
+    if (!supplier || !supplier.alert_details) return;
+
+    try {
+        // Unacknowledge each alert type for this supplier
+        for (const alert of supplier.alert_details) {
+            await api.unacknowledgeAlert(supplierId, alert.type);
+        }
+        // Remove from local state
+        state.acknowledgedAlerts = state.acknowledgedAlerts.filter(a => a.supplier_id !== supplierId);
+        updateNotifications();
+        showToast('Alert marked as unread', 'success');
+    } catch (error) {
+        console.error('Failed to unacknowledge alert:', error);
+        showToast('Failed to mark as unread', 'error');
+    }
+};
 
 function getAlertIcon(alertLevel) {
     switch (alertLevel) {

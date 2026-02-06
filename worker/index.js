@@ -1832,6 +1832,13 @@ async function setupTasksTable(env) {
             // Column already exists, ignore
         }
 
+        // Add na_stages column if it doesn't exist (for N/A stages in single source procurement)
+        try {
+            await env.DB.prepare(`ALTER TABLE tasks ADD COLUMN na_stages TEXT DEFAULT '[]'`).run();
+        } catch (e) {
+            // Column already exists, ignore
+        }
+
         await env.DB.prepare(`
             CREATE INDEX IF NOT EXISTS idx_tasks_tier ON tasks(procurement_tier)
         `).run();
@@ -1922,21 +1929,27 @@ async function createTask(request, env, currentUser) {
         ? JSON.stringify(body.completed_stages)
         : (body.completed_stages || '[]');
 
+    // Ensure na_stages is a valid JSON string
+    const naStages = Array.isArray(body.na_stages)
+        ? JSON.stringify(body.na_stages)
+        : (body.na_stages || '[]');
+
     const result = await env.DB.prepare(`
         INSERT INTO tasks (
             project_code, title, budget_amount, procurement_tier,
-            completed_stages, requires_contract, linked_contract_id,
+            completed_stages, na_stages, requires_contract, linked_contract_id,
             approver, award_number, award_document_r2_key,
             contractor_supplier, contract_sum, assigned_person,
             remarks, start_date, end_date, expected_completion_date,
             archived, priority, single_source_procurement, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime("now"), datetime("now"))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, datetime("now"), datetime("now"))
     `).bind(
         body.project_code?.trim() || null,
         body.title.trim(),
         body.budget_amount || null,
         body.procurement_tier || null,
         completedStages,
+        naStages,
         body.requires_contract ? 1 : 0,
         body.linked_contract_id || null,
         body.approver?.trim() || null,
@@ -1980,10 +1993,15 @@ async function updateTask(id, request, env, currentUser) {
         ? JSON.stringify(body.completed_stages)
         : (body.completed_stages || '[]');
 
+    // Ensure na_stages is a valid JSON string
+    const naStages = Array.isArray(body.na_stages)
+        ? JSON.stringify(body.na_stages)
+        : (body.na_stages || '[]');
+
     await env.DB.prepare(`
         UPDATE tasks
         SET project_code = ?, title = ?, budget_amount = ?, procurement_tier = ?,
-            completed_stages = ?, requires_contract = ?, linked_contract_id = ?,
+            completed_stages = ?, na_stages = ?, requires_contract = ?, linked_contract_id = ?,
             approver = ?, award_number = ?, award_document_r2_key = ?,
             contractor_supplier = ?, contract_sum = ?, assigned_person = ?,
             remarks = ?, start_date = ?, end_date = ?, expected_completion_date = ?,
@@ -1995,6 +2013,7 @@ async function updateTask(id, request, env, currentUser) {
         body.budget_amount || null,
         body.procurement_tier || null,
         completedStages,
+        naStages,
         body.requires_contract ? 1 : 0,
         body.linked_contract_id || null,
         body.approver?.trim() || null,

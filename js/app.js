@@ -22,8 +22,8 @@ const PROCUREMENT_TIERS = {
         stages: [
             { id: 'applied_advance', name: 'Applied for Advance', requiresAward: false },
             { id: 'received_advance', name: 'Received Advance', requiresAward: false },
-            { id: 'paid', name: 'Paid', requiresAward: false },
-            { id: 'completed', name: 'Completed', requiresAward: false }
+            { id: 'completed', name: 'Completed', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false }
         ],
         approver: null
     },
@@ -36,8 +36,8 @@ const PROCUREMENT_TIERS = {
             { id: 'quotation_received', name: 'Quotation Received', requiresAward: false },
             { id: 'approved', name: 'Approved by CS/DCS', requiresAward: false, requiresApprover: true },
             { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
-            { id: 'paid', name: 'Paid', requiresAward: false },
-            { id: 'completed', name: 'Completed', requiresAward: false }
+            { id: 'completed', name: 'Completed', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false }
         ],
         approver: 'Chief Statistician / Deputy Chief Statistician'
     },
@@ -51,8 +51,8 @@ const PROCUREMENT_TIERS = {
             { id: 'evaluation', name: 'Evaluation', requiresAward: false },
             { id: 'approved_cs', name: 'Approved by Chief Statistician', requiresAward: false },
             { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
-            { id: 'paid', name: 'Paid', requiresAward: false },
-            { id: 'completed', name: 'Completed', requiresAward: false }
+            { id: 'completed', name: 'Completed', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false }
         ],
         approver: 'Chief Statistician'
     },
@@ -69,8 +69,8 @@ const PROCUREMENT_TIERS = {
             { id: 'approved_mtb', name: 'Approved by MTB', requiresAward: true },
             { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
             { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
-            { id: 'paid', name: 'Paid', requiresAward: false },
-            { id: 'completed', name: 'Completed', requiresAward: false }
+            { id: 'completed', name: 'Completed', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false }
         ],
         approver: 'Ministerial Tender Board'
     },
@@ -87,8 +87,8 @@ const PROCUREMENT_TIERS = {
             { id: 'approved_npta', name: 'Approved by NPTAB', requiresAward: true },
             { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
             { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
-            { id: 'paid', name: 'Paid', requiresAward: false },
-            { id: 'completed', name: 'Completed', requiresAward: false }
+            { id: 'completed', name: 'Completed', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false }
         ],
         approver: 'NPTAB'
     },
@@ -105,8 +105,8 @@ const PROCUREMENT_TIERS = {
             { id: 'approved_npta', name: 'Approved by NPTAB', requiresAward: true },
             { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
             { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
-            { id: 'paid', name: 'Paid', requiresAward: false },
-            { id: 'completed', name: 'Completed', requiresAward: false }
+            { id: 'completed', name: 'Completed', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false }
         ],
         approver: 'NPTAB'
     },
@@ -123,10 +123,28 @@ const PROCUREMENT_TIERS = {
             { id: 'approved_cabinet', name: 'Approved by Cabinet', requiresAward: true },
             { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
             { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
-            { id: 'paid', name: 'Paid', requiresAward: false },
-            { id: 'completed', name: 'Completed', requiresAward: false }
+            { id: 'completed', name: 'Completed', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false }
         ],
         approver: 'Cabinet'
+    },
+    SINGLE_SOURCE: {
+        id: 'single_source',
+        name: 'Single Source Procurement',
+        minAmount: 0,
+        maxAmount: Infinity,
+        stages: [
+            { id: 'rfq', name: 'RFQ', requiresAward: false },
+            { id: 'single_source_justification', name: 'Single Source Justification', requiresAward: false },
+            { id: 'approved_cs_dcs', name: 'Approved by CS/DCS', requiresAward: false },
+            { id: 'npta_form', name: 'NPTA Form & Request Letter', requiresAward: false, allowNA: true },
+            { id: 'approved_nptab_mtb', name: 'Approved by NPTAB/MTB', requiresAward: true, allowNA: true },
+            { id: 'photocopied_docs', name: 'Photocopied Documents', requiresAward: false },
+            { id: 'passed_finance', name: 'Passed to Finance Dept.', requiresAward: false },
+            { id: 'completed', name: 'Completed', requiresAward: false },
+            { id: 'paid', name: 'Paid', requiresAward: false }
+        ],
+        approver: 'NPTAB/MTB'
     }
 };
 
@@ -1416,8 +1434,25 @@ async function handleSupplierSubmit(e) {
             return;
         }
 
+        const supplierName = elements.supplierName.value.trim();
+
+        // Check for duplicate supplier name (case-insensitive)
+        const currentSupplierId = state.isEditMode && elements.supplierId.value ? parseInt(elements.supplierId.value) : null;
+        const duplicateSupplier = state.suppliers.find(s =>
+            s.name.trim().toLowerCase() === supplierName.toLowerCase() &&
+            s.id !== currentSupplierId
+        );
+
+        if (duplicateSupplier) {
+            showToast(`A supplier with the name "${supplierName}" already exists. Please use a different name.`, 'error');
+            submitBtn.disabled = false;
+            spinner?.classList.add('hidden');
+            if (btnText) btnText.textContent = state.isEditMode ? 'Update Supplier' : 'Add Supplier';
+            return;
+        }
+
         const supplierData = {
-            name: elements.supplierName.value.trim(),
+            name: supplierName,
             address: elements.supplierAddress.value.trim(),
             telephone: elements.supplierTelephone.value.trim(),
             category_ids: categoryIds,
@@ -2297,15 +2332,24 @@ function renderTasks() {
     }
     if (columnFilters.status) {
         filteredTasks = filteredTasks.filter(task => {
-            const tier = task.budget_amount ? getProcurementTier(task.budget_amount) : null;
+            const isSingleSource = task.single_source_procurement === 1;
+            const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE
+                : (task.budget_amount ? getProcurementTier(task.budget_amount) : null);
             const stages = tier ? getTierStages(tier, task.requires_contract === 1) : [];
             let completedStages = [];
+            let naStages = [];
             try {
                 completedStages = JSON.parse(task.completed_stages || '[]');
             } catch (e) {
                 completedStages = [];
             }
-            const progress = calculateProgress(completedStages, stages.length);
+            try {
+                naStages = JSON.parse(task.na_stages || '[]');
+            } catch (e) {
+                naStages = [];
+            }
+            const applicableStagesCount = stages.length - naStages.length;
+            const progress = calculateProgress(completedStages, applicableStagesCount);
             const status = progress === 100 ? 'Complete' : progress > 0 ? 'In Progress' : 'Not Started';
             return status === columnFilters.status;
         });
@@ -2336,7 +2380,10 @@ function renderTasks() {
 }
 
 function createTaskRow(task) {
-    const tier = task.budget_amount ? getProcurementTier(task.budget_amount) : null;
+    // Use Single Source tier if single_source_procurement is checked, otherwise determine by budget
+    const isSingleSource = task.single_source_procurement === 1;
+    const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE
+        : (task.budget_amount ? getProcurementTier(task.budget_amount) : null);
 
     // Parse completed stages
     let completedStages = [];
@@ -2346,9 +2393,18 @@ function createTaskRow(task) {
         completedStages = [];
     }
 
-    // Calculate progress
+    // Parse N/A stages
+    let naStages = [];
+    try {
+        naStages = JSON.parse(task.na_stages || '[]');
+    } catch (e) {
+        naStages = [];
+    }
+
+    // Calculate progress (excluding N/A stages from total)
     const stages = tier ? getTierStages(tier, task.requires_contract === 1) : [];
-    const progress = calculateProgress(completedStages, stages.length);
+    const applicableStagesCount = stages.length - naStages.length;
+    const progress = calculateProgress(completedStages, applicableStagesCount);
     const progressClass = progress === 100 ? 'progress-complete' : progress >= 70 ? 'progress-high' : progress >= 40 ? 'progress-medium' : 'progress-low';
 
     // Format dates
@@ -2378,9 +2434,21 @@ function createTaskRow(task) {
     const statusClass = progress === 100 ? 'status-complete' : progress > 0 ? 'status-in-progress' : 'status-not-started';
     const statusHtml = `<span class="clickup-status ${statusClass}">${status}</span>`;
 
-    // Build subtasks HTML
+    // Build subtasks HTML (filter out N/A stages or show them as N/A)
     const subtasksHtml = stages.map(stage => {
         const isCompleted = completedStages.includes(stage.id);
+        const isNA = naStages.includes(stage.id);
+
+        // If stage is N/A, show it differently (muted with N/A label)
+        if (isNA) {
+            return `
+                <div class="clickup-subtask subtask-na">
+                    <span class="stage-name na-text">${escapeHtml(stage.name)}</span>
+                    <span class="na-badge">N/A</span>
+                </div>
+            `;
+        }
+
         return `
             <div class="clickup-subtask">
                 <label class="stage-checkbox" onclick="event.stopPropagation()">
@@ -2584,15 +2652,24 @@ function renderTasksKeepExpanded(expandedTaskId) {
     }
     if (columnFilters.status) {
         filteredTasks = filteredTasks.filter(task => {
-            const tier = task.budget_amount ? getProcurementTier(task.budget_amount) : null;
+            const isSingleSource = task.single_source_procurement === 1;
+            const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE
+                : (task.budget_amount ? getProcurementTier(task.budget_amount) : null);
             const stages = tier ? getTierStages(tier, task.requires_contract === 1) : [];
             let completedStages = [];
+            let naStages = [];
             try {
                 completedStages = JSON.parse(task.completed_stages || '[]');
             } catch (e) {
                 completedStages = [];
             }
-            const progress = calculateProgress(completedStages, stages.length);
+            try {
+                naStages = JSON.parse(task.na_stages || '[]');
+            } catch (e) {
+                naStages = [];
+            }
+            const applicableStagesCount = stages.length - naStages.length;
+            const progress = calculateProgress(completedStages, applicableStagesCount);
             const status = progress === 100 ? 'Complete' : progress > 0 ? 'In Progress' : 'Not Started';
             return status === columnFilters.status;
         });
@@ -2756,6 +2833,7 @@ function renderWorkflowPlaceholder() {
 // Handle budget amount change - determine tier and render stages
 function handleBudgetChange() {
     const budgetAmount = parseFloat(elements.taskBudgetAmount?.value) || 0;
+    const isSingleSource = elements.taskSingleSource?.checked || false;
 
     if (budgetAmount <= 0) {
         renderWorkflowPlaceholder();
@@ -2766,7 +2844,8 @@ function handleBudgetChange() {
         return;
     }
 
-    const tier = getProcurementTier(budgetAmount);
+    // Use Single Source tier if checkbox is checked, otherwise determine by budget
+    const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE : getProcurementTier(budgetAmount);
     const requiresContract = elements.taskRequiresContract?.checked || false;
 
     // Update tier badge
@@ -3176,34 +3255,73 @@ function renderWorkflowStages(tier, requiresContract = false) {
 
     const stages = getTierStages(tier, requiresContract);
 
-    // Get current completed stages if editing
+    // Get current completed stages and N/A stages if editing
     let completedStages = [];
+    let naStages = [];
     if (state.currentTask) {
         try {
             completedStages = JSON.parse(state.currentTask.completed_stages || '[]');
         } catch (e) {
             completedStages = [];
         }
+        try {
+            naStages = JSON.parse(state.currentTask.na_stages || '[]');
+        } catch (e) {
+            naStages = [];
+        }
     }
 
     const stagesHtml = stages.map((stage, index) => {
         const isCompleted = completedStages.includes(stage.id);
+        const isNA = naStages.includes(stage.id);
+        const isDisabled = isNA;
+
+        // Build N/A toggle HTML if stage allows it
+        let naToggleHtml = '';
+        if (stage.allowNA) {
+            naToggleHtml = `
+                <label class="na-toggle" title="Mark as Not Applicable">
+                    <input type="checkbox" class="na-checkbox" data-stage-id="${stage.id}" ${isNA ? 'checked' : ''} onchange="handleNAToggle('${stage.id}', this.checked)">
+                    <span class="na-label">N/A</span>
+                </label>
+            `;
+        }
+
         return `
-            <div class="workflow-stage-item ${isCompleted ? 'stage-completed' : ''}">
+            <div class="workflow-stage-item ${isCompleted ? 'stage-completed' : ''} ${isNA ? 'stage-na' : ''}">
                 <label class="stage-checkbox">
-                    <input type="checkbox" data-stage-id="${stage.id}" ${isCompleted ? 'checked' : ''} onchange="updateModalStageProgress()">
+                    <input type="checkbox" data-stage-id="${stage.id}" ${isCompleted ? 'checked' : ''} ${isDisabled ? 'disabled' : ''} onchange="updateModalStageProgress()">
                     <span class="checkbox-custom"></span>
                     <span class="stage-number">${index + 1}</span>
                     <span class="stage-name">${escapeHtml(stage.name)}</span>
                     ${stage.requiresAward ? '<span class="stage-requires-award">(Award Details)</span>' : ''}
                     ${stage.requiresContract ? '<span class="stage-requires-contract">(Link Contract)</span>' : ''}
                 </label>
+                ${naToggleHtml}
             </div>
         `;
     }).join('');
 
     elements.workflowStagesContainer.innerHTML = `<div class="workflow-stages-list">${stagesHtml}</div>`;
 }
+
+// Handle N/A toggle for stages
+window.handleNAToggle = function(stageId, isNA) {
+    const stageItem = document.querySelector(`[data-stage-id="${stageId}"]`)?.closest('.workflow-stage-item');
+    const stageCheckbox = stageItem?.querySelector('input[data-stage-id="' + stageId + '"]:not(.na-checkbox)');
+
+    if (stageItem && stageCheckbox) {
+        if (isNA) {
+            stageItem.classList.add('stage-na');
+            stageCheckbox.disabled = true;
+            stageCheckbox.checked = false;
+        } else {
+            stageItem.classList.remove('stage-na');
+            stageCheckbox.disabled = false;
+        }
+    }
+    updateModalStageProgress();
+};
 
 // Update stage completion in modal
 function updateModalStageProgress() {
@@ -3347,7 +3465,15 @@ async function openTaskDetailModal(task) {
     document.getElementById('task-detail-budget').textContent = task.budget_amount
         ? `G$${parseFloat(task.budget_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
         : '-';
-    document.getElementById('task-detail-tier').textContent = task.procurement_tier || '-';
+    // Display tier name (look up from tier ID, or show ID if not found)
+    let tierName = task.procurement_tier || '-';
+    if (task.procurement_tier) {
+        const tierConfig = Object.values(PROCUREMENT_TIERS).find(t => t.id === task.procurement_tier);
+        if (tierConfig) {
+            tierName = tierConfig.name;
+        }
+    }
+    document.getElementById('task-detail-tier').textContent = tierName;
     document.getElementById('task-detail-assigned').textContent = task.assigned_person || '-';
 
     // Show single source procurement status
@@ -3488,18 +3614,28 @@ async function handleTaskSubmit(e) {
     btnText.textContent = state.isTaskEditMode ? 'Updating...' : 'Creating...';
 
     try {
-        // Collect completed stages from checkboxes
+        // Collect completed stages from checkboxes (exclude N/A checkboxes)
         const completedStages = [];
-        const stageCheckboxes = document.querySelectorAll('#workflow-stages-container input[type="checkbox"]:checked');
+        const stageCheckboxes = document.querySelectorAll('#workflow-stages-container input[type="checkbox"]:checked:not(.na-checkbox)');
         stageCheckboxes.forEach(checkbox => {
             if (checkbox.dataset.stageId) {
                 completedStages.push(checkbox.dataset.stageId);
             }
         });
 
-        // Determine procurement tier from budget
+        // Collect N/A stages from N/A checkboxes
+        const naStages = [];
+        const naCheckboxes = document.querySelectorAll('#workflow-stages-container .na-checkbox:checked');
+        naCheckboxes.forEach(checkbox => {
+            if (checkbox.dataset.stageId) {
+                naStages.push(checkbox.dataset.stageId);
+            }
+        });
+
+        // Determine procurement tier from budget (considering single source)
         const budgetAmount = elements.taskBudgetAmount?.value ? parseFloat(elements.taskBudgetAmount.value) : null;
-        const tier = budgetAmount ? getProcurementTier(budgetAmount) : null;
+        const isSingleSource = elements.taskSingleSource?.checked || false;
+        const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE : (budgetAmount ? getProcurementTier(budgetAmount) : null);
 
         const taskData = {
             project_code: elements.taskProjectCode?.value.trim() || null,
@@ -3507,6 +3643,7 @@ async function handleTaskSubmit(e) {
             budget_amount: budgetAmount,
             procurement_tier: tier ? tier.id : null,
             completed_stages: JSON.stringify(completedStages),
+            na_stages: JSON.stringify(naStages),
             requires_contract: elements.taskRequiresContract?.checked ? 1 : 0,
             single_source_procurement: elements.taskSingleSource?.checked ? 1 : 0,
             linked_contract_id: elements.taskLinkedContract?.value ? parseInt(elements.taskLinkedContract.value) : null,
@@ -3683,16 +3820,24 @@ function getTaskProgress(task) {
     const budget = task.budget_amount || 0;
     if (budget <= 0) return 0;
 
-    const tier = getProcurementTier(budget);
+    const isSingleSource = task.single_source_procurement === 1;
+    const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE : getProcurementTier(budget);
     const stages = getTierStages(tier, task.requires_contract === 1);
     let completedStages = [];
+    let naStages = [];
     try {
         completedStages = JSON.parse(task.completed_stages || '[]');
     } catch (e) {
         completedStages = [];
     }
+    try {
+        naStages = JSON.parse(task.na_stages || '[]');
+    } catch (e) {
+        naStages = [];
+    }
 
-    return stages.length > 0 ? Math.round((completedStages.length / stages.length) * 100) : 0;
+    const applicableStagesCount = stages.length - naStages.length;
+    return applicableStagesCount > 0 ? Math.round((completedStages.length / applicableStagesCount) * 100) : 0;
 }
 
 // Sort tasks based on current sort setting
@@ -3737,22 +3882,30 @@ function sortTasks(tasks) {
 function updateTaskStatistics() {
     const total = state.tasks.length;
 
-    // Calculate based on completed stages - if all stages are checked, it's completed
+    // Calculate based on completed stages - if all applicable stages are checked, it's completed
     const completed = state.tasks.filter(t => {
         if (t.archived) return false;
         const budget = t.budget_amount || 0;
         if (budget <= 0) return false;
 
-        const tier = getProcurementTier(budget);
+        const isSingleSource = t.single_source_procurement === 1;
+        const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE : getProcurementTier(budget);
         const stages = getTierStages(tier, t.requires_contract === 1);
         let completedStages = [];
+        let naStages = [];
         try {
             completedStages = JSON.parse(t.completed_stages || '[]');
         } catch (e) {
             completedStages = [];
         }
+        try {
+            naStages = JSON.parse(t.na_stages || '[]');
+        } catch (e) {
+            naStages = [];
+        }
 
-        return completedStages.length >= stages.length;
+        const applicableStagesCount = stages.length - naStages.length;
+        return completedStages.length >= applicableStagesCount && applicableStagesCount > 0;
     }).length;
 
     const inProgress = total - completed;

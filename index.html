@@ -1049,6 +1049,14 @@
                             <label for="task-budget-amount">Budget Amount (G$) <span class="required">*</span></label>
                             <input type="number" id="task-budget-amount" step="0.01" min="0" placeholder="0.00" required onchange="handleBudgetChange()">
                         </div>
+                        <div class="form-group single-source-toggle">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="task-single-source" onchange="handleBudgetChange()">
+                                <span class="checkbox-custom"></span>
+                                <span>Single Source Procurement</span>
+                            </label>
+                            <span class="form-hint" style="font-size: 0.7rem; color: var(--color-text-muted); display: block; margin-top: 0.25rem;">For annual service contracts or sole providers</span>
+                        </div>
                         <div class="form-group">
                             <label for="task-assigned-person">Assigned Person</label>
                             <input type="text" id="task-assigned-person" placeholder="e.g., Andrew Hing">
@@ -1108,14 +1116,6 @@
                                 <span class="checkbox-custom"></span>
                                 <span>Is a contract necessary?</span>
                             </label>
-                        </div>
-                        <div class="form-group checkbox-group">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="task-single-source">
-                                <span class="checkbox-custom"></span>
-                                <span>Single Source Procurement</span>
-                            </label>
-                            <span class="form-hint" style="margin-left: 1.5rem; font-size: 0.75rem; color: var(--color-text-muted);">Check if this is a single source procurement (e.g., annual service contracts)</span>
                         </div>
                     </div>
 

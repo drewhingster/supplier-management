@@ -4009,6 +4009,27 @@ a:hover {
     background: var(--color-surface);
 }
 
+/* N/A Subtasks in expanded task row */
+.clickup-subtask.subtask-na {
+    opacity: 0.5;
+    background: var(--color-bg-tertiary);
+}
+
+.clickup-subtask.subtask-na .stage-name.na-text {
+    color: var(--color-text-muted);
+    text-decoration: line-through;
+}
+
+.clickup-subtask .na-badge {
+    font-size: 0.6875rem;
+    padding: 0.125rem 0.375rem;
+    background: var(--color-warning-light);
+    color: var(--color-warning);
+    border-radius: 4px;
+    font-weight: 500;
+    margin-left: 0.5rem;
+}
+
 /* Stage Checkbox */
 .stage-checkbox {
     display: flex;
@@ -4185,6 +4206,60 @@ a:hover {
     font-size: 0.6875rem;
     color: var(--color-accent);
     margin-left: 0.25rem;
+}
+
+/* N/A Toggle for Single Source Procurement Stages */
+.workflow-stage-item .na-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+    padding: 0.125rem 0.375rem;
+    background: var(--color-bg-tertiary);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.6875rem;
+}
+
+.workflow-stage-item .na-toggle:hover {
+    background: var(--color-bg-secondary);
+}
+
+.workflow-stage-item .na-checkbox {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.workflow-stage-item .na-label {
+    color: var(--color-text-muted);
+    font-weight: 500;
+    user-select: none;
+}
+
+/* Greyed out N/A stages */
+.workflow-stage-item.stage-na {
+    opacity: 0.5;
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-border-light);
+}
+
+.workflow-stage-item.stage-na .stage-checkbox {
+    cursor: not-allowed;
+}
+
+.workflow-stage-item.stage-na .stage-name {
+    text-decoration: line-through;
+    color: var(--color-text-muted);
+}
+
+.workflow-stage-item.stage-na .na-toggle {
+    background: var(--color-warning-light);
+}
+
+.workflow-stage-item.stage-na .na-label {
+    color: var(--color-warning);
 }
 
 /* Contract Toggle */

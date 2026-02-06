@@ -5153,8 +5153,28 @@ a:hover {
 
 /* Contracts view mobile adjustments */
 @media (max-width: 768px) {
+    /* Hide sidebar completely on contracts view */
+    .contracts-main > .sidebar {
+        display: none !important;
+    }
+
     .contracts-main {
         padding: 0.75rem;
+        padding-bottom: 0;
+    }
+
+    .contracts-main .contracts-grid {
+        padding: 0;
+        overflow-y: auto;
+        height: calc(100vh - 130px);
+    }
+
+    .contracts-main .grid-header {
+        margin-bottom: 0.75rem;
+    }
+
+    .contracts-main .grid-header h2 {
+        font-size: 1rem;
     }
 
     .contracts-container {
@@ -5167,18 +5187,158 @@ a:hover {
     }
 }
 
+/* Tasks view mobile adjustments - hide sidebar */
+@media (max-width: 768px) {
+    /* Hide sidebar completely on tasks view */
+    .tasks-main > .sidebar {
+        display: none !important;
+    }
+
+    .tasks-main {
+        padding: 0.5rem;
+        padding-bottom: 0;
+    }
+
+    .tasks-main .tasks-grid {
+        padding: 0;
+        overflow-y: auto;
+        height: calc(100vh - 130px);
+    }
+
+    .tasks-main .grid-header {
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .tasks-main .grid-header h2 {
+        font-size: 1rem;
+        width: 100%;
+    }
+
+    .tasks-main .grid-header-controls {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tasks-main .sort-control {
+        flex: 1;
+    }
+
+    .tasks-main .sort-control label {
+        display: none;
+    }
+
+    .tasks-main .sort-select {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.5rem;
+    }
+
+    .tasks-main .btn-primary {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+    }
+}
+
 /* Activity view mobile adjustments */
 @media (max-width: 768px) {
     .activity-main {
-        padding: 0.75rem;
+        padding: 0.5rem;
+        padding-bottom: 0;
     }
 
+    .activity-section {
+        height: calc(100vh - 130px);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .activity-header {
+        margin-bottom: 0.5rem;
+    }
+
+    .activity-header h2 {
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .activity-header h2 svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .activity-subtitle {
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Compact filters */
+    .activity-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+        background: var(--color-bg-secondary);
+        border-radius: 8px;
+    }
+
+    .activity-filters .filter-group {
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .activity-filters .filter-group label {
+        font-size: 0.625rem;
+        margin-bottom: 0.125rem;
+    }
+
+    .activity-filters .filter-group select {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.375rem;
+    }
+
+    .activity-filters .btn {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    /* Compact activity log table */
     .activity-log-container {
-        padding: 0.75rem;
+        padding: 0;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .activity-log-table {
+        font-size: 0.75rem;
+    }
+
+    .activity-log-table th,
+    .activity-log-table td {
+        padding: 0.375rem 0.5rem;
+    }
+
+    .activity-log-table th {
+        font-size: 0.625rem;
+    }
+
+    /* Make table scrollable horizontally if needed */
+    .activity-log-container {
+        overflow-x: auto;
+    }
+
+    .activity-log-table {
+        min-width: 400px;
     }
 
     .activity-item {
-        padding: 0.75rem;
+        padding: 0.5rem;
     }
 }
 

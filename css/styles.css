@@ -4651,17 +4651,25 @@ a:hover {
    Activity Log View
    ========================================================================== */
 .activity-main {
-    display: block;
+    display: flex;
+    flex-direction: column;
     padding: var(--space-xl);
     max-width: 1400px;
     margin: 0 auto;
+    height: calc(100vh - 80px); /* Full height minus app header */
+    box-sizing: border-box;
 }
 
 .activity-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Allow flex child to shrink below content size */
     background-color: white;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     padding: var(--space-xl);
+    overflow: hidden; /* Prevent section from scrolling, only table scrolls */
 }
 
 .activity-header {
@@ -4709,14 +4717,28 @@ a:hover {
 }
 
 .activity-table-wrapper {
-    overflow-x: auto;
-    margin-bottom: var(--space-lg);
+    flex: 1;
+    min-height: 0; /* Allow flex child to shrink */
+    overflow-y: auto; /* Vertical scroll for table */
+    overflow-x: auto; /* Horizontal scroll if needed */
+    margin-bottom: var(--space-md);
 }
 
 .activity-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
+}
+
+/* Make table header sticky when scrolling */
+.activity-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.activity-table thead th {
+    background-color: var(--color-bg-secondary);
 }
 
 .activity-table th,
@@ -5305,13 +5327,17 @@ a:hover {
     .activity-main {
         padding: 0.25rem;
         padding-bottom: 0;
+        height: calc(100vh - 130px); /* Full height minus header and bottom nav */
     }
 
     .activity-section {
-        height: calc(100vh - 130px);
-        overflow-y: auto;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
+        border-radius: var(--radius-sm);
+        padding: 0.5rem;
     }
 
     /* Hide header on mobile - already shown in app header */
@@ -5329,6 +5355,7 @@ a:hover {
         background: var(--color-bg-secondary);
         border-radius: 4px;
         align-items: center;
+        flex-shrink: 0; /* Don't shrink filters */
     }
 
     .activity-filters .filter-group {
@@ -5352,55 +5379,62 @@ a:hover {
         white-space: nowrap;
     }
 
-    /* Ultra-compact activity log table */
-    .activity-log-container {
-        padding: 0;
+    /* Table wrapper fills remaining space */
+    .activity-table-wrapper {
         flex: 1;
+        min-height: 0;
         overflow-y: auto;
+        overflow-x: auto;
+        margin-bottom: 0.25rem;
     }
 
-    .activity-log-table {
+    /* Ultra-compact activity table */
+    .activity-table {
         font-size: 0.625rem;
+        min-width: 400px;
     }
 
-    .activity-log-table th {
+    .activity-table th {
         font-size: 0.5rem;
         padding: 0.25rem 0.25rem;
         text-transform: uppercase;
+        position: sticky;
+        top: 0;
+        background-color: var(--color-bg-secondary);
+        z-index: 1;
     }
 
-    .activity-log-table td {
+    .activity-table td {
         padding: 0.25rem 0.25rem;
         line-height: 1.2;
     }
 
     /* Compact timestamp */
-    .activity-log-table td:first-child {
+    .activity-table td:first-child {
         font-size: 0.5rem;
         white-space: nowrap;
     }
 
     /* Action badges smaller */
-    .activity-log-table .badge {
+    .activity-table .audit-action {
         font-size: 0.5rem;
         padding: 0.0625rem 0.25rem;
     }
 
-    .activity-log-table th {
+    /* Compact pagination */
+    .activity-pagination {
+        flex-shrink: 0;
+        padding: 0.25rem 0;
+        gap: 0.5rem;
+    }
+
+    .activity-pagination .btn {
         font-size: 0.625rem;
+        padding: 0.25rem 0.5rem;
     }
 
-    /* Make table scrollable horizontally if needed */
-    .activity-log-container {
-        overflow-x: auto;
-    }
-
-    .activity-log-table {
-        min-width: 400px;
-    }
-
-    .activity-item {
-        padding: 0.5rem;
+    #activity-page-info {
+        font-size: 0.625rem;
     }
 }
 

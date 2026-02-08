@@ -1632,8 +1632,50 @@ async function handleSupplierSubmit(e) {
 
         closeSupplierModal(true); // Skip confirmation since we just saved
 
+        // If we were adding supplier from task modal, return to task modal with new supplier
+        if (addingSupplierFromTask && taskModalFormData) {
+            const newSupplierName = supplierName;
+
+            // Re-open task modal
+            elements.taskModal.classList.remove('hidden');
+
+            // Restore form data
+            if (elements.taskProjectCode) elements.taskProjectCode.value = taskModalFormData.projectCode;
+            if (elements.taskTitle) elements.taskTitle.value = taskModalFormData.title;
+            if (elements.taskBudgetAmount) elements.taskBudgetAmount.value = taskModalFormData.budgetAmount;
+            if (elements.taskContractSum) elements.taskContractSum.value = taskModalFormData.contractSum;
+            if (elements.taskAssignedPerson) elements.taskAssignedPerson.value = taskModalFormData.assignedPerson;
+            if (elements.taskPriority) elements.taskPriority.value = taskModalFormData.priority;
+            if (elements.taskStartDate) elements.taskStartDate.value = taskModalFormData.startDate;
+            if (elements.taskEndDate) elements.taskEndDate.value = taskModalFormData.endDate;
+            if (elements.taskExpectedCompletion) elements.taskExpectedCompletion.value = taskModalFormData.expectedCompletionDate;
+            if (elements.taskRemarks) elements.taskRemarks.value = taskModalFormData.remarks;
+            if (elements.taskRequiresContract) elements.taskRequiresContract.checked = taskModalFormData.requiresContract;
+            if (elements.taskSingleSource) elements.taskSingleSource.checked = taskModalFormData.singleSource;
+            if (elements.taskLinkedContract) elements.taskLinkedContract.value = taskModalFormData.linkedContractId;
+            if (elements.taskApprover) elements.taskApprover.value = taskModalFormData.approver;
+            if (elements.taskAwardNumber) elements.taskAwardNumber.value = taskModalFormData.awardNumber;
+
+            // Trigger budget change to update tier if needed
+            if (taskModalFormData.budgetAmount) {
+                handleBudgetChange();
+            }
+
+            // Repopulate contractor dropdown and select the new supplier
+            await populateContractorDropdown(newSupplierName);
+
+            // Reset state
+            addingSupplierFromTask = false;
+            taskModalFormData = null;
+
+            showToast(`Supplier "${newSupplierName}" added and selected`);
+        }
+
     } catch (error) {
         showToast(error.message || 'Failed to save supplier', 'error');
+        // Reset state on error too
+        addingSupplierFromTask = false;
+        taskModalFormData = null;
     } finally {
         submitBtn.disabled = false;
         spinner?.classList.add('hidden');
@@ -2734,6 +2776,15 @@ async function handleStageToggle(taskId, stageId, isChecked) {
         completedStages = completedStages.filter(id => id !== stageId);
     }
 
+    // Check if all non-N/A stages are now complete (for auto-archive)
+    const applicableStages = stages.filter(s => !naStages.includes(s.id));
+    const completedApplicableStages = completedStages.filter(id => !naStages.includes(id));
+    const allStagesComplete = applicableStages.length > 0 &&
+                               completedApplicableStages.length === applicableStages.length;
+
+    // Determine if we should auto-archive (only if not already archived)
+    const shouldAutoArchive = allStagesComplete && !task.archived;
+
     try {
         // Send full task data with updated completed_stages
         const updatedTaskData = {
@@ -2757,13 +2808,17 @@ async function handleStageToggle(taskId, stageId, isChecked) {
             start_date: task.start_date || null,
             end_date: task.end_date || null,
             expected_completion_date: task.expected_completion_date || null,
-            archived: task.archived || 0
+            archived: shouldAutoArchive ? 1 : (task.archived || 0)
         };
 
         await api.updateTask(taskId, updatedTaskData);
 
         // Update local state
         task.completed_stages = JSON.stringify(completedStages);
+        if (shouldAutoArchive) {
+            task.archived = 1;
+            showToast('✅ Task completed and automatically archived!', 'success');
+        }
 
         // Re-render to update progress but keep the row expanded
         renderTasksKeepExpanded(taskId);
@@ -3575,6 +3630,18 @@ async function populateContractorDropdown(selectedValue = '') {
         // Sort suppliers alphabetically by name
         suppliers.sort((a, b) => a.name.localeCompare(b.name));
 
+        // Add "Add New Supplier" option at the top
+        const addNewOption = document.createElement('option');
+        addNewOption.value = '__ADD_NEW_SUPPLIER__';
+        addNewOption.textContent = '➕ Add New Supplier...';
+        dropdown.appendChild(addNewOption);
+
+        // Add separator
+        const separator = document.createElement('option');
+        separator.disabled = true;
+        separator.textContent = '──────────────';
+        dropdown.appendChild(separator);
+
         // Add supplier options
         suppliers.forEach(supplier => {
             const option = document.createElement('option');
@@ -3587,6 +3654,10 @@ async function populateContractorDropdown(selectedValue = '') {
         if (selectedValue) {
             dropdown.value = selectedValue;
         }
+
+        // Add change listener for "Add New Supplier" option
+        dropdown.removeEventListener('change', handleContractorDropdownChange);
+        dropdown.addEventListener('change', handleContractorDropdownChange);
     } catch (error) {
         console.error('Failed to load suppliers for dropdown:', error);
         // Add the selected value as an option even if loading fails
@@ -3598,6 +3669,51 @@ async function populateContractorDropdown(selectedValue = '') {
             dropdown.value = selectedValue;
         }
     }
+}
+
+// Handle contractor dropdown change - open supplier modal if "Add New" selected
+function handleContractorDropdownChange(e) {
+    if (e.target.value === '__ADD_NEW_SUPPLIER__') {
+        e.target.value = ''; // Reset selection
+        openSupplierModalFromTask();
+    }
+}
+
+// State to track if we're adding supplier from task modal
+let addingSupplierFromTask = false;
+let taskModalFormData = null;
+
+// Open supplier modal from task modal
+function openSupplierModalFromTask() {
+    // Save current task modal form data
+    taskModalFormData = {
+        projectCode: elements.taskProjectCode?.value || '',
+        title: elements.taskTitle?.value || '',
+        budgetAmount: elements.taskBudgetAmount?.value || '',
+        contractSum: elements.taskContractSum?.value || '',
+        assignedPerson: elements.taskAssignedPerson?.value || '',
+        priority: elements.taskPriority?.value || 'Normal',
+        startDate: elements.taskStartDate?.value || '',
+        endDate: elements.taskEndDate?.value || '',
+        expectedCompletionDate: elements.taskExpectedCompletion?.value || '',
+        remarks: elements.taskRemarks?.value || '',
+        requiresContract: elements.taskRequiresContract?.checked || false,
+        singleSource: elements.taskSingleSource?.checked || false,
+        linkedContractId: elements.taskLinkedContract?.value || '',
+        approver: elements.taskApprover?.value || '',
+        awardNumber: elements.taskAwardNumber?.value || ''
+    };
+
+    addingSupplierFromTask = true;
+
+    // Hide task modal temporarily
+    elements.taskModal.classList.add('hidden');
+
+    // Open supplier modal
+    openSupplierModal(null);
+
+    // Update supplier modal title to indicate context
+    elements.supplierModalTitle.textContent = 'Add New Supplier (from Task)';
 }
 
 function closeTaskModal(skipConfirm = false) {

@@ -900,8 +900,9 @@ function getAlertKey(alert) {
 
 // Check if a specific alert is acknowledged
 function isAlertAcknowledged(supplierId, alertKey) {
+    // Use == for type coercion since supplier_id might be string from DB
     return state.acknowledgedAlerts.some(
-        a => a.supplier_id === supplierId && a.alert_type === alertKey
+        a => String(a.supplier_id) === String(supplierId) && a.alert_type === alertKey
     );
 }
 
@@ -917,6 +918,7 @@ async function loadAcknowledgedAlerts() {
     try {
         const response = await api.getAcknowledgedAlerts();
         state.acknowledgedAlerts = response.acknowledged || [];
+        console.log('Loaded acknowledged alerts:', state.acknowledgedAlerts);
     } catch (error) {
         console.error('Failed to load acknowledged alerts:', error);
         state.acknowledgedAlerts = [];
@@ -1051,13 +1053,19 @@ window.toggleAcknowledgedSection = function() {
 // Acknowledge all alerts for a supplier
 window.acknowledgeSupplierAlerts = async function(supplierId) {
     const supplier = state.suppliers.find(s => s.id === supplierId);
-    if (!supplier || !supplier.alert_details) return;
+    console.log('Acknowledging alerts for supplier:', supplierId, supplier?.name, 'alerts:', supplier?.alert_details);
+    if (!supplier || !supplier.alert_details) {
+        console.log('No supplier or alert_details found');
+        return;
+    }
 
     try {
         // Acknowledge each alert for this supplier
         for (const alert of supplier.alert_details) {
             const alertKey = getAlertKey(alert);
-            await api.acknowledgeAlert(supplierId, alertKey);
+            console.log('Acknowledging alert:', supplierId, alertKey);
+            const response = await api.acknowledgeAlert(supplierId, alertKey);
+            console.log('Acknowledge response:', response);
             // Add to local state
             if (!isAlertAcknowledged(supplierId, alertKey)) {
                 state.acknowledgedAlerts.push({
@@ -1066,6 +1074,7 @@ window.acknowledgeSupplierAlerts = async function(supplierId) {
                 });
             }
         }
+        console.log('Updated acknowledgedAlerts state:', state.acknowledgedAlerts);
         updateNotifications();
         showToast('Alert acknowledged', 'success');
     } catch (error) {

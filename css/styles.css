@@ -2943,9 +2943,8 @@ a:hover {
 
 .tasks-table-container {
     background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
     overflow-x: auto;
+    /* No border/box on mobile - let tasks flow naturally */
 }
 
 .tasks-table {
@@ -3620,14 +3619,8 @@ a:hover {
 /* ClickUp List Container */
 .clickup-list-container {
     background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-/* ClickUp List Container - allow horizontal scroll on small screens */
-.clickup-list-container {
     overflow-x: auto;
+    /* No border/box - let tasks flow naturally */
 }
 
 /* ClickUp List Header */
@@ -3770,9 +3763,8 @@ a:hover {
 
 /* ClickUp List Body */
 .clickup-list-body {
-    max-height: calc(100vh - 280px);
-    overflow-y: auto;
     min-width: 1000px;
+    /* No max-height - let it scroll naturally with the page */
 }
 
 /* ClickUp Task Row */
@@ -5218,18 +5210,18 @@ a:hover {
 
     .tasks-main {
         padding: 0.25rem;
-        padding-bottom: 0;
+        padding-bottom: 70px; /* Space for bottom nav */
     }
 
     .tasks-main .tasks-grid {
         padding: 0;
-        overflow-y: auto;
-        height: calc(100vh - 130px);
+        /* No height constraint - let page scroll naturally */
     }
 
     .tasks-main .grid-header {
         margin-bottom: 0.25rem;
         padding: 0.25rem;
+        background: white; /* Solid background */
     }
 
     .tasks-main .grid-header h2 {
@@ -5262,14 +5254,23 @@ a:hover {
         padding: 0.25rem 0.5rem;
     }
 
+    /* Remove box styling from container */
+    .clickup-list-container {
+        border: none;
+        border-radius: 0;
+        background: white;
+    }
+
     /* Ultra-compact task cards */
     .clickup-task-main {
         padding: 0.5rem !important;
         gap: 0.25rem !important;
+        background: white; /* Solid background */
     }
 
     .clickup-task-row {
         border-bottom: 1px solid var(--color-border-light);
+        background: white; /* Solid background */
     }
 
     .clickup-task-name {

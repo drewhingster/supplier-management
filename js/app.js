@@ -936,6 +936,11 @@ function updateNotifications() {
         elements.notificationBadge.classList.toggle('hidden', unacknowledgedCount === 0);
     }
 
+    // Toggle bell shake animation when there are unacknowledged alerts
+    if (elements.notificationBtn) {
+        elements.notificationBtn.classList.toggle('has-alerts', unacknowledgedCount > 0);
+    }
+
     if (elements.needsAttention) {
         elements.needsAttention.textContent = unacknowledgedCount;
     }

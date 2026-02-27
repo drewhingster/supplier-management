@@ -1867,7 +1867,7 @@ async function acknowledgeAlert(request, env, currentUser) {
         await env.DB.prepare(`
             INSERT OR REPLACE INTO acknowledged_alerts (supplier_id, alert_type, acknowledged_by, acknowledged_at)
             VALUES (?, ?, ?, datetime('now'))
-        `).bind(supplier_id, alert_type, currentUser.name).run();
+        `).bind(supplier_id, alert_type, currentUser.fullName).run();
 
         return jsonResponse({ success: true, message: 'Alert acknowledged' });
     } catch (error) {

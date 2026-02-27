@@ -220,7 +220,7 @@ const state = {
         search: '', // search by task name
         sort: 'date-desc' // default sort
     },
-    viewMode: 'grid'
+    viewMode: 'list'
 };
 
 // ==================== DOM Elements ====================

@@ -892,28 +892,63 @@ a:hover {
 /* List View Adjustments */
 .suppliers-container.list-view .supplier-card {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: minmax(180px, 1.2fr) auto minmax(160px, 1fr) minmax(100px, 0.6fr) auto auto;
     align-items: center;
-    gap: var(--space-xl);
+    gap: var(--space-md) var(--space-lg);
     padding: var(--space-md) var(--space-lg);
+}
+
+.suppliers-container.list-view .supplier-card:hover {
+    transform: translateY(-1px);
 }
 
 .suppliers-container.list-view .supplier-card-header {
     margin-bottom: 0;
+    gap: var(--space-sm);
+}
+
+.suppliers-container.list-view .supplier-name {
+    font-size: 0.9375rem;
 }
 
 .suppliers-container.list-view .supplier-category {
     margin-bottom: 0;
+    white-space: nowrap;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .suppliers-container.list-view .supplier-meta {
-    display: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.8rem;
+    min-width: 0;
+}
+
+.suppliers-container.list-view .supplier-meta-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suppliers-container.list-view .supplier-meta-item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suppliers-container.list-view .compliance-warnings {
+    display: flex;
+    gap: 4px;
+    flex-wrap: nowrap;
 }
 
 .suppliers-container.list-view .supplier-documents {
     margin-top: 0;
     padding-top: 0;
     border-top: none;
+    gap: 4px;
 }
 
 /* Empty State */
@@ -5075,6 +5110,12 @@ a:hover {
     .suppliers-container.grid-view {
         grid-template-columns: 1fr;
         gap: 0.75rem;
+    }
+
+    /* List view stacks on mobile */
+    .suppliers-container.list-view .supplier-card {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
     }
 
     /* Compact supplier cards */

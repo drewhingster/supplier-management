@@ -190,7 +190,7 @@ const state = {
     contracts: [],
     tasks: [],
     acknowledgedAlerts: [], // { supplier_id, alert_type, acknowledged_by, acknowledged_at }
-    acknowledgedSectionOpen: false,
+    acknowledgedSectionOpen: true,
     currentSupplier: null,
     currentContract: null,
     currentTask: null,
@@ -1085,6 +1085,35 @@ window.acknowledgeSupplierAlerts = async function(supplierId) {
     } catch (error) {
         console.error('Failed to acknowledge alert:', error);
         showToast('Failed to acknowledge alert', 'error');
+    }
+};
+
+// Read all (acknowledge all) unacknowledged alerts
+window.readAllAlerts = async function() {
+    const unacknowledgedSuppliers = state.suppliers.filter(s => s.alert_level !== null && !isSupplierFullyAcknowledged(s));
+    if (unacknowledgedSuppliers.length === 0) {
+        showToast('No new alerts to mark as read', 'info');
+        return;
+    }
+
+    try {
+        for (const supplier of unacknowledgedSuppliers) {
+            for (const alert of (supplier.alert_details || [])) {
+                const alertKey = getAlertKey(alert);
+                if (!isAlertAcknowledged(supplier.id, alertKey)) {
+                    await api.acknowledgeAlert(supplier.id, alertKey);
+                    state.acknowledgedAlerts.push({
+                        supplier_id: supplier.id,
+                        alert_type: alertKey
+                    });
+                }
+            }
+        }
+        updateNotifications();
+        showToast(`Marked ${unacknowledgedSuppliers.length} alert(s) as read`, 'success');
+    } catch (error) {
+        console.error('Failed to read all alerts:', error);
+        showToast('Failed to mark all as read', 'error');
     }
 };
 

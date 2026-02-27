@@ -1978,6 +1978,12 @@ a:hover {
     overflow: hidden;
 }
 
+.notification-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
 .notification-panel.hidden {
     display: none;
 }
@@ -2003,6 +2009,25 @@ a:hover {
 
 .notification-panel-header h3 svg {
     color: var(--color-warning, #f59e0b);
+}
+
+.notification-read-all-btn {
+    background: none;
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.notification-read-all-btn:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
 }
 
 .notification-close {

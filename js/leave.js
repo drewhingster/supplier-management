@@ -14,13 +14,12 @@ const LeaveManager = {
     saveLeaveRecords(records) { localStorage.setItem(this.LEAVE_RECORDS_KEY, JSON.stringify(records)); },
     getDefaultStaff() {
         return [
-            { id: 1, name: 'Andrew Hing', designation: 'Statistician II', leaveEntitlement: 42, contractStart: '2025-04-04', contractEnd: '2028-04-03', leave2023_2024: 0, leave2024_2025: 27.5, leave2025_2026: 0, totalAnnualLeave: 27.5, anniversaryDate: '' },
-            { id: 2, name: 'Ryan Shim', designation: 'Statistician II', leaveEntitlement: 42, contractStart: '2023-06-27', contractEnd: '2026-06-26', leave2023_2024: 0, leave2024_2025: 28.5, leave2025_2026: 0, totalAnnualLeave: 28.5, anniversaryDate: '' },
-            { id: 3, name: 'Basmattie Roopchand', designation: 'Statistician', leaveEntitlement: 42, contractStart: '2024-08-14', contractEnd: '2027-08-13', leave2023_2024: 0, leave2024_2025: 22, leave2025_2026: 0, totalAnnualLeave: 22, anniversaryDate: '' },
-            { id: 4, name: 'Nicholas Brown', designation: 'Senior Research Assistant', leaveEntitlement: 28, contractStart: '2025-08-23', contractEnd: '2028-08-22', leave2023_2024: 0, leave2024_2025: 26.5, leave2025_2026: 0, totalAnnualLeave: 26.5, anniversaryDate: '' },
-            { id: 5, name: 'Japheth Sankar', designation: 'Senior Research Assistant', leaveEntitlement: 28, contractStart: '2023-06-01', contractEnd: '2026-05-31', leave2023_2024: 0, leave2024_2025: 25, leave2025_2026: 0, totalAnnualLeave: 25, anniversaryDate: '' },
-            { id: 6, name: 'Rashad Phagu', designation: 'Senior Research Assistant', leaveEntitlement: 28, contractStart: '2025-05-19', contractEnd: '2026-05-18', leave2023_2024: 0, leave2024_2025: 0, leave2025_2026: -1, totalAnnualLeave: -1, anniversaryDate: '' },
-            { id: 7, name: 'Jonathan Yong', designation: 'Data Editor', leaveEntitlement: 21, contractStart: '2025-12-01', contractEnd: '2026-11-30', leave2023_2024: 0, leave2024_2025: 0, leave2025_2026: 0, totalAnnualLeave: 0, anniversaryDate: '' }
+            { id: 1, name: 'Andrew Hing', designation: 'Statistician II', leaveEntitlement: 42, contractStart: '2023-06-27', contractEnd: '2026-06-26', leave2023_2024: 0, leave2024_2025: 28.5, leave2025_2026: 0, totalAnnualLeave: 28.5, anniversaryDate: '' },
+            { id: 2, name: 'Ryan Shim', designation: 'Statistician', leaveEntitlement: 42, contractStart: '2024-08-14', contractEnd: '2027-08-13', leave2023_2024: 0, leave2024_2025: 22, leave2025_2026: 0, totalAnnualLeave: 22, anniversaryDate: '' },
+            { id: 3, name: 'Nicholas Brown', designation: 'Senior Research Assistant', leaveEntitlement: 28, contractStart: '2025-08-23', contractEnd: '2028-08-22', leave2023_2024: 0, leave2024_2025: 26.5, leave2025_2026: 0, totalAnnualLeave: 26.5, anniversaryDate: '' },
+            { id: 4, name: 'Japheth Sankar', designation: 'Senior Research Assistant', leaveEntitlement: 28, contractStart: '2023-06-01', contractEnd: '2026-05-31', leave2023_2024: 0, leave2024_2025: 25, leave2025_2026: 0, totalAnnualLeave: 25, anniversaryDate: '' },
+            { id: 5, name: 'Rashad Phagu', designation: 'Senior Research Assistant', leaveEntitlement: 28, contractStart: '2025-05-19', contractEnd: '2026-05-18', leave2023_2024: 0, leave2024_2025: 0, leave2025_2026: -1, totalAnnualLeave: -1, anniversaryDate: '' },
+            { id: 6, name: 'Jonathan Yong', designation: 'Data Editor', leaveEntitlement: 21, contractStart: '2025-12-01', contractEnd: '2026-11-30', leave2023_2024: 0, leave2024_2025: 0, leave2025_2026: 0, totalAnnualLeave: 0, anniversaryDate: '' }
         ];
     },
     nextId() { const s = this.getStaff(); return s.length > 0 ? Math.max(...s.map(x => x.id)) + 1 : 1; },

@@ -163,7 +163,7 @@ function renderLeaveTable() {
     tbody.innerHTML = staff.map(function(s, idx) {
         var recs = LeaveManager.getStaffLeaveRecords(s.id);
         var used = recs.reduce(function(a,r){return a+r.daysTaken;},0), n=leaveEsc(s.name);
-        var remaining = s.leaveEntitlement - used;
+        var remaining = (s.totalAnnualLeave || 0) - used;
         var remainingClass = 'leave-remaining' + (remaining <= 0 ? ' leave-remaining-red' : '');
         return '<tr draggable="true" data-staff-index="'+idx+'">' +
         '<td class="leave-drag-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="14" height="14"><circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="18" r="1.5" fill="currentColor"/><circle cx="15" cy="18" r="1.5" fill="currentColor"/></svg></td>' +

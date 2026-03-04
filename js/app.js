@@ -1722,11 +1722,36 @@ async function handleSupplierSubmit(e) {
             showToast(`Supplier "${newSupplierName}" added and selected`);
         }
 
+        // If we were adding supplier from contract modal, return to contract modal with new supplier
+        if (addingSupplierFromContract && contractModalFormData) {
+            // Re-open contract modal
+            elements.contractModal.classList.remove('hidden');
+            elements.contractModalTitle.textContent = 'Add New Contract';
+
+            // Populate dropdown with new supplier selected
+            populateContractSupplierDropdown(supplierId);
+
+            // Restore form data
+            if (elements.contractNumber) elements.contractNumber.value = contractModalFormData.contractNumber;
+            if (elements.contractDescription) elements.contractDescription.value = contractModalFormData.description;
+            if (elements.contractAmount) elements.contractAmount.value = contractModalFormData.amount;
+            if (elements.contractStartDate) elements.contractStartDate.value = contractModalFormData.startDate;
+            if (elements.contractEndDate) elements.contractEndDate.value = contractModalFormData.endDate;
+
+            // Reset state
+            addingSupplierFromContract = false;
+            contractModalFormData = null;
+
+            showToast(`Supplier "${supplierName}" added and selected`);
+        }
+
     } catch (error) {
         showToast(error.message || 'Failed to save supplier', 'error');
         // Reset state on error too
         addingSupplierFromTask = false;
         taskModalFormData = null;
+        addingSupplierFromContract = false;
+        contractModalFormData = null;
     } finally {
         submitBtn.disabled = false;
         spinner?.classList.add('hidden');
@@ -2094,15 +2119,36 @@ function handleContractSupplierFilter() {
     loadContracts();
 }
 
-function populateContractSupplierDropdown() {
+function populateContractSupplierDropdown(selectedSupplierId = null) {
     const select = elements.contractSupplier;
     const filter = elements.contractSupplierFilter;
 
     if (select) {
         select.innerHTML = '<option value="">Select Supplier</option>';
+        // Add "Add New Supplier" option
+        const addNewOption = document.createElement('option');
+        addNewOption.value = '__ADD_NEW_SUPPLIER__';
+        addNewOption.textContent = '➕ Add New Supplier...';
+        select.appendChild(addNewOption);
+        const separator = document.createElement('option');
+        separator.disabled = true;
+        separator.textContent = '──────────────';
+        select.appendChild(separator);
+
         state.suppliers.forEach(supplier => {
-            select.innerHTML += `<option value="${supplier.id}">${escapeHtml(supplier.name)}</option>`;
+            const opt = document.createElement('option');
+            opt.value = supplier.id;
+            opt.textContent = supplier.name;
+            select.appendChild(opt);
         });
+
+        if (selectedSupplierId) {
+            select.value = selectedSupplierId;
+        }
+
+        // Add change listener
+        select.removeEventListener('change', handleContractSupplierDropdownChange);
+        select.addEventListener('change', handleContractSupplierDropdownChange);
     }
 
     if (filter) {
@@ -2111,6 +2157,37 @@ function populateContractSupplierDropdown() {
             filter.innerHTML += `<option value="${supplier.id}">${escapeHtml(supplier.name)}</option>`;
         });
     }
+}
+
+// State to track if we're adding supplier from contract modal
+let addingSupplierFromContract = false;
+let contractModalFormData = null;
+
+function handleContractSupplierDropdownChange(e) {
+    if (e.target.value === '__ADD_NEW_SUPPLIER__') {
+        e.target.value = '';
+        openSupplierModalFromContract();
+    }
+}
+
+function openSupplierModalFromContract() {
+    // Save current contract modal form data
+    contractModalFormData = {
+        contractNumber: elements.contractNumber?.value || '',
+        description: elements.contractDescription?.value || '',
+        amount: elements.contractAmount?.value || '',
+        startDate: elements.contractStartDate?.value || '',
+        endDate: elements.contractEndDate?.value || ''
+    };
+
+    addingSupplierFromContract = true;
+
+    // Hide contract modal temporarily
+    elements.contractModal.classList.add('hidden');
+
+    // Open supplier modal
+    openSupplierModal(null);
+    elements.supplierModalTitle.textContent = 'Add New Supplier (from Contract)';
 }
 
 function openContractModal(contract = null) {

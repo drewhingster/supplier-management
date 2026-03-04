@@ -148,7 +148,8 @@ let currentEditStaffId = null;
 let currentLeaveStaffId = null;
 function leaveEsc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function leaveFmtDate(ds) {
-    if (!ds) return '-'; const d = new Date(ds);
+    if (!ds) return '-'; var str = String(ds); if (str.length === 10) str += 'T00:00:00';
+    var d = new Date(str);
     return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear();
 }
 

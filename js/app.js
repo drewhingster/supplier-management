@@ -2478,7 +2478,9 @@ function hasDocument(documents, docType) {
 
 function formatDate(dateString) {
     if (!dateString) return '-';
-    const date = new Date(dateString);
+    let str = String(dateString);
+    if (str.length === 10) str += 'T00:00:00';
+    const date = new Date(str);
     return date.toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'long',
@@ -2652,7 +2654,8 @@ function createTaskRow(task) {
     // Format dates
     const formatDate = (dateStr) => {
         if (!dateStr) return '-';
-        const date = new Date(dateStr);
+        let s = String(dateStr); if (s.length === 10) s += 'T00:00:00';
+        const date = new Date(s);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
     const startDate = formatDate(task.start_date);

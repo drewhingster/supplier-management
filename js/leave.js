@@ -160,7 +160,7 @@ let leaveDragSrcIndex = null;
 function renderLeaveTable() {
     const staff = LeaveManager.getStaff(), tbody = document.getElementById('leave-table-body');
     if (!tbody) return;
-    if (!staff.length) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px;color:#7a7a72;">No staff yet. Click Add Staff.</td></tr>'; return; }
+    if (!staff.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:20px;color:#7a7a72;">No staff yet. Click Add Staff.</td></tr>'; return; }
     tbody.innerHTML = staff.map(function(s, idx) {
         var recs = LeaveManager.getStaffLeaveRecords(s.id);
         var used = recs.reduce(function(a,r){return a+r.daysTaken;},0), n=leaveEsc(s.name);
@@ -174,7 +174,7 @@ function renderLeaveTable() {
         '<td class="text-center">'+s.leave2024_2025+'</td><td class="text-center">'+s.leave2025_2026+'</td>' +
         '<td class="text-center">'+used+'</td>' +
         '<td class="text-center '+remainingClass+'">'+remaining+'</td>' +
-        '<td>'+(s.anniversaryDate?leaveFmtDate(s.anniversaryDate):'-')+'</td>' +
+
         '<td class="leave-actions-cell">' +
         '<button class="btn-icon-sm" title="Record Leave" onclick="openRecordLeaveModal('+s.id+')"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>' +
         '<button class="btn-icon-sm" title="View History" onclick="openLeaveHistoryModal('+s.id+')"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>' +

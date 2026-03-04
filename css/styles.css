@@ -5711,6 +5711,73 @@ a:hover {
     justify-content: center;
 }
 
+.leave-drag-header {
+    width: 30px;
+    padding: 0 !important;
+}
+
+.leave-drag-handle {
+    width: 30px;
+    text-align: center;
+    cursor: grab;
+    color: var(--color-text-muted);
+    user-select: none;
+    padding: 0.5rem 0.25rem !important;
+}
+
+.leave-drag-handle:active {
+    cursor: grabbing;
+}
+
+.leave-drag-handle:hover {
+    color: var(--color-primary);
+}
+
+.leave-row-dragging {
+    opacity: 0.4;
+    background: var(--color-bg) !important;
+}
+
+.leave-row-dragover {
+    border-top: 2px solid var(--color-primary) !important;
+}
+
+/* Record Leave Modal */
+.leave-record-modal-content {
+    max-width: 460px;
+    padding: 0;
+}
+
+.leave-record-staff-info {
+    padding: 0 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.leave-record-balance {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
+.leave-record-form {
+    padding: 0 1.5rem;
+}
+
+.leave-record-actions {
+    display: flex;
+    gap: var(--space-sm);
+    padding: 1rem 1.5rem 1.5rem;
+}
+
+/* Leave History Modal */
+.leave-history-modal-content {
+    max-width: 680px;
+    padding: 0;
+}
+
+.leave-history-table-wrapper {
+    padding: 0 1.5rem;
+}
+
 .btn-icon-sm {
     display: inline-flex;
     align-items: center;

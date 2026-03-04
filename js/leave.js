@@ -1,8 +1,20 @@
 ﻿// Leave Management System - Bureau of Statistics
+// Bump DATA_VERSION whenever you update getDefaultStaff() so deployed changes take effect
 const LeaveManager = {
     STORAGE_KEY: 'bos_leave_staff',
     LEAVE_RECORDS_KEY: 'bos_leave_records',
+    VERSION_KEY: 'bos_leave_data_version',
+    DATA_VERSION: 2,
+    checkVersion() {
+        const stored = parseInt(localStorage.getItem(this.VERSION_KEY) || '0');
+        if (stored < this.DATA_VERSION) {
+            localStorage.removeItem(this.STORAGE_KEY);
+            localStorage.removeItem(this.LEAVE_RECORDS_KEY);
+            localStorage.setItem(this.VERSION_KEY, this.DATA_VERSION.toString());
+        }
+    },
     getStaff() {
+        this.checkVersion();
         const data = localStorage.getItem(this.STORAGE_KEY);
         return data ? JSON.parse(data) : this.getDefaultStaff();
     },
@@ -60,15 +72,20 @@ function leaveFmtDate(ds) {
     return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear();
 }
 
+// Drag-and-drop state
+let leaveDragSrcIndex = null;
+
 // Render Main Table
 function renderLeaveTable() {
     const staff = LeaveManager.getStaff(), tbody = document.getElementById('leave-table-body');
     if (!tbody) return;
-    if (!staff.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:20px;color:#7a7a72;">No staff yet. Click Add Staff.</td></tr>'; return; }
-    tbody.innerHTML = staff.map(function(s) {
+    if (!staff.length) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px;color:#7a7a72;">No staff yet. Click Add Staff.</td></tr>'; return; }
+    tbody.innerHTML = staff.map(function(s, idx) {
         var recs = LeaveManager.getStaffLeaveRecords(s.id);
         var used = recs.reduce(function(a,r){return a+r.daysTaken;},0), n=leaveEsc(s.name);
-        return '<tr><td class="leave-name-cell">'+n+'</td><td>'+leaveEsc(s.designation)+'</td>' +
+        return '<tr draggable="true" data-staff-index="'+idx+'">' +
+        '<td class="leave-drag-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="14" height="14"><circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="18" r="1.5" fill="currentColor"/><circle cx="15" cy="18" r="1.5" fill="currentColor"/></svg></td>' +
+        '<td class="leave-name-cell">'+n+'</td><td>'+leaveEsc(s.designation)+'</td>' +
         '<td class="text-center">'+s.leaveEntitlement+'</td><td>'+leaveFmtDate(s.contractStart)+'</td>' +
         '<td>'+leaveFmtDate(s.contractEnd)+'</td><td class="text-center">'+s.leave2023_2024+'</td>' +
         '<td class="text-center">'+s.leave2024_2025+'</td><td class="text-center">'+s.leave2025_2026+'</td>' +
@@ -81,6 +98,46 @@ function renderLeaveTable() {
         '<button class="btn-icon-sm btn-danger-sm" title="Remove" onclick="confirmRemoveStaff('+s.id+')"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>' +
         '</td></tr>';
     }).join('');
+    initLeaveDragAndDrop();
+}
+
+// Drag-and-drop reordering
+function initLeaveDragAndDrop() {
+    var tbody = document.getElementById('leave-table-body');
+    if (!tbody) return;
+    var rows = tbody.querySelectorAll('tr[draggable="true"]');
+    rows.forEach(function(row) {
+        row.addEventListener('dragstart', function(e) {
+            leaveDragSrcIndex = parseInt(this.getAttribute('data-staff-index'));
+            this.classList.add('leave-row-dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', leaveDragSrcIndex);
+        });
+        row.addEventListener('dragend', function() {
+            this.classList.remove('leave-row-dragging');
+            tbody.querySelectorAll('tr').forEach(function(r) { r.classList.remove('leave-row-dragover'); });
+        });
+        row.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.classList.add('leave-row-dragover');
+        });
+        row.addEventListener('dragleave', function() {
+            this.classList.remove('leave-row-dragover');
+        });
+        row.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('leave-row-dragover');
+            var targetIndex = parseInt(this.getAttribute('data-staff-index'));
+            if (leaveDragSrcIndex === null || leaveDragSrcIndex === targetIndex) return;
+            var staff = LeaveManager.getStaff();
+            var moved = staff.splice(leaveDragSrcIndex, 1)[0];
+            staff.splice(targetIndex, 0, moved);
+            LeaveManager.saveStaff(staff);
+            leaveDragSrcIndex = null;
+            renderLeaveTable();
+        });
+    });
 }
 
 // Staff Modal Functions
@@ -232,12 +289,7 @@ function printLeaveRoster() {
         return '<tr>' + cells + '</tr>';
     }).join('');
 
-    // Add empty rows for writing in manually (like the paper form)
-    for (var e = 0; e < 5; e++) {
-        rows += '<tr><td class="roster-name">&nbsp;</td><td class="roster-desig">&nbsp;</td>';
-        for (var j = 0; j < 12; j++) rows += '<td class="roster-month-cell">&nbsp;</td>';
-        rows += '</tr>';
-    }
+
 
     var monthHeaders = months.map(function(m) { return '<th class="roster-month-header">' + m + '</th>'; }).join('');
 

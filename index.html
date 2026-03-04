@@ -734,6 +734,7 @@
                         <table class="leave-table">
                             <thead>
                                 <tr>
+                                    <th class="leave-drag-header"></th>
                                     <th>Name</th>
                                     <th>Designation</th>
                                     <th class="text-center">Leave Entitlement</th>
@@ -1499,18 +1500,18 @@
 
     <!-- Record Leave Modal -->
     <div id="record-leave-modal" class="modal hidden">
-        <div class="modal-content" style="max-width:460px;">
+        <div class="modal-content leave-record-modal-content">
             <div class="modal-header">
                 <h2>Record Leave</h2>
                 <button class="modal-close" onclick="closeRecordLeaveModal()">
                     <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                 </button>
             </div>
-            <div style="padding:0 1.5rem;margin-bottom:0.75rem;">
+            <div class="leave-record-staff-info">
                 <strong id="record-leave-staff-name"></strong>
-                <div id="record-leave-balance" style="color:var(--color-text-muted);font-size:0.85rem;"></div>
+                <div id="record-leave-balance" class="leave-record-balance"></div>
             </div>
-            <form id="record-leave-form" onsubmit="handleRecordLeaveSubmit(event)">
+            <form id="record-leave-form" onsubmit="handleRecordLeaveSubmit(event)" class="leave-record-form">
                 <div class="form-row two-col">
                     <div class="form-group"><label for="leave-start-date">Start Date</label><input type="date" id="leave-start-date" required></div>
                     <div class="form-group"><label for="leave-end-date">End Date</label><input type="date" id="leave-end-date" required></div>
@@ -1529,7 +1530,7 @@
                     </div>
                 </div>
                 <div class="form-group"><label for="leave-notes">Notes</label><textarea id="leave-notes" rows="2" placeholder="Optional notes"></textarea></div>
-                <div class="modal-actions">
+                <div class="leave-record-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeRecordLeaveModal()">Cancel</button>
                     <button type="submit" class="btn btn-primary">Record Leave</button>
                 </div>
@@ -1539,7 +1540,7 @@
 
     <!-- Leave History Modal -->
     <div id="leave-history-modal" class="modal hidden">
-        <div class="modal-content" style="max-width:680px;">
+        <div class="modal-content leave-history-modal-content">
             <div class="modal-header">
                 <h2 id="leave-history-staff-name">Leave History</h2>
                 <button class="modal-close" onclick="closeLeaveHistoryModal()">
@@ -1554,7 +1555,7 @@
                     <tbody id="leave-history-body"></tbody>
                 </table>
             </div>
-            <div class="modal-actions">
+            <div class="leave-record-actions">
                 <button type="button" class="btn btn-secondary" onclick="closeLeaveHistoryModal()">Close</button>
             </div>
         </div>

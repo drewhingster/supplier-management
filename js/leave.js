@@ -286,6 +286,21 @@ function openRecordLeaveModal(staffId) {
     document.getElementById('record-leave-form').reset();
     document.getElementById('record-leave-modal').classList.remove('hidden');
 }
+function calcLeaveDays() {
+    var start = document.getElementById('leave-start-date').value;
+    var end = document.getElementById('leave-end-date').value;
+    var daysInput = document.getElementById('leave-days-taken');
+    if (start && end) {
+        var s = new Date(start + 'T00:00:00'), e = new Date(end + 'T00:00:00');
+        var diff = Math.round((e - s) / 86400000) + 1; // inclusive of both days
+        daysInput.value = diff > 0 ? diff : '';
+    } else {
+        daysInput.value = '';
+    }
+}
+document.getElementById('leave-start-date').addEventListener('change', calcLeaveDays);
+document.getElementById('leave-end-date').addEventListener('change', calcLeaveDays);
+
 function closeRecordLeaveModal() {
     document.getElementById('record-leave-modal').classList.add('hidden');
     document.getElementById('record-leave-form').reset(); currentLeaveStaffId = null;

@@ -245,7 +245,6 @@ function openEditStaffModal(id) {
     document.getElementById('staff-leave-2024-2025').value = s.leave2024_2025;
     document.getElementById('staff-leave-2025-2026').value = s.leave2025_2026;
     document.getElementById('staff-total-annual-leave').value = s.totalAnnualLeave;
-    document.getElementById('staff-anniversary-date').value = s.anniversaryDate || '';
     document.getElementById('staff-modal').classList.remove('hidden');
 }
 function closeStaffModal() {
@@ -264,7 +263,7 @@ async function handleStaffSubmit(e) {
         leave2024_2025: parseFloat(document.getElementById('staff-leave-2024-2025').value)||0,
         leave2025_2026: parseFloat(document.getElementById('staff-leave-2025-2026').value)||0,
         totalAnnualLeave: parseFloat(document.getElementById('staff-total-annual-leave').value)||0,
-        anniversaryDate: document.getElementById('staff-anniversary-date').value || ''
+        anniversaryDate: ''
     };
     if (currentEditStaffId) { await LeaveManager.updateStaff(currentEditStaffId, d); showToast('Staff updated'); }
     else { await LeaveManager.addStaff(d); showToast('Staff added'); }

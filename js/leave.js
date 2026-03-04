@@ -365,8 +365,10 @@ function printLeaveRoster() {
         var recs = LeaveManager.getStaffLeaveRecords(s.id);
         recs.forEach(function(r) {
             if (!r.startDate) return;
-            var sd = new Date(r.startDate);
-            var ed = r.endDate ? new Date(r.endDate) : sd;
+            var sds = String(r.startDate); if (sds.length === 10) sds += 'T00:00:00';
+            var eds = r.endDate ? String(r.endDate) : sds; if (eds.length === 10) eds += 'T00:00:00';
+            var sd = new Date(sds);
+            var ed = new Date(eds);
             if (sd.getFullYear() == year || ed.getFullYear() == year) {
                 var monthIdx = sd.getMonth();
                 var startDay = sd.getDate();

@@ -199,6 +199,34 @@ export default {
             if (path === '/api/setup/contracts' && request.method === 'POST') {
                 return await setupContractsTables(env);
             }
+            if (path === '/api/setup/leave' && request.method === 'POST') {
+                return await setupLeaveTables(env);
+            }
+            if (path === '/api/leave/seed' && request.method === 'POST') {
+                return await seedLeaveStaff(env, currentUser, request);
+            }
+
+            // ==================== LEAVE MANAGEMENT ROUTES ====================
+            if (path === '/api/leave/staff') {
+                if (request.method === 'GET') return await getLeaveStaff(env);
+                if (request.method === 'POST') return await createLeaveStaff(request, env, currentUser);
+            }
+            if (path.match(/^\/api\/leave\/staff\/\d+$/)) {
+                const id = parseInt(path.split('/').pop());
+                if (request.method === 'PUT') return await updateLeaveStaffMember(id, request, env, currentUser);
+                if (request.method === 'DELETE') return await deleteLeaveStaffMember(id, env, currentUser, request);
+            }
+            if (path === '/api/leave/staff/reorder' && request.method === 'PUT') {
+                return await reorderLeaveStaff(request, env);
+            }
+            if (path === '/api/leave/records') {
+                if (request.method === 'GET') return await getLeaveRecords(request, env);
+                if (request.method === 'POST') return await createLeaveRecord(request, env, currentUser);
+            }
+            if (path.match(/^\/api\/leave\/records\/\d+$/)) {
+                const id = parseInt(path.split('/').pop());
+                if (request.method === 'DELETE') return await deleteLeaveRecord(id, env, currentUser, request);
+            }
 
             // ==================== OUTSTANDING TASKS ROUTES ====================
             if (path === '/api/tasks') {
@@ -2406,6 +2434,217 @@ async function deleteTaskSupplier(taskId, supplierId, env, currentUser, request)
     await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'TaskSupplier', supplierId, supplier.supplier_name, `Removed supplier "${supplier.supplier_name}" from task: ${task.title}`, request);
 
     return jsonResponse({ success: true });
+}
+
+// ==================== LEAVE MANAGEMENT ====================
+
+async function setupLeaveTables(env) {
+    try {
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS leave_staff (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                designation TEXT,
+                leave_entitlement REAL DEFAULT 0,
+                contract_start DATE,
+                contract_end DATE,
+                leave_2023_2024 REAL DEFAULT 0,
+                leave_2024_2025 REAL DEFAULT 0,
+                leave_2025_2026 REAL DEFAULT 0,
+                total_annual_leave REAL DEFAULT 0,
+                anniversary_date DATE,
+                sort_order INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `).run();
+
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS leave_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                staff_id INTEGER NOT NULL,
+                days_taken REAL NOT NULL,
+                start_date DATE,
+                end_date DATE,
+                leave_type TEXT DEFAULT 'Annual',
+                notes TEXT,
+                date_recorded DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (staff_id) REFERENCES leave_staff(id) ON DELETE CASCADE
+            )
+        `).run();
+
+        await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_leave_records_staff ON leave_records(staff_id)`).run();
+
+        return jsonResponse({ success: true, message: 'Leave tables created successfully' });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function seedLeaveStaff(env, currentUser, request) {
+    try {
+        const existing = await env.DB.prepare('SELECT COUNT(*) as count FROM leave_staff').first();
+        if (existing.count > 0) {
+            return jsonResponse({ message: 'Leave staff already seeded', seeded: false });
+        }
+        const defaults = [
+            { name: 'Andrew Hing', designation: 'Statistician II', leave_entitlement: 42, contract_start: '2023-06-27', contract_end: '2026-06-26', leave_2023_2024: 0, leave_2024_2025: 28.5, leave_2025_2026: 0, total_annual_leave: 28.5 },
+            { name: 'Ryan Shim', designation: 'Statistician', leave_entitlement: 42, contract_start: '2024-08-14', contract_end: '2027-08-13', leave_2023_2024: 0, leave_2024_2025: 22, leave_2025_2026: 0, total_annual_leave: 22 },
+            { name: 'Nicholas Brown', designation: 'Senior Research Assistant', leave_entitlement: 28, contract_start: '2025-08-23', contract_end: '2028-08-22', leave_2023_2024: 0, leave_2024_2025: 26.5, leave_2025_2026: 0, total_annual_leave: 26.5 },
+            { name: 'Japheth Sankar', designation: 'Senior Research Assistant', leave_entitlement: 28, contract_start: '2023-06-01', contract_end: '2026-05-31', leave_2023_2024: 0, leave_2024_2025: 25, leave_2025_2026: 0, total_annual_leave: 25 },
+            { name: 'Rashad Phagu', designation: 'Senior Research Assistant', leave_entitlement: 28, contract_start: '2025-05-19', contract_end: '2026-05-18', leave_2023_2024: 0, leave_2024_2025: 0, leave_2025_2026: -1, total_annual_leave: -1 },
+            { name: 'Jonathan Yong', designation: 'Data Editor', leave_entitlement: 21, contract_start: '2025-12-01', contract_end: '2026-11-30', leave_2023_2024: 0, leave_2024_2025: 0, leave_2025_2026: 0, total_annual_leave: 0 }
+        ];
+        const stmt = env.DB.prepare(`
+            INSERT INTO leave_staff (name, designation, leave_entitlement, contract_start, contract_end, leave_2023_2024, leave_2024_2025, leave_2025_2026, total_annual_leave, sort_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        const batch = defaults.map((d, i) => stmt.bind(d.name, d.designation, d.leave_entitlement, d.contract_start, d.contract_end, d.leave_2023_2024, d.leave_2024_2025, d.leave_2025_2026, d.total_annual_leave, i));
+        await env.DB.batch(batch);
+        return jsonResponse({ success: true, seeded: true, count: defaults.length });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function getLeaveStaff(env) {
+    try {
+        const result = await env.DB.prepare('SELECT * FROM leave_staff ORDER BY sort_order ASC, id ASC').all();
+        return jsonResponse({ staff: result.results });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function createLeaveStaff(request, env, currentUser) {
+    try {
+        const body = await request.json();
+        if (!body.name?.trim()) return jsonResponse({ error: 'Name is required' }, 400);
+        const maxOrder = await env.DB.prepare('SELECT MAX(sort_order) as mx FROM leave_staff').first();
+        const sortOrder = (maxOrder?.mx ?? -1) + 1;
+        const result = await env.DB.prepare(`
+            INSERT INTO leave_staff (name, designation, leave_entitlement, contract_start, contract_end,
+                leave_2023_2024, leave_2024_2025, leave_2025_2026, total_annual_leave, anniversary_date, sort_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(body.name.trim(), body.designation || '', body.leave_entitlement || 0, body.contract_start || null,
+            body.contract_end || null, body.leave_2023_2024 || 0, body.leave_2024_2025 || 0, body.leave_2025_2026 || 0,
+            body.total_annual_leave || 0, body.anniversary_date || null, sortOrder).run();
+        const staff = await env.DB.prepare('SELECT * FROM leave_staff WHERE id = ?').bind(result.meta.last_row_id).first();
+        await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'LeaveStaff', staff.id, body.name.trim(), `Added leave staff: ${body.name.trim()}`, request);
+        return jsonResponse({ success: true, staff }, 201);
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function updateLeaveStaffMember(id, request, env, currentUser) {
+    try {
+        const existing = await env.DB.prepare('SELECT * FROM leave_staff WHERE id = ?').bind(id).first();
+        if (!existing) return jsonResponse({ error: 'Staff not found' }, 404);
+        const body = await request.json();
+        await env.DB.prepare(`
+            UPDATE leave_staff SET name = ?, designation = ?, leave_entitlement = ?, contract_start = ?,
+                contract_end = ?, leave_2023_2024 = ?, leave_2024_2025 = ?, leave_2025_2026 = ?,
+                total_annual_leave = ?, anniversary_date = ?, updated_at = datetime("now") WHERE id = ?
+        `).bind(body.name?.trim() || existing.name, body.designation ?? existing.designation,
+            body.leave_entitlement ?? existing.leave_entitlement, body.contract_start ?? existing.contract_start,
+            body.contract_end ?? existing.contract_end, body.leave_2023_2024 ?? existing.leave_2023_2024,
+            body.leave_2024_2025 ?? existing.leave_2024_2025, body.leave_2025_2026 ?? existing.leave_2025_2026,
+            body.total_annual_leave ?? existing.total_annual_leave, body.anniversary_date ?? existing.anniversary_date, id).run();
+        const staff = await env.DB.prepare('SELECT * FROM leave_staff WHERE id = ?').bind(id).first();
+        await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'LeaveStaff', id, staff.name, `Updated leave staff: ${staff.name}`, request);
+        return jsonResponse({ success: true, staff });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function deleteLeaveStaffMember(id, env, currentUser, request) {
+    try {
+        const staff = await env.DB.prepare('SELECT * FROM leave_staff WHERE id = ?').bind(id).first();
+        if (!staff) return jsonResponse({ error: 'Staff not found' }, 404);
+        await env.DB.prepare('DELETE FROM leave_records WHERE staff_id = ?').bind(id).run();
+        await env.DB.prepare('DELETE FROM leave_staff WHERE id = ?').bind(id).run();
+        await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'LeaveStaff', id, staff.name, `Removed leave staff: ${staff.name}`, request);
+        return jsonResponse({ success: true });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function reorderLeaveStaff(request, env) {
+    try {
+        const body = await request.json();
+        const order = body.order; // array of staff IDs in desired order
+        if (!Array.isArray(order)) return jsonResponse({ error: 'order must be an array of IDs' }, 400);
+        const stmt = env.DB.prepare('UPDATE leave_staff SET sort_order = ? WHERE id = ?');
+        const batch = order.map((id, i) => stmt.bind(i, id));
+        await env.DB.batch(batch);
+        return jsonResponse({ success: true });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function getLeaveRecords(request, env) {
+    try {
+        const url = new URL(request.url);
+        const staffId = url.searchParams.get('staff_id');
+        let query = 'SELECT * FROM leave_records';
+        const params = [];
+        if (staffId) { query += ' WHERE staff_id = ?'; params.push(parseInt(staffId)); }
+        query += ' ORDER BY date_recorded DESC';
+        const result = params.length > 0
+            ? await env.DB.prepare(query).bind(...params).all()
+            : await env.DB.prepare(query).all();
+        return jsonResponse({ records: result.results });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function createLeaveRecord(request, env, currentUser) {
+    try {
+        const body = await request.json();
+        if (!body.staff_id || !body.days_taken) return jsonResponse({ error: 'staff_id and days_taken required' }, 400);
+        const staff = await env.DB.prepare('SELECT * FROM leave_staff WHERE id = ?').bind(body.staff_id).first();
+        if (!staff) return jsonResponse({ error: 'Staff not found' }, 404);
+        const result = await env.DB.prepare(`
+            INSERT INTO leave_records (staff_id, days_taken, start_date, end_date, leave_type, notes)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(body.staff_id, body.days_taken, body.start_date || null, body.end_date || null,
+            body.leave_type || 'Annual', body.notes || null).run();
+        // Update staff balance
+        const newBalance = (staff.total_annual_leave || 0) - body.days_taken;
+        await env.DB.prepare('UPDATE leave_staff SET total_annual_leave = ?, updated_at = datetime("now") WHERE id = ?')
+            .bind(newBalance, body.staff_id).run();
+        const record = await env.DB.prepare('SELECT * FROM leave_records WHERE id = ?').bind(result.meta.last_row_id).first();
+        await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'LeaveRecord', record.id, staff.name,
+            `Recorded ${body.days_taken} day(s) leave for ${staff.name}`, request);
+        return jsonResponse({ success: true, record, newBalance }, 201);
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function deleteLeaveRecord(id, env, currentUser, request) {
+    try {
+        const record = await env.DB.prepare('SELECT * FROM leave_records WHERE id = ?').bind(id).first();
+        if (!record) return jsonResponse({ error: 'Record not found' }, 404);
+        const staff = await env.DB.prepare('SELECT * FROM leave_staff WHERE id = ?').bind(record.staff_id).first();
+        // Add days back
+        if (staff) {
+            const newBalance = (staff.total_annual_leave || 0) + record.days_taken;
+            await env.DB.prepare('UPDATE leave_staff SET total_annual_leave = ?, updated_at = datetime("now") WHERE id = ?')
+                .bind(newBalance, record.staff_id).run();
+        }
+        await env.DB.prepare('DELETE FROM leave_records WHERE id = ?').bind(id).run();
+        await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'LeaveRecord', id, staff?.name || 'Unknown',
+            `Deleted leave record (${record.days_taken} days) for ${staff?.name || 'Unknown'}`, request);
+        return jsonResponse({ success: true });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
 }
 
 // ==================== Utility ====================

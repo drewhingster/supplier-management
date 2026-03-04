@@ -5705,6 +5705,16 @@ a:hover {
     color: var(--color-danger, #dc2626);
 }
 
+.leave-remaining {
+    font-weight: 700;
+    color: var(--color-success, #16a34a);
+}
+
+.leave-remaining-red {
+    font-weight: 700;
+    color: #dc3545;
+}
+
 .leave-actions-cell {
     display: flex;
     gap: 4px;

@@ -618,7 +618,7 @@ function switchView(view) {
         loadActivityLogs();
     }
     if (view === 'leave') {
-        renderLeaveTable();
+        LeaveManager.loadData().then(function() { renderLeaveTable(); });
     }
 }
 

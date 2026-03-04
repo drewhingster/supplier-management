@@ -1,66 +1,146 @@
 ﻿// Leave Management System - Bureau of Statistics
-// Bump DATA_VERSION whenever you update getDefaultStaff() so deployed changes take effect
+// Data stored in D1 database via Worker API (shared across all users)
 const LeaveManager = {
-    STORAGE_KEY: 'bos_leave_staff',
-    LEAVE_RECORDS_KEY: 'bos_leave_records',
-    VERSION_KEY: 'bos_leave_data_version',
-    DATA_VERSION: 2,
-    checkVersion() {
-        const stored = parseInt(localStorage.getItem(this.VERSION_KEY) || '0');
-        if (stored < this.DATA_VERSION) {
-            localStorage.removeItem(this.STORAGE_KEY);
-            localStorage.removeItem(this.LEAVE_RECORDS_KEY);
-            localStorage.setItem(this.VERSION_KEY, this.DATA_VERSION.toString());
+    _staff: [],
+    _records: [],
+    _loaded: false,
+
+    _apiHeaders() {
+        const h = { 'Content-Type': 'application/json' };
+        const token = api ? api.getToken() : localStorage.getItem('session_token');
+        if (token) h['Authorization'] = 'Bearer ' + token;
+        return h;
+    },
+    _apiBase() {
+        return (typeof CONFIG !== 'undefined' && CONFIG.API_BASE_URL) ? CONFIG.API_BASE_URL : '/api';
+    },
+
+    async loadData() {
+        try {
+            const base = this._apiBase();
+            const headers = this._apiHeaders();
+            const [staffRes, recordsRes] = await Promise.all([
+                fetch(base + '/leave/staff', { headers }),
+                fetch(base + '/leave/records', { headers })
+            ]);
+            if (staffRes.ok) {
+                const d = await staffRes.json();
+                this._staff = (d.staff || []).map(this._mapStaffFromAPI);
+            }
+            if (recordsRes.ok) {
+                const d = await recordsRes.json();
+                this._records = (d.records || []).map(this._mapRecordFromAPI);
+            }
+            this._loaded = true;
+        } catch (e) {
+            console.error('Failed to load leave data from API:', e);
         }
     },
-    getStaff() {
-        this.checkVersion();
-        const data = localStorage.getItem(this.STORAGE_KEY);
-        return data ? JSON.parse(data) : this.getDefaultStaff();
+
+    // Map D1 snake_case to frontend camelCase
+    _mapStaffFromAPI(s) {
+        return {
+            id: s.id, name: s.name, designation: s.designation,
+            leaveEntitlement: s.leave_entitlement, contractStart: s.contract_start,
+            contractEnd: s.contract_end, leave2023_2024: s.leave_2023_2024,
+            leave2024_2025: s.leave_2024_2025, leave2025_2026: s.leave_2025_2026,
+            totalAnnualLeave: s.total_annual_leave, anniversaryDate: s.anniversary_date || '',
+            sortOrder: s.sort_order
+        };
     },
-    saveStaff(staff) { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(staff)); },
-    getLeaveRecords() {
-        const data = localStorage.getItem(this.LEAVE_RECORDS_KEY);
-        return data ? JSON.parse(data) : [];
+    _mapRecordFromAPI(r) {
+        return {
+            id: r.id, staffId: r.staff_id, daysTaken: r.days_taken,
+            startDate: r.start_date, endDate: r.end_date,
+            leaveType: r.leave_type, notes: r.notes,
+            dateRecorded: r.date_recorded
+        };
     },
-    saveLeaveRecords(records) { localStorage.setItem(this.LEAVE_RECORDS_KEY, JSON.stringify(records)); },
-    getDefaultStaff() {
-        return [
-            { id: 1, name: 'Andrew Hing', designation: 'Statistician II', leaveEntitlement: 42, contractStart: '2023-06-27', contractEnd: '2026-06-26', leave2023_2024: 0, leave2024_2025: 28.5, leave2025_2026: 0, totalAnnualLeave: 28.5, anniversaryDate: '' },
-            { id: 2, name: 'Ryan Shim', designation: 'Statistician', leaveEntitlement: 42, contractStart: '2024-08-14', contractEnd: '2027-08-13', leave2023_2024: 0, leave2024_2025: 22, leave2025_2026: 0, totalAnnualLeave: 22, anniversaryDate: '' },
-            { id: 3, name: 'Nicholas Brown', designation: 'Senior Research Assistant', leaveEntitlement: 28, contractStart: '2025-08-23', contractEnd: '2028-08-22', leave2023_2024: 0, leave2024_2025: 26.5, leave2025_2026: 0, totalAnnualLeave: 26.5, anniversaryDate: '' },
-            { id: 4, name: 'Japheth Sankar', designation: 'Senior Research Assistant', leaveEntitlement: 28, contractStart: '2023-06-01', contractEnd: '2026-05-31', leave2023_2024: 0, leave2024_2025: 25, leave2025_2026: 0, totalAnnualLeave: 25, anniversaryDate: '' },
-            { id: 5, name: 'Rashad Phagu', designation: 'Senior Research Assistant', leaveEntitlement: 28, contractStart: '2025-05-19', contractEnd: '2026-05-18', leave2023_2024: 0, leave2024_2025: 0, leave2025_2026: -1, totalAnnualLeave: -1, anniversaryDate: '' },
-            { id: 6, name: 'Jonathan Yong', designation: 'Data Editor', leaveEntitlement: 21, contractStart: '2025-12-01', contractEnd: '2026-11-30', leave2023_2024: 0, leave2024_2025: 0, leave2025_2026: 0, totalAnnualLeave: 0, anniversaryDate: '' }
-        ];
+    _staffToAPI(d) {
+        return {
+            name: d.name, designation: d.designation, leave_entitlement: d.leaveEntitlement,
+            contract_start: d.contractStart, contract_end: d.contractEnd,
+            leave_2023_2024: d.leave2023_2024, leave_2024_2025: d.leave2024_2025,
+            leave_2025_2026: d.leave2025_2026, total_annual_leave: d.totalAnnualLeave,
+            anniversary_date: d.anniversaryDate || null
+        };
     },
-    nextId() { const s = this.getStaff(); return s.length > 0 ? Math.max(...s.map(x => x.id)) + 1 : 1; },
-    addStaff(d) { const s = this.getStaff(); d.id = this.nextId(); s.push(d); this.saveStaff(s); return d; },
-    updateStaff(id, d) {
-        const s = this.getStaff(); const i = s.findIndex(x => x.id === id);
-        if (i !== -1) { s[i] = { ...s[i], ...d }; this.saveStaff(s); return s[i]; } return null;
+
+    getStaff() { return this._staff; },
+    getLeaveRecords() { return this._records; },
+    getStaffLeaveRecords(sid) { return this._records.filter(function(r) { return r.staffId === sid; }); },
+
+    async addStaff(d) {
+        try {
+            const res = await fetch(this._apiBase() + '/leave/staff', {
+                method: 'POST', headers: this._apiHeaders(), body: JSON.stringify(this._staffToAPI(d))
+            });
+            const data = await res.json();
+            if (data.staff) this._staff.push(this._mapStaffFromAPI(data.staff));
+        } catch (e) { console.error('Failed to add staff:', e); }
     },
-    removeStaff(id) {
-        this.saveStaff(this.getStaff().filter(x => x.id !== id));
-        this.saveLeaveRecords(this.getLeaveRecords().filter(r => r.staffId !== id));
+    async updateStaff(id, d) {
+        try {
+            const res = await fetch(this._apiBase() + '/leave/staff/' + id, {
+                method: 'PUT', headers: this._apiHeaders(), body: JSON.stringify(this._staffToAPI(d))
+            });
+            const data = await res.json();
+            if (data.staff) {
+                const mapped = this._mapStaffFromAPI(data.staff);
+                const i = this._staff.findIndex(function(x) { return x.id === id; });
+                if (i !== -1) this._staff[i] = mapped;
+            }
+        } catch (e) { console.error('Failed to update staff:', e); }
     },
-    addLeaveRecord(rec) {
-        const recs = this.getLeaveRecords();
-        rec.id = recs.length > 0 ? Math.max(...recs.map(r => r.id)) + 1 : 1;
-        rec.dateRecorded = new Date().toISOString(); recs.push(rec); this.saveLeaveRecords(recs);
-        const s = this.getStaff(); const m = s.find(x => x.id === rec.staffId);
-        if (m) { m.totalAnnualLeave = (m.totalAnnualLeave || 0) - rec.daysTaken; this.saveStaff(s); }
-        return rec;
+    async removeStaff(id) {
+        try {
+            await fetch(this._apiBase() + '/leave/staff/' + id, {
+                method: 'DELETE', headers: this._apiHeaders()
+            });
+            this._staff = this._staff.filter(function(x) { return x.id !== id; });
+            this._records = this._records.filter(function(r) { return r.staffId !== id; });
+        } catch (e) { console.error('Failed to remove staff:', e); }
     },
-    deleteLeaveRecord(rid) {
-        const recs = this.getLeaveRecords(); const rec = recs.find(r => r.id === rid);
-        if (rec) {
-            const s = this.getStaff(); const m = s.find(x => x.id === rec.staffId);
-            if (m) { m.totalAnnualLeave = (m.totalAnnualLeave || 0) + rec.daysTaken; this.saveStaff(s); }
-            this.saveLeaveRecords(recs.filter(r => r.id !== rid));
-        }
+    async addLeaveRecord(rec) {
+        try {
+            const res = await fetch(this._apiBase() + '/leave/records', {
+                method: 'POST', headers: this._apiHeaders(),
+                body: JSON.stringify({
+                    staff_id: rec.staffId, days_taken: rec.daysTaken,
+                    start_date: rec.startDate, end_date: rec.endDate,
+                    leave_type: rec.leaveType, notes: rec.notes
+                })
+            });
+            const data = await res.json();
+            if (data.record) this._records.push(this._mapRecordFromAPI(data.record));
+            if (data.newBalance !== undefined) {
+                var m = this._staff.find(function(x) { return x.id === rec.staffId; });
+                if (m) m.totalAnnualLeave = data.newBalance;
+            }
+        } catch (e) { console.error('Failed to add leave record:', e); }
     },
-    getStaffLeaveRecords(sid) { return this.getLeaveRecords().filter(r => r.staffId === sid); }
+    async deleteLeaveRecord(rid) {
+        try {
+            var rec = this._records.find(function(r) { return r.id === rid; });
+            await fetch(this._apiBase() + '/leave/records/' + rid, {
+                method: 'DELETE', headers: this._apiHeaders()
+            });
+            if (rec) {
+                var m = this._staff.find(function(x) { return x.id === rec.staffId; });
+                if (m) m.totalAnnualLeave = (m.totalAnnualLeave || 0) + rec.daysTaken;
+            }
+            this._records = this._records.filter(function(r) { return r.id !== rid; });
+        } catch (e) { console.error('Failed to delete leave record:', e); }
+    },
+    async saveStaffOrder() {
+        try {
+            var order = this._staff.map(function(s) { return s.id; });
+            await fetch(this._apiBase() + '/leave/staff/reorder', {
+                method: 'PUT', headers: this._apiHeaders(),
+                body: JSON.stringify({ order: order })
+            });
+        } catch (e) { console.error('Failed to save order:', e); }
+    }
 };
 
 // UI Helpers
@@ -79,10 +159,12 @@ let leaveDragSrcIndex = null;
 function renderLeaveTable() {
     const staff = LeaveManager.getStaff(), tbody = document.getElementById('leave-table-body');
     if (!tbody) return;
-    if (!staff.length) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px;color:#7a7a72;">No staff yet. Click Add Staff.</td></tr>'; return; }
+    if (!staff.length) { tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:20px;color:#7a7a72;">No staff yet. Click Add Staff.</td></tr>'; return; }
     tbody.innerHTML = staff.map(function(s, idx) {
         var recs = LeaveManager.getStaffLeaveRecords(s.id);
         var used = recs.reduce(function(a,r){return a+r.daysTaken;},0), n=leaveEsc(s.name);
+        var remaining = s.leaveEntitlement - used;
+        var remainingClass = 'leave-remaining' + (remaining <= 0 ? ' leave-remaining-red' : '');
         return '<tr draggable="true" data-staff-index="'+idx+'">' +
         '<td class="leave-drag-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="14" height="14"><circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="18" r="1.5" fill="currentColor"/><circle cx="15" cy="18" r="1.5" fill="currentColor"/></svg></td>' +
         '<td class="leave-name-cell">'+n+'</td><td>'+leaveEsc(s.designation)+'</td>' +
@@ -90,7 +172,9 @@ function renderLeaveTable() {
         '<td>'+leaveFmtDate(s.contractEnd)+'</td><td class="text-center">'+s.leave2023_2024+'</td>' +
         '<td class="text-center">'+s.leave2024_2025+'</td><td class="text-center">'+s.leave2025_2026+'</td>' +
         '<td class="text-center leave-balance'+(s.totalAnnualLeave<0?' leave-negative':'')+'">'+s.totalAnnualLeave+'</td>' +
-        '<td class="text-center">'+used+'</td><td>'+(s.anniversaryDate?leaveFmtDate(s.anniversaryDate):'-')+'</td>' +
+        '<td class="text-center">'+used+'</td>' +
+        '<td class="text-center '+remainingClass+'">'+remaining+'</td>' +
+        '<td>'+(s.anniversaryDate?leaveFmtDate(s.anniversaryDate):'-')+'</td>' +
         '<td class="leave-actions-cell">' +
         '<button class="btn-icon-sm" title="Record Leave" onclick="openRecordLeaveModal('+s.id+')"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>' +
         '<button class="btn-icon-sm" title="View History" onclick="openLeaveHistoryModal('+s.id+')"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>' +
@@ -133,7 +217,8 @@ function initLeaveDragAndDrop() {
             var staff = LeaveManager.getStaff();
             var moved = staff.splice(leaveDragSrcIndex, 1)[0];
             staff.splice(targetIndex, 0, moved);
-            LeaveManager.saveStaff(staff);
+            LeaveManager._staff = staff;
+            LeaveManager.saveStaffOrder();
             leaveDragSrcIndex = null;
             renderLeaveTable();
         });
@@ -167,7 +252,7 @@ function closeStaffModal() {
     document.getElementById('staff-modal').classList.add('hidden');
     document.getElementById('staff-form').reset(); currentEditStaffId = null;
 }
-function handleStaffSubmit(e) {
+async function handleStaffSubmit(e) {
     e.preventDefault();
     var d = {
         name: document.getElementById('staff-name').value.trim(),
@@ -181,14 +266,14 @@ function handleStaffSubmit(e) {
         totalAnnualLeave: parseFloat(document.getElementById('staff-total-annual-leave').value)||0,
         anniversaryDate: document.getElementById('staff-anniversary-date').value || ''
     };
-    if (currentEditStaffId) { LeaveManager.updateStaff(currentEditStaffId, d); showToast('Staff updated'); }
-    else { LeaveManager.addStaff(d); showToast('Staff added'); }
+    if (currentEditStaffId) { await LeaveManager.updateStaff(currentEditStaffId, d); showToast('Staff updated'); }
+    else { await LeaveManager.addStaff(d); showToast('Staff added'); }
     closeStaffModal(); renderLeaveTable();
 }
-function confirmRemoveStaff(id) {
+async function confirmRemoveStaff(id) {
     var s = LeaveManager.getStaff().find(function(x){return x.id===id;});
     if (s && confirm('Remove '+s.name+'? All leave records will be deleted.')) {
-        LeaveManager.removeStaff(id); showToast(s.name+' removed'); renderLeaveTable();
+        await LeaveManager.removeStaff(id); showToast(s.name+' removed'); renderLeaveTable();
     }
 }
 
@@ -206,11 +291,11 @@ function closeRecordLeaveModal() {
     document.getElementById('record-leave-modal').classList.add('hidden');
     document.getElementById('record-leave-form').reset(); currentLeaveStaffId = null;
 }
-function handleRecordLeaveSubmit(e) {
+async function handleRecordLeaveSubmit(e) {
     e.preventDefault();
     var days = parseFloat(document.getElementById('leave-days-taken').value);
     if (!days || days <= 0) { alert('Enter valid number of days'); return; }
-    LeaveManager.addLeaveRecord({
+    await LeaveManager.addLeaveRecord({
         staffId: currentLeaveStaffId, daysTaken: days,
         startDate: document.getElementById('leave-start-date').value,
         endDate: document.getElementById('leave-end-date').value,
@@ -241,9 +326,9 @@ function openLeaveHistoryModal(staffId) {
     document.getElementById('leave-history-modal').classList.remove('hidden');
 }
 function closeLeaveHistoryModal() { document.getElementById('leave-history-modal').classList.add('hidden'); }
-function deleteLeaveRec(rid, staffId) {
+async function deleteLeaveRec(rid, staffId) {
     if (confirm('Delete this leave record? The days will be added back to the balance.')) {
-        LeaveManager.deleteLeaveRecord(rid);
+        await LeaveManager.deleteLeaveRecord(rid);
         openLeaveHistoryModal(staffId);
         renderLeaveTable();
         showToast('Leave record deleted');
@@ -253,7 +338,7 @@ function deleteLeaveRec(rid, staffId) {
 // Print Leave Roster - matches HR format (landscape with months Jan-Dec)
 function printLeaveRoster() {
     var year = document.getElementById('roster-year').value || new Date().getFullYear();
-    var deptName = document.getElementById('roster-dept-name').value || 'Consumer Price Index';
+    var deptName = document.getElementById('roster-dept-name').value || 'Procurement Unit';
     var staff = LeaveManager.getStaff();
     var months = ['JAN.','FEB.','MAR.','APR.','MAY','JUN.','JUL.','AUG.','SEPT.','OCT.','NOV.','DEC.'];
     var monthsFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];

@@ -5571,3 +5571,213 @@ a:hover {
         padding-bottom: calc(70px + env(safe-area-inset-bottom));
     }
 }
+
+/* ==================== Leave Management Module ==================== */
+
+.leave-main {
+    display: block;
+    padding: var(--space-lg);
+    max-width: 100%;
+}
+
+.leave-section {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    border: 1px solid var(--color-border);
+}
+
+.leave-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-md);
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.leave-header h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.leave-icon {
+    color: var(--color-primary);
+}
+
+.leave-actions-header {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.leave-roster-options {
+    display: flex;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.form-group-inline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.form-group-inline label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.form-input-sm {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    width: 100px;
+}
+
+.form-input-sm:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.leave-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.leave-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.leave-table th,
+.leave-table td {
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--color-border);
+    text-align: left;
+}
+
+.leave-table th {
+    background: var(--color-bg);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.leave-table tbody tr:hover {
+    background: var(--color-bg);
+}
+
+.text-center {
+    text-align: center;
+}
+
+.leave-name-cell {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.leave-balance {
+    font-weight: 700;
+    color: var(--color-success, #16a34a);
+}
+
+.leave-negative {
+    color: var(--color-danger, #dc2626);
+}
+
+.leave-actions-cell {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+}
+
+.btn-icon-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-icon-sm:hover {
+    background: var(--color-bg);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.btn-danger-sm:hover {
+    color: var(--color-danger, #dc2626);
+    border-color: var(--color-danger, #dc2626);
+    background: rgba(220, 38, 38, 0.05);
+}
+
+.leave-history-table-wrapper {
+    padding: 0 var(--space-lg);
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.leave-history-table {
+    font-size: 0.8rem;
+}
+
+.three-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-md);
+}
+
+@media (max-width: 768px) {
+    .leave-main {
+        padding: var(--space-sm);
+    }
+
+    .leave-section {
+        padding: var(--space-sm);
+    }
+
+    .leave-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .leave-roster-options {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .form-input-sm {
+        width: 100%;
+    }
+
+    .three-col {
+        grid-template-columns: 1fr;
+    }
+}

@@ -252,10 +252,12 @@ const elements = {
     navContracts: document.getElementById('nav-contracts'),
     navTasks: document.getElementById('nav-tasks'),
     navActivity: document.getElementById('nav-activity'),
+    navLeave: document.getElementById('nav-leave'),
     suppliersView: document.getElementById('suppliers-view'),
     contractsView: document.getElementById('contracts-view'),
     tasksView: document.getElementById('tasks-view'),
     activityView: document.getElementById('activity-view'),
+    leaveView: document.getElementById('leave-view'),
 
     // Buttons
     addSupplierBtn: document.getElementById('add-supplier-btn'),
@@ -583,11 +585,13 @@ function switchView(view) {
     elements.navContracts.classList.toggle('active', view === 'contracts');
     elements.navTasks?.classList.toggle('active', view === 'tasks');
     elements.navActivity?.classList.toggle('active', view === 'activity');
+    elements.navLeave?.classList.toggle('active', view === 'leave');
 
     // Update mobile nav tabs
     document.getElementById('mobile-nav-suppliers')?.classList.toggle('active', view === 'suppliers');
     document.getElementById('mobile-nav-contracts')?.classList.toggle('active', view === 'contracts');
     document.getElementById('mobile-nav-tasks')?.classList.toggle('active', view === 'tasks');
+    document.getElementById('mobile-nav-leave')?.classList.toggle('active', view === 'leave');
     document.getElementById('mobile-nav-activity')?.classList.toggle('active', view === 'activity');
 
     // Show/hide views
@@ -595,6 +599,7 @@ function switchView(view) {
     elements.contractsView.classList.toggle('hidden', view !== 'contracts');
     elements.tasksView?.classList.toggle('hidden', view !== 'tasks');
     elements.activityView?.classList.toggle('hidden', view !== 'activity');
+    elements.leaveView?.classList.toggle('hidden', view !== 'leave');
 
     // Show/hide action buttons
     elements.addSupplierBtn.classList.toggle('hidden', view !== 'suppliers');
@@ -611,6 +616,9 @@ function switchView(view) {
     }
     if (view === 'activity') {
         loadActivityLogs();
+    }
+    if (view === 'leave') {
+        renderLeaveTable();
     }
 }
 
@@ -4581,6 +4589,9 @@ window.handleMobileFabClick = function() {
             break;
         case 'tasks':
             openTaskModal();
+            break;
+        case 'leave':
+            openAddStaffModal();
             break;
         default:
             openSupplierModal();

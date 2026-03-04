@@ -114,6 +114,15 @@
                         </svg>
                         Activity
                     </button>
+                    <button id="nav-leave" class="nav-tab" onclick="switchView('leave')">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                            <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
+                            <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"/>
+                            <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        Leave
+                    </button>
                 </div>
                 
                 <button id="add-category-btn" class="btn btn-secondary">
@@ -684,6 +693,68 @@
             </main>
         </div>
     </div>
+
+        <!-- ==================== LEAVE VIEW ==================== -->
+        <div id="leave-view" class="view-container hidden">
+            <main class="main-content leave-main">
+                <section class="leave-section">
+                    <div class="leave-header">
+                        <h2>
+                            <svg viewBox="0 0 24 24" width="24" height="24" class="leave-icon">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
+                                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"/>
+                                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            Leave Management
+                        </h2>
+                        <div class="leave-actions-header">
+                            <button class="btn btn-primary" onclick="openAddStaffModal()">
+                                <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                Add Staff
+                            </button>
+                            <button class="btn btn-secondary" onclick="printLeaveRoster()">
+                                <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" fill="none"/><rect x="6" y="14" width="12" height="8" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                Print Roster
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="leave-roster-options">
+                        <div class="form-group-inline">
+                            <label for="roster-year">Year:</label>
+                            <input type="number" id="roster-year" class="form-input-sm" value="2026" min="2020" max="2040">
+                        </div>
+                        <div class="form-group-inline">
+                            <label for="roster-dept-name">Department:</label>
+                            <input type="text" id="roster-dept-name" class="form-input-sm" value="Consumer Price Index" placeholder="Department Name">
+                        </div>
+                    </div>
+
+                    <div class="leave-table-wrapper">
+                        <table class="leave-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Designation</th>
+                                    <th class="text-center">Leave Entitlement</th>
+                                    <th>Contract Start</th>
+                                    <th>Contract End</th>
+                                    <th class="text-center">Leave 2023-2024</th>
+                                    <th class="text-center">Leave 2024-2025</th>
+                                    <th class="text-center">Leave 2025-2026</th>
+                                    <th class="text-center">Total Annual Leave</th>
+                                    <th class="text-center">Leave Used</th>
+                                    <th>Anniversary Date</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leave-table-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
 
     <!-- ==================== MODALS ==================== -->
 
@@ -1388,6 +1459,107 @@
 
     </div>
 
+    <!-- Staff Add/Edit Modal -->
+    <div id="staff-modal" class="modal hidden">
+        <div class="modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <h2 id="staff-modal-title">Add New Staff Member</h2>
+                <button class="modal-close" onclick="closeStaffModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+            <form id="staff-form" onsubmit="handleStaffSubmit(event)">
+                <div class="form-row two-col">
+                    <div class="form-group"><label for="staff-name">Name <span class="required">*</span></label><input type="text" id="staff-name" required></div>
+                    <div class="form-group"><label for="staff-designation">Designation <span class="required">*</span></label><input type="text" id="staff-designation" required></div>
+                </div>
+                <div class="form-row two-col">
+                    <div class="form-group"><label for="staff-leave-entitlement">Leave Entitlement (days)</label><input type="number" id="staff-leave-entitlement" step="0.5" value="0"></div>
+                    <div class="form-group"><label for="staff-anniversary-date">Anniversary Date</label><input type="date" id="staff-anniversary-date"></div>
+                </div>
+                <div class="form-row two-col">
+                    <div class="form-group"><label for="staff-contract-start">Contract Start</label><input type="date" id="staff-contract-start"></div>
+                    <div class="form-group"><label for="staff-contract-end">Contract End</label><input type="date" id="staff-contract-end"></div>
+                </div>
+                <div class="form-row three-col">
+                    <div class="form-group"><label for="staff-leave-2023-2024">Leave 23-24</label><input type="number" id="staff-leave-2023-2024" step="0.5" value="0"></div>
+                    <div class="form-group"><label for="staff-leave-2024-2025">Leave 24-25</label><input type="number" id="staff-leave-2024-2025" step="0.5" value="0"></div>
+                    <div class="form-group"><label for="staff-leave-2025-2026">Leave 25-26</label><input type="number" id="staff-leave-2025-2026" step="0.5" value="0"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label for="staff-total-annual-leave">Total Annual Leave Balance</label><input type="number" id="staff-total-annual-leave" step="0.5" value="0"></div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeStaffModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Record Leave Modal -->
+    <div id="record-leave-modal" class="modal hidden">
+        <div class="modal-content" style="max-width:460px;">
+            <div class="modal-header">
+                <h2>Record Leave</h2>
+                <button class="modal-close" onclick="closeRecordLeaveModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+            <div style="padding:0 1.5rem;margin-bottom:0.75rem;">
+                <strong id="record-leave-staff-name"></strong>
+                <div id="record-leave-balance" style="color:var(--color-text-muted);font-size:0.85rem;"></div>
+            </div>
+            <form id="record-leave-form" onsubmit="handleRecordLeaveSubmit(event)">
+                <div class="form-row two-col">
+                    <div class="form-group"><label for="leave-start-date">Start Date</label><input type="date" id="leave-start-date" required></div>
+                    <div class="form-group"><label for="leave-end-date">End Date</label><input type="date" id="leave-end-date" required></div>
+                </div>
+                <div class="form-row two-col">
+                    <div class="form-group"><label for="leave-days-taken">Days Taken <span class="required">*</span></label><input type="number" id="leave-days-taken" step="0.5" min="0.5" required></div>
+                    <div class="form-group"><label for="leave-type">Leave Type</label>
+                        <select id="leave-type" class="form-select">
+                            <option value="Annual">Annual</option>
+                            <option value="Sick">Sick</option>
+                            <option value="Personal">Personal</option>
+                            <option value="Maternity">Maternity</option>
+                            <option value="Paternity">Paternity</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group"><label for="leave-notes">Notes</label><textarea id="leave-notes" rows="2" placeholder="Optional notes"></textarea></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeRecordLeaveModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Record Leave</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Leave History Modal -->
+    <div id="leave-history-modal" class="modal hidden">
+        <div class="modal-content" style="max-width:680px;">
+            <div class="modal-header">
+                <h2 id="leave-history-staff-name">Leave History</h2>
+                <button class="modal-close" onclick="closeLeaveHistoryModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+            <div class="leave-history-table-wrapper">
+                <table class="leave-table leave-history-table">
+                    <thead>
+                        <tr><th>Start</th><th>End</th><th class="text-center">Days</th><th>Type</th><th>Notes</th><th></th></tr>
+                    </thead>
+                    <tbody id="leave-history-body"></tbody>
+                </table>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeLeaveHistoryModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Mobile Bottom Navigation (outside app container for proper fixed positioning) -->
     <nav class="mobile-bottom-nav hidden" id="mobile-bottom-nav">
         <div class="mobile-nav-items">
@@ -1406,6 +1578,10 @@
             <button class="mobile-nav-item" onclick="switchView('activity')" id="mobile-nav-activity">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                 <span>Activity</span>
+            </button>
+            <button class="mobile-nav-item" onclick="switchView('leave')" id="mobile-nav-leave">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/></svg>
+                <span>Leave</span>
             </button>
         </div>
     </nav>
@@ -1426,6 +1602,7 @@
 
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/leave.js"></script>
     <script src="js/app.js"></script>
 
     <!-- Service Worker Registration -->

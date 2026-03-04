@@ -159,11 +159,11 @@ let leaveDragSrcIndex = null;
 function renderLeaveTable() {
     const staff = LeaveManager.getStaff(), tbody = document.getElementById('leave-table-body');
     if (!tbody) return;
-    if (!staff.length) { tbody.innerHTML = '<tr><td colspan="14" style="text-align:center;padding:20px;color:#7a7a72;">No staff yet. Click Add Staff.</td></tr>'; return; }
+    if (!staff.length) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:20px;color:#7a7a72;">No staff yet. Click Add Staff.</td></tr>'; return; }
     tbody.innerHTML = staff.map(function(s, idx) {
         var recs = LeaveManager.getStaffLeaveRecords(s.id);
         var used = recs.reduce(function(a,r){return a+r.daysTaken;},0), n=leaveEsc(s.name);
-        var remaining = (s.totalAnnualLeave || 0) - used;
+        var remaining = s.totalAnnualLeave || 0;
         var remainingClass = 'leave-remaining' + (remaining <= 0 ? ' leave-remaining-red' : '');
         return '<tr draggable="true" data-staff-index="'+idx+'">' +
         '<td class="leave-drag-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="14" height="14"><circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="18" r="1.5" fill="currentColor"/><circle cx="15" cy="18" r="1.5" fill="currentColor"/></svg></td>' +
@@ -171,7 +171,6 @@ function renderLeaveTable() {
         '<td class="text-center">'+s.leaveEntitlement+'</td><td>'+leaveFmtDate(s.contractStart)+'</td>' +
         '<td>'+leaveFmtDate(s.contractEnd)+'</td><td class="text-center">'+s.leave2023_2024+'</td>' +
         '<td class="text-center">'+s.leave2024_2025+'</td><td class="text-center">'+s.leave2025_2026+'</td>' +
-        '<td class="text-center leave-balance'+(s.totalAnnualLeave<0?' leave-negative':'')+'">'+s.totalAnnualLeave+'</td>' +
         '<td class="text-center">'+used+'</td>' +
         '<td class="text-center '+remainingClass+'">'+remaining+'</td>' +
         '<td>'+(s.anniversaryDate?leaveFmtDate(s.anniversaryDate):'-')+'</td>' +

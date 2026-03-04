@@ -211,7 +211,7 @@ const state = {
     contractFilters: {
         search: '',
         supplier_id: '',
-        sort: 'date-desc'
+        sort: 'number-desc'
     },
     taskFilters: {
         archived: 'active', // 'active', 'archived', 'all'

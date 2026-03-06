@@ -139,6 +139,20 @@ export default {
                 if (request.method === 'DELETE') return await deleteDocument(supplierId, docType, env, currentUser, request);
             }
 
+            // Supplier Remarks routes
+            if (path.match(/^\/api\/suppliers\/\d+\/remarks$/)) {
+                const supplierId = parseInt(path.split('/')[3]);
+                if (request.method === 'GET') return await getSupplierRemarks(supplierId, env);
+                if (request.method === 'POST') return await addSupplierRemark(supplierId, request, env, currentUser);
+            }
+
+            if (path.match(/^\/api\/suppliers\/\d+\/remarks\/\d+$/)) {
+                const parts = path.split('/');
+                const supplierId = parseInt(parts[3]);
+                const remarkId = parseInt(parts[5]);
+                if (request.method === 'DELETE') return await deleteSupplierRemark(supplierId, remarkId, env, currentUser, request);
+            }
+
             // ==================== CONTRACT ROUTES ====================
             if (path === '/api/contracts') {
                 if (request.method === 'GET') return await getContracts(request, env);
@@ -198,6 +212,9 @@ export default {
             // Database setup route (for initial setup)
             if (path === '/api/setup/contracts' && request.method === 'POST') {
                 return await setupContractsTables(env);
+            }
+            if (path === '/api/setup/remarks' && request.method === 'POST') {
+                return await setupRemarksTable(env);
             }
             if (path === '/api/setup/leave' && request.method === 'POST') {
                 return await setupLeaveTables(env);
@@ -1138,6 +1155,7 @@ async function deleteSupplier(id, env, currentUser, request) {
 
     await env.DB.prepare('DELETE FROM supplier_categories WHERE supplier_id = ?').bind(id).run();
     await env.DB.prepare('DELETE FROM documents WHERE supplier_id = ?').bind(id).run();
+    await env.DB.prepare('DELETE FROM supplier_remarks WHERE supplier_id = ?').bind(id).run();
     await env.DB.prepare('DELETE FROM suppliers WHERE id = ?').bind(id).run();
 
     // Log audit entry
@@ -1294,6 +1312,81 @@ async function deleteDocument(supplierId, docType, env, currentUser, request) {
     if (supplier) {
         await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'Document', supplierId, supplier.name, `Deleted ${docType} document for supplier: ${supplier.name}`, request);
     }
+
+    return jsonResponse({ success: true });
+}
+
+// ==================== SUPPLIER REMARKS ====================
+
+async function setupRemarksTable(env) {
+    try {
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS supplier_remarks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                supplier_id INTEGER NOT NULL,
+                remark TEXT NOT NULL,
+                created_by TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE
+            )
+        `).run();
+
+        await env.DB.prepare(`
+            CREATE INDEX IF NOT EXISTS idx_remarks_supplier ON supplier_remarks(supplier_id)
+        `).run();
+
+        return jsonResponse({ success: true, message: 'Supplier remarks table created' });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function getSupplierRemarks(supplierId, env) {
+    const remarks = await env.DB.prepare(
+        'SELECT id, remark, created_by, created_at FROM supplier_remarks WHERE supplier_id = ? ORDER BY created_at DESC'
+    ).bind(supplierId).all();
+
+    return jsonResponse({ remarks: remarks.results });
+}
+
+async function addSupplierRemark(supplierId, request, env, currentUser) {
+    const body = await request.json();
+
+    if (!body.remark || !body.remark.trim()) {
+        return jsonResponse({ error: 'Remark text is required' }, 400);
+    }
+
+    const result = await env.DB.prepare(`
+        INSERT INTO supplier_remarks (supplier_id, remark, created_by, created_at)
+        VALUES (?, ?, ?, datetime("now"))
+    `).bind(supplierId, body.remark.trim(), currentUser.fullName || currentUser.email).run();
+
+    const remark = await env.DB.prepare(
+        'SELECT id, remark, created_by, created_at FROM supplier_remarks WHERE id = ?'
+    ).bind(result.meta.last_row_id).first();
+
+    // Log audit
+    const supplier = await env.DB.prepare('SELECT name FROM suppliers WHERE id = ?').bind(supplierId).first();
+    await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'SupplierRemark', remark.id,
+        supplier?.name || `Supplier #${supplierId}`, `Added follow-up remark for supplier: ${supplier?.name}`, request);
+
+    return jsonResponse({ success: true, remark }, 201);
+}
+
+async function deleteSupplierRemark(supplierId, remarkId, env, currentUser, request) {
+    const remark = await env.DB.prepare(
+        'SELECT id, remark FROM supplier_remarks WHERE id = ? AND supplier_id = ?'
+    ).bind(remarkId, supplierId).first();
+
+    if (!remark) {
+        return jsonResponse({ error: 'Remark not found' }, 404);
+    }
+
+    await env.DB.prepare('DELETE FROM supplier_remarks WHERE id = ?').bind(remarkId).run();
+
+    const supplier = await env.DB.prepare('SELECT name FROM suppliers WHERE id = ?').bind(supplierId).first();
+    await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'SupplierRemark', remarkId,
+        supplier?.name || `Supplier #${supplierId}`, `Deleted follow-up remark for supplier: ${supplier?.name}`, request);
 
     return jsonResponse({ success: true });
 }

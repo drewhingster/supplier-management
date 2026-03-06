@@ -824,6 +824,13 @@ async function loadInitialData() {
             // Table might already exist
         }
 
+        // Setup supplier remarks table if needed (silent fail is OK)
+        try {
+            await api.setupRemarksTable();
+        } catch (e) {
+            // Table might already exist
+        }
+
     } catch (error) {
         console.error('Failed to load initial data:', error);
         showToast('Failed to load data. Please refresh the page.', 'error');
@@ -1892,7 +1899,85 @@ async function openDetailModal(supplier) {
         elements.detailDocuments.appendChild(card);
     });
 
+    // Load remarks
+    loadSupplierRemarks(supplier.id);
+
     elements.detailModal.classList.remove('hidden');
+}
+
+async function loadSupplierRemarks(supplierId) {
+    const remarksList = document.getElementById('remarks-list');
+    remarksList.innerHTML = '<div class="remarks-empty">Loading remarks...</div>';
+
+    try {
+        const remarks = await api.getSupplierRemarks(supplierId);
+        if (remarks.length === 0) {
+            remarksList.innerHTML = '<div class="remarks-empty">No follow-up remarks yet.</div>';
+            return;
+        }
+
+        remarksList.innerHTML = remarks.map(r => `
+            <div class="remark-item">
+                <div class="remark-header">
+                    <span class="remark-date">${formatRemarkDate(r.created_at)}</span>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span class="remark-author">${r.created_by || ''}</span>
+                        <button class="remark-delete-btn" onclick="deleteSupplierRemark(${supplierId}, ${r.id})" title="Delete remark">
+                            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="remark-text">${escapeHtml(r.remark)}</div>
+            </div>
+        `).join('');
+    } catch (error) {
+        remarksList.innerHTML = '<div class="remarks-empty">Failed to load remarks.</div>';
+    }
+}
+
+function formatRemarkDate(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr + 'Z');
+    return date.toLocaleDateString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric'
+    }) + ', ' + date.toLocaleTimeString('en-GB', {
+        hour: '2-digit', minute: '2-digit', hour12: true
+    });
+}
+
+async function addSupplierRemark() {
+    const input = document.getElementById('remark-input');
+    const text = input.value.trim();
+    if (!text) return;
+    if (!state.currentSupplier) return;
+
+    const btn = document.getElementById('add-remark-btn');
+    btn.disabled = true;
+    btn.textContent = 'Adding...';
+
+    try {
+        await api.addSupplierRemark(state.currentSupplier.id, text);
+        input.value = '';
+        await loadSupplierRemarks(state.currentSupplier.id);
+        showToast('Remark added');
+    } catch (error) {
+        showToast(error.message || 'Failed to add remark', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Add';
+    }
+}
+
+async function deleteSupplierRemark(supplierId, remarkId) {
+    if (!confirm('Delete this remark?')) return;
+
+    try {
+        await api.deleteSupplierRemark(supplierId, remarkId);
+        await loadSupplierRemarks(supplierId);
+        showToast('Remark deleted');
+    } catch (error) {
+        showToast(error.message || 'Failed to delete remark', 'error');
+    }
 }
 
 function closeDetailModal() {

@@ -951,6 +951,17 @@
                     <h3>Compliance Documents</h3>
                     <div class="documents-grid" id="detail-documents"></div>
                 </div>
+
+                <div class="detail-section">
+                    <h3>Follow-Up Remarks</h3>
+                    <div class="remark-input-row">
+                        <textarea id="remark-input" placeholder="Type a follow-up remark..." rows="2"></textarea>
+                        <button type="button" class="btn btn-primary btn-sm" id="add-remark-btn" onclick="addSupplierRemark()">Add</button>
+                    </div>
+                    <div id="remarks-list" class="remarks-list">
+                        <!-- Remarks will be populated dynamically -->
+                    </div>
+                </div>
             </div>
 
             <div class="detail-actions">

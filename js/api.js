@@ -200,6 +200,10 @@ class SupplierAPI {
         return await this.request('/setup/acknowledged-alerts', { method: 'POST' });
     }
 
+    async setupRemarksTable() {
+        return await this.request('/setup/remarks', { method: 'POST' });
+    }
+
     // ==================== Categories ====================
 
     async getCategories() {
@@ -267,6 +271,26 @@ class SupplierAPI {
 
     async deleteSupplier(id) {
         return await this.request(`/suppliers/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // ==================== Supplier Remarks ====================
+
+    async getSupplierRemarks(supplierId) {
+        const response = await this.request(`/suppliers/${supplierId}/remarks`);
+        return response.remarks || [];
+    }
+
+    async addSupplierRemark(supplierId, remark) {
+        return await this.request(`/suppliers/${supplierId}/remarks`, {
+            method: 'POST',
+            body: JSON.stringify({ remark })
+        });
+    }
+
+    async deleteSupplierRemark(supplierId, remarkId) {
+        return await this.request(`/suppliers/${supplierId}/remarks/${remarkId}`, {
             method: 'DELETE'
         });
     }

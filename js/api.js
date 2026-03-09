@@ -476,6 +476,30 @@ class SupplierAPI {
         });
     }
 
+    // ==================== Task Remarks ====================
+
+    async setupTaskRemarksTable() {
+        return await this.request('/setup/task-remarks', { method: 'POST' });
+    }
+
+    async getTaskRemarks(taskId) {
+        const response = await this.request(`/tasks/${taskId}/remarks`);
+        return response.remarks || [];
+    }
+
+    async addTaskRemark(taskId, remark) {
+        return await this.request(`/tasks/${taskId}/remarks`, {
+            method: 'POST',
+            body: JSON.stringify({ remark })
+        });
+    }
+
+    async deleteTaskRemark(taskId, remarkId) {
+        return await this.request(`/tasks/${taskId}/remarks/${remarkId}`, {
+            method: 'DELETE'
+        });
+    }
+
     // ==================== Statistics ====================
 
     async getStatistics() {

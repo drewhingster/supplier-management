@@ -1455,6 +1455,17 @@
                     <h3>Remarks</h3>
                     <p id="task-detail-remarks" class="detail-remarks-text">-</p>
                 </div>
+
+                <div class="detail-section">
+                    <h3>Follow-Up Remarks</h3>
+                    <div class="remark-input-row">
+                        <textarea id="task-remark-input" placeholder="Type a follow-up remark..." rows="2"></textarea>
+                        <button type="button" class="btn btn-primary btn-sm" id="add-task-remark-btn" onclick="addTaskRemark()">Add</button>
+                    </div>
+                    <div id="task-remarks-list" class="remarks-list">
+                        <!-- Task remarks will be populated dynamically -->
+                    </div>
+                </div>
             </div>
 
             <div class="detail-actions">

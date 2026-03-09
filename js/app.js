@@ -831,6 +831,13 @@ async function loadInitialData() {
             // Table might already exist
         }
 
+        // Setup task remarks table if needed (silent fail is OK)
+        try {
+            await api.setupTaskRemarksTable();
+        } catch (e) {
+            // Table might already exist
+        }
+
     } catch (error) {
         console.error('Failed to load initial data:', error);
         showToast('Failed to load data. Please refresh the page.', 'error');
@@ -4051,7 +4058,69 @@ async function openTaskDetailModal(task) {
         remarksSection.style.display = 'none';
     }
 
+    // Load follow-up remarks
+    loadTaskRemarks(task.id);
+
     document.getElementById('task-detail-modal').classList.remove('hidden');
+}
+
+async function loadTaskRemarks(taskId) {
+    const remarksList = document.getElementById('task-remarks-list');
+    remarksList.innerHTML = '<div class="remarks-empty">Loading remarks...</div>';
+
+    try {
+        const remarks = await api.getTaskRemarks(taskId);
+        if (remarks.length === 0) {
+            remarksList.innerHTML = '<div class="remarks-empty">No follow-up remarks yet.</div>';
+            return;
+        }
+
+        remarksList.innerHTML = remarks.map(r => `
+            <div class="remark-item">
+                <div class="remark-header">
+                    <span class="remark-date">${formatRemarkDate(r.created_at)}</span>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span class="remark-author">${r.created_by || ''}</span>
+                        <button class="remark-delete-btn" onclick="deleteTaskRemark(${taskId}, ${r.id})" title="Delete remark">&times;</button>
+                    </div>
+                </div>
+                <div class="remark-text">${escapeHtml(r.remark)}</div>
+            </div>
+        `).join('');
+    } catch (error) {
+        remarksList.innerHTML = '<div class="remarks-empty">Failed to load remarks.</div>';
+    }
+}
+
+async function addTaskRemark() {
+    const input = document.getElementById('task-remark-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const btn = document.getElementById('add-task-remark-btn');
+    btn.disabled = true;
+
+    try {
+        await api.addTaskRemark(state.currentTask.id, text);
+        input.value = '';
+        await loadTaskRemarks(state.currentTask.id);
+        showToast('Remark added');
+    } catch (error) {
+        showToast(error.message || 'Failed to add remark', 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function deleteTaskRemark(taskId, remarkId) {
+    if (!confirm('Delete this remark?')) return;
+    try {
+        await api.deleteTaskRemark(taskId, remarkId);
+        await loadTaskRemarks(taskId);
+        showToast('Remark deleted');
+    } catch (error) {
+        showToast(error.message || 'Failed to delete remark', 'error');
+    }
 }
 
 function closeTaskDetailModal() {
@@ -4559,6 +4628,8 @@ window.closeTaskDetailModal = closeTaskDetailModal;
 window.handleTaskEditFromDetail = handleTaskEditFromDetail;
 window.handleTaskDeleteFromDetail = handleTaskDeleteFromDetail;
 window.viewTaskAwardDocument = viewTaskAwardDocument;
+window.addTaskRemark = addTaskRemark;
+window.deleteTaskRemark = deleteTaskRemark;
 window.handleTaskEdit = handleTaskEdit;
 window.handleTaskView = handleTaskView;
 window.handleTaskDelete = handleTaskDelete;

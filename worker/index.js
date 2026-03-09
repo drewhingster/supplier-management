@@ -216,6 +216,9 @@ export default {
             if (path === '/api/setup/remarks' && request.method === 'POST') {
                 return await setupRemarksTable(env);
             }
+            if (path === '/api/setup/task-remarks' && request.method === 'POST') {
+                return await setupTaskRemarksTable(env);
+            }
             if (path === '/api/setup/leave' && request.method === 'POST') {
                 return await setupLeaveTables(env);
             }
@@ -279,6 +282,20 @@ export default {
                 const taskId = parseInt(parts[3]);
                 const supplierId = parseInt(parts[5]);
                 if (request.method === 'DELETE') return await deleteTaskSupplier(taskId, supplierId, env, currentUser, request);
+            }
+
+            // Task Remarks routes
+            if (path.match(/^\/api\/tasks\/\d+\/remarks$/)) {
+                const taskId = parseInt(path.split('/')[3]);
+                if (request.method === 'GET') return await getTaskRemarks(taskId, env);
+                if (request.method === 'POST') return await addTaskRemark(taskId, request, env, currentUser);
+            }
+
+            if (path.match(/^\/api\/tasks\/\d+\/remarks\/\d+$/)) {
+                const parts = path.split('/');
+                const taskId = parseInt(parts[3]);
+                const remarkId = parseInt(parts[5]);
+                if (request.method === 'DELETE') return await deleteTaskRemark(taskId, remarkId, env, currentUser, request);
             }
 
             return jsonResponse({ error: 'Not found' }, 404);
@@ -2277,6 +2294,7 @@ async function deleteTask(id, env, currentUser, request) {
         return jsonResponse({ error: 'Task not found' }, 404);
     }
 
+    await env.DB.prepare('DELETE FROM task_remarks WHERE task_id = ?').bind(id).run();
     await env.DB.prepare('DELETE FROM tasks WHERE id = ?').bind(id).run();
 
     // Log audit entry
@@ -2525,6 +2543,80 @@ async function deleteTaskSupplier(taskId, supplierId, env, currentUser, request)
 
     // Log audit entry
     await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'TaskSupplier', supplierId, supplier.supplier_name, `Removed supplier "${supplier.supplier_name}" from task: ${task.title}`, request);
+
+    return jsonResponse({ success: true });
+}
+
+// ==================== TASK REMARKS ====================
+
+async function setupTaskRemarksTable(env) {
+    try {
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS task_remarks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                remark TEXT NOT NULL,
+                created_by TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+            )
+        `).run();
+
+        await env.DB.prepare(`
+            CREATE INDEX IF NOT EXISTS idx_task_remarks_task ON task_remarks(task_id)
+        `).run();
+
+        return jsonResponse({ success: true, message: 'Task remarks table created' });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function getTaskRemarks(taskId, env) {
+    const remarks = await env.DB.prepare(
+        'SELECT id, remark, created_by, created_at FROM task_remarks WHERE task_id = ? ORDER BY created_at DESC'
+    ).bind(taskId).all();
+
+    return jsonResponse({ remarks: remarks.results });
+}
+
+async function addTaskRemark(taskId, request, env, currentUser) {
+    const body = await request.json();
+
+    if (!body.remark || !body.remark.trim()) {
+        return jsonResponse({ error: 'Remark text is required' }, 400);
+    }
+
+    const result = await env.DB.prepare(`
+        INSERT INTO task_remarks (task_id, remark, created_by, created_at)
+        VALUES (?, ?, ?, datetime("now"))
+    `).bind(taskId, body.remark.trim(), currentUser.fullName || currentUser.email).run();
+
+    const remark = await env.DB.prepare(
+        'SELECT id, remark, created_by, created_at FROM task_remarks WHERE id = ?'
+    ).bind(result.meta.last_row_id).first();
+
+    const task = await env.DB.prepare('SELECT title FROM tasks WHERE id = ?').bind(taskId).first();
+    await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'TaskRemark', remark.id,
+        task?.title || `Task #${taskId}`, `Added follow-up remark for task: ${task?.title}`, request);
+
+    return jsonResponse({ success: true, remark }, 201);
+}
+
+async function deleteTaskRemark(taskId, remarkId, env, currentUser, request) {
+    const remark = await env.DB.prepare(
+        'SELECT id, remark FROM task_remarks WHERE id = ? AND task_id = ?'
+    ).bind(remarkId, taskId).first();
+
+    if (!remark) {
+        return jsonResponse({ error: 'Remark not found' }, 404);
+    }
+
+    await env.DB.prepare('DELETE FROM task_remarks WHERE id = ?').bind(remarkId).run();
+
+    const task = await env.DB.prepare('SELECT title FROM tasks WHERE id = ?').bind(taskId).first();
+    await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'TaskRemark', remarkId,
+        task?.title || `Task #${taskId}`, `Deleted follow-up remark for task: ${task?.title}`, request);
 
     return jsonResponse({ success: true });
 }

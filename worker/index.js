@@ -63,6 +63,9 @@ export default {
             if (path === '/api/setup/tasks' && request.method === 'POST') {
                 return await setupTasksTable(env);
             }
+            if (path === '/api/setup/capital-budget' && request.method === 'POST') {
+                return await setupCapitalBudgetTable(env);
+            }
 
             // All other routes require authentication
             const authResult = await verifyAuth(request, env);
@@ -299,9 +302,6 @@ export default {
             }
 
             // ==================== CAPITAL BUDGET ROUTES ====================
-            if (path === '/api/setup/capital-budget' && request.method === 'POST') {
-                return await setupCapitalBudgetTable(env);
-            }
             if (path === '/api/capital-budget') {
                 if (request.method === 'GET') return await getCapitalBudgetItems(env);
                 if (request.method === 'POST') return await createCapitalBudgetItem(request, env, currentUser);

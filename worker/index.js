@@ -298,6 +298,20 @@ export default {
                 if (request.method === 'DELETE') return await deleteTaskRemark(taskId, remarkId, env, currentUser, request);
             }
 
+            // ==================== CAPITAL BUDGET ROUTES ====================
+            if (path === '/api/setup/capital-budget' && request.method === 'POST') {
+                return await setupCapitalBudgetTable(env);
+            }
+            if (path === '/api/capital-budget') {
+                if (request.method === 'GET') return await getCapitalBudgetItems(env);
+                if (request.method === 'POST') return await createCapitalBudgetItem(request, env, currentUser);
+            }
+            if (path.match(/^\/api\/capital-budget\/\d+$/)) {
+                const id = parseInt(path.split('/').pop());
+                if (request.method === 'PUT') return await updateCapitalBudgetItem(id, request, env, currentUser);
+                if (request.method === 'DELETE') return await deleteCapitalBudgetItem(id, env, currentUser, request);
+            }
+
             return jsonResponse({ error: 'Not found' }, 404);
 
         } catch (error) {
@@ -2826,6 +2840,140 @@ async function deleteLeaveRecord(id, env, currentUser, request) {
         await env.DB.prepare('DELETE FROM leave_records WHERE id = ?').bind(id).run();
         await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'LeaveRecord', id, staff?.name || 'Unknown',
             `Deleted leave record (${record.days_taken} days) for ${staff?.name || 'Unknown'}`, request);
+        return jsonResponse({ success: true });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+// ==================== Capital Budget ====================
+
+async function setupCapitalBudgetTable(env) {
+    try {
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS capital_budget (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sort_order INTEGER DEFAULT 0,
+                project_title TEXT NOT NULL,
+                budget_amount REAL DEFAULT 0,
+                procurement_method TEXT,
+                tender_status TEXT,
+                date_sent_approval TEXT,
+                date_of_award TEXT,
+                contract_sum REAL DEFAULT 0,
+                actual_cost REAL DEFAULT 0,
+                start_date TEXT,
+                end_date TEXT,
+                status_percent INTEGER DEFAULT 0,
+                remarks TEXT,
+                is_completed INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `).run();
+        return jsonResponse({ success: true, message: 'Capital budget table created' });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function getCapitalBudgetItems(env) {
+    try {
+        const result = await env.DB.prepare(
+            'SELECT * FROM capital_budget ORDER BY sort_order ASC, id ASC'
+        ).all();
+        return jsonResponse({ items: result.results });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function createCapitalBudgetItem(request, env, currentUser) {
+    try {
+        const body = await request.json();
+        if (!body.project_title?.trim()) {
+            return jsonResponse({ error: 'Project title is required' }, 400);
+        }
+        const maxOrder = await env.DB.prepare('SELECT MAX(sort_order) as max_order FROM capital_budget').first();
+        const nextOrder = (maxOrder?.max_order || 0) + 1;
+
+        const result = await env.DB.prepare(`
+            INSERT INTO capital_budget (sort_order, project_title, budget_amount, procurement_method, tender_status,
+                date_sent_approval, date_of_award, contract_sum, actual_cost, start_date, end_date,
+                status_percent, remarks, is_completed)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+            nextOrder,
+            body.project_title.trim(),
+            body.budget_amount || 0,
+            body.procurement_method || null,
+            body.tender_status || null,
+            body.date_sent_approval || null,
+            body.date_of_award || null,
+            body.contract_sum || 0,
+            body.actual_cost || 0,
+            body.start_date || null,
+            body.end_date || null,
+            body.status_percent || 0,
+            body.remarks || null,
+            body.is_completed || 0
+        ).run();
+
+        await logAudit(env, currentUser.id, currentUser.fullName, 'CREATE', 'CapitalBudget', result.meta.last_row_id, body.project_title.trim(), `Created budget item: ${body.project_title.trim()}`, request);
+
+        const item = await env.DB.prepare('SELECT * FROM capital_budget WHERE id = ?').bind(result.meta.last_row_id).first();
+        return jsonResponse({ success: true, item }, 201);
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function updateCapitalBudgetItem(id, request, env, currentUser) {
+    try {
+        const existing = await env.DB.prepare('SELECT * FROM capital_budget WHERE id = ?').bind(id).first();
+        if (!existing) return jsonResponse({ error: 'Budget item not found' }, 404);
+
+        const body = await request.json();
+        await env.DB.prepare(`
+            UPDATE capital_budget SET
+                project_title = ?, budget_amount = ?, procurement_method = ?, tender_status = ?,
+                date_sent_approval = ?, date_of_award = ?, contract_sum = ?, actual_cost = ?,
+                start_date = ?, end_date = ?, status_percent = ?, remarks = ?, is_completed = ?,
+                updated_at = datetime("now")
+            WHERE id = ?
+        `).bind(
+            body.project_title?.trim() || existing.project_title,
+            body.budget_amount ?? existing.budget_amount,
+            body.procurement_method ?? existing.procurement_method,
+            body.tender_status ?? existing.tender_status,
+            body.date_sent_approval ?? existing.date_sent_approval,
+            body.date_of_award ?? existing.date_of_award,
+            body.contract_sum ?? existing.contract_sum,
+            body.actual_cost ?? existing.actual_cost,
+            body.start_date ?? existing.start_date,
+            body.end_date ?? existing.end_date,
+            body.status_percent ?? existing.status_percent,
+            body.remarks ?? existing.remarks,
+            body.is_completed ?? existing.is_completed,
+            id
+        ).run();
+
+        await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'CapitalBudget', id, body.project_title || existing.project_title, `Updated budget item`, request);
+
+        const item = await env.DB.prepare('SELECT * FROM capital_budget WHERE id = ?').bind(id).first();
+        return jsonResponse({ success: true, item });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+async function deleteCapitalBudgetItem(id, env, currentUser, request) {
+    try {
+        const item = await env.DB.prepare('SELECT * FROM capital_budget WHERE id = ?').bind(id).first();
+        if (!item) return jsonResponse({ error: 'Budget item not found' }, 404);
+
+        await env.DB.prepare('DELETE FROM capital_budget WHERE id = ?').bind(id).run();
+        await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'CapitalBudget', id, item.project_title, `Deleted budget item: ${item.project_title}`, request);
         return jsonResponse({ success: true });
     } catch (error) {
         return jsonResponse({ error: error.message }, 500);

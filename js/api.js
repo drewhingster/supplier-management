@@ -500,6 +500,37 @@ class SupplierAPI {
         });
     }
 
+    // ==================== Capital Budget ====================
+
+    async setupCapitalBudgetTable() {
+        return await this.request('/setup/capital-budget', { method: 'POST' });
+    }
+
+    async getCapitalBudgetItems() {
+        const response = await this.request('/capital-budget');
+        return response.items || [];
+    }
+
+    async createCapitalBudgetItem(data) {
+        return await this.request('/capital-budget', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateCapitalBudgetItem(id, data) {
+        return await this.request(`/capital-budget/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteCapitalBudgetItem(id) {
+        return await this.request(`/capital-budget/${id}`, {
+            method: 'DELETE'
+        });
+    }
+
     // ==================== Statistics ====================
 
     async getStatistics() {

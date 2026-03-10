@@ -123,6 +123,13 @@
                         </svg>
                         Leave
                     </button>
+                    <button id="nav-budget" class="nav-tab" onclick="switchView('budget')">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2"/>
+                            <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" fill="none"/>
+                        </svg>
+                        Capital Budget
+                    </button>
                 </div>
                 
                 <button id="add-category-btn" class="btn btn-secondary">
@@ -751,6 +758,77 @@
                             </thead>
                             <tbody id="leave-table-body"></tbody>
                         </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- ==================== CAPITAL BUDGET VIEW ==================== -->
+        <div id="budget-view" class="view-container hidden">
+            <main class="main-content budget-main">
+                <section class="budget-section">
+                    <div class="budget-header">
+                        <h2>
+                            <svg viewBox="0 0 24 24" width="24" height="24" class="budget-icon">
+                                <line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2"/>
+                                <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" fill="none"/>
+                            </svg>
+                            Capital Budget for the Year
+                        </h2>
+                        <div class="budget-actions-header">
+                            <button class="btn btn-primary" onclick="addBudgetRow()">
+                                <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                Add Line Item
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="budget-summary-cards">
+                        <div class="budget-card">
+                            <div class="budget-card-label">Total Budget</div>
+                            <div class="budget-card-value" id="budget-total-budget">$0.00</div>
+                        </div>
+                        <div class="budget-card">
+                            <div class="budget-card-label">Total Actual Spending</div>
+                            <div class="budget-card-value" id="budget-total-actual">$0.00</div>
+                        </div>
+                        <div class="budget-card budget-card-variance">
+                            <div class="budget-card-label">Overall Variance</div>
+                            <div class="budget-card-value" id="budget-total-variance">$0.00</div>
+                        </div>
+                    </div>
+
+                    <div class="budget-table-wrapper">
+                        <table class="budget-table">
+                            <thead>
+                                <tr>
+                                    <th class="budget-col-num">#</th>
+                                    <th class="budget-col-title">Project Title / Activity</th>
+                                    <th class="budget-col-money">Budget ($)</th>
+                                    <th>Procurement Method</th>
+                                    <th>Tender Status</th>
+                                    <th>Date Sent Approval</th>
+                                    <th>Date of Award</th>
+                                    <th class="budget-col-money">Contract Sum ($)</th>
+                                    <th class="budget-col-money">Actual Cost ($)</th>
+                                    <th class="budget-col-money">Variance ($)</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Status %</th>
+                                    <th>Remarks</th>
+                                    <th class="budget-col-actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="budget-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="budget-empty-state" class="empty-state hidden">
+                        <p>No budget items yet. Click "Add Line Item" to start.</p>
+                    </div>
+                    <div id="budget-loading-state" class="loading-state hidden">
+                        <div class="spinner"></div>
+                        <p>Loading budget data...</p>
                     </div>
                 </section>
             </main>
@@ -1605,6 +1683,10 @@
             <button class="mobile-nav-item" onclick="switchView('leave')" id="mobile-nav-leave">
                 <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2"/></svg>
                 <span>Leave</span>
+            </button>
+            <button class="mobile-nav-item" onclick="switchView('budget')" id="mobile-nav-budget">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23" stroke="currentColor" stroke-width="2"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                <span>Budget</span>
             </button>
         </div>
     </nav>

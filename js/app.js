@@ -189,6 +189,7 @@ const state = {
     categories: [],
     contracts: [],
     tasks: [],
+    budgetItems: [],
     acknowledgedAlerts: [], // { supplier_id, alert_type, acknowledged_by, acknowledged_at }
     acknowledgedSectionOpen: true,
     currentSupplier: null,
@@ -415,6 +416,16 @@ const elements = {
     taskRemarks: document.getElementById('task-remarks'),
     taskSubmitBtn: document.getElementById('task-submit-btn'),
 
+    // Budget elements
+    navBudget: document.getElementById('nav-budget'),
+    budgetView: document.getElementById('budget-view'),
+    budgetTableBody: document.getElementById('budget-table-body'),
+    budgetEmptyState: document.getElementById('budget-empty-state'),
+    budgetLoadingState: document.getElementById('budget-loading-state'),
+    budgetTotalBudget: document.getElementById('budget-total-budget'),
+    budgetTotalActual: document.getElementById('budget-total-actual'),
+    budgetTotalVariance: document.getElementById('budget-total-variance'),
+
     // Toast
     toast: document.getElementById('toast')
 };
@@ -586,6 +597,7 @@ function switchView(view) {
     elements.navTasks?.classList.toggle('active', view === 'tasks');
     elements.navActivity?.classList.toggle('active', view === 'activity');
     elements.navLeave?.classList.toggle('active', view === 'leave');
+    elements.navBudget?.classList.toggle('active', view === 'budget');
 
     // Update mobile nav tabs
     document.getElementById('mobile-nav-suppliers')?.classList.toggle('active', view === 'suppliers');
@@ -593,6 +605,7 @@ function switchView(view) {
     document.getElementById('mobile-nav-tasks')?.classList.toggle('active', view === 'tasks');
     document.getElementById('mobile-nav-leave')?.classList.toggle('active', view === 'leave');
     document.getElementById('mobile-nav-activity')?.classList.toggle('active', view === 'activity');
+    document.getElementById('mobile-nav-budget')?.classList.toggle('active', view === 'budget');
 
     // Show/hide views
     elements.suppliersView.classList.toggle('hidden', view !== 'suppliers');
@@ -600,6 +613,7 @@ function switchView(view) {
     elements.tasksView?.classList.toggle('hidden', view !== 'tasks');
     elements.activityView?.classList.toggle('hidden', view !== 'activity');
     elements.leaveView?.classList.toggle('hidden', view !== 'leave');
+    elements.budgetView?.classList.toggle('hidden', view !== 'budget');
 
     // Show/hide action buttons
     elements.addSupplierBtn.classList.toggle('hidden', view !== 'suppliers');
@@ -619,6 +633,9 @@ function switchView(view) {
     }
     if (view === 'leave') {
         LeaveManager.loadData().then(function() { renderLeaveTable(); });
+    }
+    if (view === 'budget') {
+        loadBudgetItems();
     }
 }
 
@@ -4772,7 +4789,7 @@ async function populateUserFilter() {
 function formatAuditTime(timestamp) {
     // Server already stores Guyana time, no conversion needed
     const date = new Date(timestamp);
-    
+
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -4783,7 +4800,7 @@ function formatAuditTime(timestamp) {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    
+
     // Format as readable date
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const month = months[date.getMonth()];
@@ -4801,7 +4818,7 @@ function formatAuditTimestamp(timestamp) {
     const month = months[date.getMonth()];
     const day = date.getDate();
     const year = date.getFullYear();
-    
+
     let hours = date.getHours();
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -4833,3 +4850,176 @@ window.handleMobileFabClick = function() {
             openSupplierModal();
     }
 };
+
+
+// ==================== Capital Budget ====================
+
+let _budgetSaveTimers = {};
+
+async function loadBudgetItems() {
+    try {
+        elements.budgetLoadingState?.classList.remove('hidden');
+        elements.budgetEmptyState?.classList.add('hidden');
+        state.budgetItems = await api.getCapitalBudgetItems();
+        renderBudgetTable();
+    } catch (error) {
+        console.error('Failed to load budget items:', error);
+        showToast('Failed to load budget data', 'error');
+    } finally {
+        elements.budgetLoadingState?.classList.add('hidden');
+    }
+}
+
+function renderBudgetTable() {
+    const tbody = elements.budgetTableBody;
+    if (!tbody) return;
+
+    if (state.budgetItems.length === 0) {
+        tbody.innerHTML = '';
+        elements.budgetEmptyState?.classList.remove('hidden');
+        updateBudgetSummary();
+        return;
+    }
+    elements.budgetEmptyState?.classList.add('hidden');
+
+    tbody.innerHTML = state.budgetItems.map((item, idx) => {
+        const variance = (item.budget_amount || 0) - (item.actual_cost || 0);
+        const varianceClass = variance > 0 ? 'variance-saving' : variance < 0 ? 'variance-overrun' : '';
+        const completeClass = item.is_completed ? 'budget-row-complete' : '';
+        const fmtDate = (d) => d || '';
+
+        return `<tr class="${completeClass}" data-budget-id="${item.id}">
+            <td class="budget-col-num">${idx + 1}</td>
+            <td><input type="text" value="${escapeHtml(item.project_title || '')}" data-field="project_title" onchange="budgetFieldChanged(${item.id}, 'project_title', this.value)"></td>
+            <td><input type="number" value="${item.budget_amount || 0}" data-field="budget_amount" onchange="budgetFieldChanged(${item.id}, 'budget_amount', this.value)" step="0.01"></td>
+            <td><input type="text" value="${escapeHtml(item.procurement_method || '')}" data-field="procurement_method" onchange="budgetFieldChanged(${item.id}, 'procurement_method', this.value)"></td>
+            <td><input type="text" value="${escapeHtml(item.tender_status || '')}" data-field="tender_status" onchange="budgetFieldChanged(${item.id}, 'tender_status', this.value)"></td>
+            <td><input type="date" value="${fmtDate(item.date_sent_approval)}" data-field="date_sent_approval" onchange="budgetFieldChanged(${item.id}, 'date_sent_approval', this.value)"></td>
+            <td><input type="date" value="${fmtDate(item.date_of_award)}" data-field="date_of_award" onchange="budgetFieldChanged(${item.id}, 'date_of_award', this.value)"></td>
+            <td><input type="number" value="${item.contract_sum || 0}" data-field="contract_sum" onchange="budgetFieldChanged(${item.id}, 'contract_sum', this.value)" step="0.01"></td>
+            <td><input type="number" value="${item.actual_cost || 0}" data-field="actual_cost" onchange="budgetFieldChanged(${item.id}, 'actual_cost', this.value)" step="0.01"></td>
+            <td class="variance-cell ${varianceClass}">${formatCurrency(variance)}</td>
+            <td><input type="date" value="${fmtDate(item.start_date)}" data-field="start_date" onchange="budgetFieldChanged(${item.id}, 'start_date', this.value)"></td>
+            <td><input type="date" value="${fmtDate(item.end_date)}" data-field="end_date" onchange="budgetFieldChanged(${item.id}, 'end_date', this.value)"></td>
+            <td><input type="number" value="${item.status_percent || 0}" data-field="status_percent" min="0" max="100" onchange="budgetFieldChanged(${item.id}, 'status_percent', this.value)" style="width:55px"></td>
+            <td><input type="text" value="${escapeHtml(item.remarks || '')}" data-field="remarks" onchange="budgetFieldChanged(${item.id}, 'remarks', this.value)"></td>
+            <td class="budget-col-actions">
+                <div class="budget-action-btns">
+                    <button class="budget-complete-btn ${item.is_completed ? 'is-complete' : ''}" title="${item.is_completed ? 'Mark Incomplete' : 'Mark Complete'}" onclick="toggleBudgetComplete(${item.id})">
+                        ${item.is_completed ? '✅' : '☐'}
+                    </button>
+                    <button class="budget-delete-btn" title="Delete" onclick="deleteBudgetItem(${item.id})">🗑</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+
+    updateBudgetSummary();
+}
+
+function updateBudgetSummary() {
+    let totalBudget = 0, totalActual = 0;
+    state.budgetItems.forEach(item => {
+        totalBudget += (item.budget_amount || 0);
+        totalActual += (item.actual_cost || 0);
+    });
+    const totalVariance = totalBudget - totalActual;
+
+    if (elements.budgetTotalBudget) elements.budgetTotalBudget.textContent = formatCurrency(totalBudget);
+    if (elements.budgetTotalActual) elements.budgetTotalActual.textContent = formatCurrency(totalActual);
+    if (elements.budgetTotalVariance) {
+        elements.budgetTotalVariance.textContent = formatCurrency(totalVariance);
+        elements.budgetTotalVariance.className = 'budget-card-value ' + (totalVariance > 0 ? 'variance-saving' : totalVariance < 0 ? 'variance-overrun' : '');
+    }
+}
+
+function formatCurrency(val) {
+    return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function budgetFieldChanged(id, field, value) {
+    // Update local state
+    const item = state.budgetItems.find(i => i.id === id);
+    if (!item) return;
+
+    if (['budget_amount', 'actual_cost', 'contract_sum', 'status_percent'].includes(field)) {
+        item[field] = parseFloat(value) || 0;
+    } else {
+        item[field] = value;
+    }
+
+    // Recalculate variance display for this row
+    if (field === 'budget_amount' || field === 'actual_cost') {
+        const row = document.querySelector(`tr[data-budget-id="${id}"]`);
+        if (row) {
+            const variance = (item.budget_amount || 0) - (item.actual_cost || 0);
+            const cell = row.querySelector('.variance-cell');
+            if (cell) {
+                cell.textContent = formatCurrency(variance);
+                cell.className = 'variance-cell ' + (variance > 0 ? 'variance-saving' : variance < 0 ? 'variance-overrun' : '');
+            }
+        }
+        updateBudgetSummary();
+    }
+
+    // Debounced save
+    clearTimeout(_budgetSaveTimers[id]);
+    _budgetSaveTimers[id] = setTimeout(() => saveBudgetItem(id), 800);
+}
+
+async function saveBudgetItem(id) {
+    const item = state.budgetItems.find(i => i.id === id);
+    if (!item) return;
+    try {
+        await api.updateCapitalBudgetItem(id, item);
+    } catch (error) {
+        console.error('Failed to save budget item:', error);
+        showToast('Failed to save changes', 'error');
+    }
+}
+
+async function addBudgetRow() {
+    try {
+        const result = await api.createCapitalBudgetItem({ project_title: 'New Item' });
+        if (result.item) {
+            state.budgetItems.push(result.item);
+            renderBudgetTable();
+            // Focus the new row's title input
+            setTimeout(() => {
+                const lastRow = elements.budgetTableBody?.lastElementChild;
+                if (lastRow) {
+                    const titleInput = lastRow.querySelector('input[data-field="project_title"]');
+                    if (titleInput) { titleInput.focus(); titleInput.select(); }
+                }
+            }, 50);
+        }
+    } catch (error) {
+        console.error('Failed to add budget item:', error);
+        showToast('Failed to add line item', 'error');
+    }
+}
+
+async function toggleBudgetComplete(id) {
+    const item = state.budgetItems.find(i => i.id === id);
+    if (!item) return;
+    item.is_completed = item.is_completed ? 0 : 1;
+    try {
+        await api.updateCapitalBudgetItem(id, { is_completed: item.is_completed });
+        renderBudgetTable();
+    } catch (error) {
+        item.is_completed = item.is_completed ? 0 : 1; // revert
+        showToast('Failed to update completion status', 'error');
+    }
+}
+
+async function deleteBudgetItem(id) {
+    if (!confirm('Delete this budget line item?')) return;
+    try {
+        await api.deleteCapitalBudgetItem(id);
+        state.budgetItems = state.budgetItems.filter(i => i.id !== id);
+        renderBudgetTable();
+        showToast('Budget item deleted');
+    } catch (error) {
+        showToast('Failed to delete item', 'error');
+    }
+}

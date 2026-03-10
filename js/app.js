@@ -4915,9 +4915,9 @@ function renderBudgetTable() {
             <td class="budget-col-actions">
                 <div class="budget-action-btns">
                     <button class="budget-complete-btn ${item.is_completed ? 'is-complete' : ''}" title="${item.is_completed ? 'Mark Incomplete' : 'Mark Complete'}" onclick="toggleBudgetComplete(${item.id})">
-                        ${item.is_completed ? '✅' : '☐'}
+                        ${item.is_completed ? '&#10004;' : '&#9744;'}
                     </button>
-                    <button class="budget-delete-btn" title="Delete" onclick="deleteBudgetItem(${item.id})">🗑</button>
+                    <button class="budget-delete-btn" title="Delete" onclick="deleteBudgetItem(${item.id})">&#10005;</button>
                 </div>
             </td>
         </tr>`;

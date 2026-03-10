@@ -6088,17 +6088,26 @@ a:hover {
 }
 
 .budget-action-btns button {
-    padding: 0.2rem 0.4rem;
-    border: none;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #d1d5db;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    font-size: 0.75rem;
-    background: transparent;
+    font-size: 0.85rem;
+    background: #f9fafb;
+    line-height: 1;
+    min-width: 28px;
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.budget-action-btns button:hover { background: var(--color-bg); }
-.budget-complete-btn.is-complete { color: #16a34a; }
+.budget-action-btns button:hover { background: #e5e7eb; }
+.budget-complete-btn { color: #6b7280; }
+.budget-complete-btn.is-complete { color: #fff; background: #16a34a; border-color: #16a34a; }
+.budget-complete-btn.is-complete:hover { background: #15803d; }
 .budget-delete-btn { color: #dc2626; }
+.budget-delete-btn:hover { background: #fee2e2; border-color: #fca5a5; }
 
 @media (max-width: 768px) {
     .budget-summary-cards { grid-template-columns: 1fr; }

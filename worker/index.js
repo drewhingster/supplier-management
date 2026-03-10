@@ -66,6 +66,9 @@ export default {
             if (path === '/api/setup/capital-budget' && request.method === 'POST') {
                 return await setupCapitalBudgetTable(env);
             }
+            if (path === '/api/seed/capital-budget' && request.method === 'POST') {
+                return await seedCapitalBudgetData(env);
+            }
 
             // All other routes require authentication
             const authResult = await verifyAuth(request, env);
@@ -2847,6 +2850,51 @@ async function deleteLeaveRecord(id, env, currentUser, request) {
 }
 
 // ==================== Capital Budget ====================
+
+async function seedCapitalBudgetData(env) {
+    try {
+        await env.DB.prepare('DELETE FROM capital_budget').run();
+        const items = [
+            [1,'AC Units (FIT 1)',581000,'RFQ','Ongoing','2026-03-04','2026-03-17',0,0,null,null,0,'Plastic sheets/pen drives acquired',0],
+            [2,'AC 10040 G.I. 2',100000,'RFQ','Ongoing','2026-02-22','2026-03-04',0,0,null,null,0,'Trunks delivered and items received',0],
+            [3,'AC 10040 FIT 3',146000,'RFQ','Ongoing','2026-02-11','2026-03-04',0,0,null,null,0,'Plastic sheets/pen drives acquired',0],
+            [4,'Furniture/Telephone',30000,'RFQ','Ongoing','2026-02-24',null,0,0,null,null,0,null,0],
+            [5,'Door Enclosure',500000,'RFQ','Ongoing','2026-03-24','2026-04-01',0,0,null,null,0,null,0],
+            [6,'Door Enclosures for CS',130000,'RFQ','Ongoing','2026-03-05','2026-03-07',0,0,null,null,0,null,0],
+            [7,'Toner/Ink (with tray)',575000,'RFQ','Ongoing','2026-02-24','2026-03-17',0,0,null,null,0,null,0],
+            [8,'Plastic Shipping Crates',200000,'RFQ','Ongoing','2026-02-04','2026-03-07',0,0,null,null,0,null,0],
+            [9,'Chairs',400000,'RFQ','Ongoing','2026-02-11','2026-03-04',0,0,null,null,0,null,0],
+            [10,'Desktop Computers (Qty.)',600000,'RFQ','Ongoing','2026-05-18',null,0,0,null,null,0,null,0],
+            [11,'Painting Premises/Sanitary & Plumbing',1017000,'RFQ','Ongoing','2026-05-06','2026-05-22',0,0,null,null,0,null,0],
+            [12,'Tilt Tray Trolleys/Copier Cartridges',50000,'RFQ','Ongoing','2026-03-16','2026-03-19',0,0,null,null,0,null,0],
+            [13,'Tilt Tray Charging + Portable Power Station',450000,'RFQ','Ongoing','2026-04-13','2026-04-22',0,0,null,null,0,null,0],
+            [14,'Dry Fire Extinguisher System',300000,'RFQ','Ongoing','2026-04-22',null,0,0,null,null,0,null,0],
+            [15,'External Hardware (All)',1000000,'RFQ','Ongoing','2026-05-18',null,0,0,null,null,0,null,0],
+            [16,'Regular/Asset Cleaning & After Census Equipment',243000,'RFQ','Ongoing',null,null,0,0,null,null,0,null,0],
+            [17,'Stationery & Office Supplies',300000,'RFQ','Ongoing','2026-05-13',null,0,0,null,null,0,null,0],
+            [18,'Fire Control',500000,'RFQ','Ongoing','2026-05-05',null,0,0,null,null,0,null,0],
+            [19,'Print and Print Services',9500000,'RFQ','Ongoing','2026-05-02',null,0,0,'2026-05-21','2026-06-17',0,null,0],
+            [20,'Outfitting',45000,'RFQ','Ongoing',null,null,0,0,null,null,0,null,0],
+            [21,'Laptop/Computer Monitors',600000,'RFQ','Ongoing','2026-04-14',null,0,0,null,null,0,null,0],
+            [22,'32" Widescreen Monitor',80000,'RFQ','Ongoing','2026-03-17','2026-03-23',0,0,null,null,0,null,0],
+            [23,'Microwave(s)',170000,'RFQ','Ongoing','2026-03-16','2026-03-20',0,0,null,null,0,null,0],
+            [24,'Apple Mac',1200000,'RFQ','Ongoing','2026-04-12',null,0,0,null,null,0,null,0],
+            [25,'Printer Repairs/Carpeting/Plumbing & Dampening',500000,'RFQ','Ongoing','2026-06-02',null,0,0,null,null,0,null,0],
+            [26,'Hand Cleaner/Sanitizer',180000,'RFQ','Ongoing','2026-05-18',null,0,0,null,null,0,null,0],
+            [27,'Shredder',100000,'RFQ','Ongoing','2026-05-18','2026-07-22',0,0,null,null,0,null,0],
+            [28,'Teleprinter',80000,'RFQ','Ongoing','2026-03-17',null,0,0,null,null,0,null,0],
+            [29,'Fluorescent Display Screen',23000,'RFQ','Ongoing',null,null,0,0,null,null,0,null,0],
+            [30,'Water Pump',200000,'RFQ','Ongoing','2026-05-04',null,0,0,null,null,0,'a/c in project site required',0],
+            [31,'HVAC Unit',200000,'RFQ','Ongoing','2026-04-14',null,0,0,null,null,0,null,0],
+        ];
+        const stmt = env.DB.prepare(`INSERT INTO capital_budget (sort_order, project_title, budget_amount, procurement_method, tender_status, date_sent_approval, date_of_award, contract_sum, actual_cost, start_date, end_date, status_percent, remarks, is_completed) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+        const batch = items.map(row => stmt.bind(...row));
+        await env.DB.batch(batch);
+        return jsonResponse({ success: true, message: `Seeded ${items.length} budget items` });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
 
 async function setupCapitalBudgetTable(env) {
     try {

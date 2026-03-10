@@ -4882,22 +4882,31 @@ function renderBudgetTable() {
     }
     elements.budgetEmptyState?.classList.add('hidden');
 
+    const procurementMethods = ['', 'RFQ', 'RFP', 'DS', 'SS', 'ICB', 'NCB', 'Shopping'];
+    const tenderStages = ['', 'Design', 'Award', 'Ongoing', 'Completed', 'Cancelled'];
+
+    const makeSelect = (options, selected, id, field) => {
+        return `<select data-field="${field}" onchange="budgetFieldChanged(${id}, '${field}', this.value)">
+            ${options.map(o => `<option value="${o}" ${o === (selected || '') ? 'selected' : ''}>${o || '—'}</option>`).join('')}
+        </select>`;
+    };
+
     tbody.innerHTML = state.budgetItems.map((item, idx) => {
         const variance = (item.budget_amount || 0) - (item.actual_cost || 0);
         const varianceClass = variance > 0 ? 'variance-saving' : variance < 0 ? 'variance-overrun' : '';
         const completeClass = item.is_completed ? 'budget-row-complete' : '';
         const fmtDate = (d) => d || '';
+        const fmtNum = (v) => Number(v || 0).toLocaleString('en-US');
 
         return `<tr class="${completeClass}" data-budget-id="${item.id}">
             <td class="budget-col-num">${idx + 1}</td>
             <td><input type="text" value="${escapeHtml(item.project_title || '')}" data-field="project_title" onchange="budgetFieldChanged(${item.id}, 'project_title', this.value)"></td>
-            <td><input type="number" value="${item.budget_amount || 0}" data-field="budget_amount" onchange="budgetFieldChanged(${item.id}, 'budget_amount', this.value)" step="0.01"></td>
-            <td><input type="text" value="${escapeHtml(item.procurement_method || '')}" data-field="procurement_method" onchange="budgetFieldChanged(${item.id}, 'procurement_method', this.value)"></td>
-            <td><input type="text" value="${escapeHtml(item.tender_status || '')}" data-field="tender_status" onchange="budgetFieldChanged(${item.id}, 'tender_status', this.value)"></td>
+            <td><input type="text" class="budget-currency-input" value="${fmtNum(item.budget_amount)}" data-field="budget_amount" data-raw="${item.budget_amount || 0}" onfocus="budgetCurrencyFocus(this)" onblur="budgetCurrencyBlur(this, ${item.id})" onchange="budgetFieldChanged(${item.id}, 'budget_amount', this.value)"></td>
+            <td>${makeSelect(procurementMethods, item.procurement_method, item.id, 'procurement_method')}</td>
+            <td>${makeSelect(tenderStages, item.tender_status, item.id, 'tender_status')}</td>
             <td><input type="date" value="${fmtDate(item.date_sent_approval)}" data-field="date_sent_approval" onchange="budgetFieldChanged(${item.id}, 'date_sent_approval', this.value)"></td>
             <td><input type="date" value="${fmtDate(item.date_of_award)}" data-field="date_of_award" onchange="budgetFieldChanged(${item.id}, 'date_of_award', this.value)"></td>
-            <td><input type="number" value="${item.contract_sum || 0}" data-field="contract_sum" onchange="budgetFieldChanged(${item.id}, 'contract_sum', this.value)" step="0.01"></td>
-            <td><input type="number" value="${item.actual_cost || 0}" data-field="actual_cost" onchange="budgetFieldChanged(${item.id}, 'actual_cost', this.value)" step="0.01"></td>
+            <td><input type="text" class="budget-currency-input" value="${fmtNum(item.actual_cost)}" data-field="actual_cost" data-raw="${item.actual_cost || 0}" onfocus="budgetCurrencyFocus(this)" onblur="budgetCurrencyBlur(this, ${item.id})" onchange="budgetFieldChanged(${item.id}, 'actual_cost', this.value)"></td>
             <td class="variance-cell ${varianceClass}">${formatCurrency(variance)}</td>
             <td><input type="date" value="${fmtDate(item.start_date)}" data-field="start_date" onchange="budgetFieldChanged(${item.id}, 'start_date', this.value)"></td>
             <td><input type="date" value="${fmtDate(item.end_date)}" data-field="end_date" onchange="budgetFieldChanged(${item.id}, 'end_date', this.value)"></td>
@@ -4937,12 +4946,26 @@ function formatCurrency(val) {
     return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Currency input helpers — show raw number on focus, formatted on blur
+function budgetCurrencyFocus(el) {
+    el.value = el.dataset.raw || '0';
+    el.type = 'number';
+    el.step = '0.01';
+}
+function budgetCurrencyBlur(el, id) {
+    el.type = 'text';
+    const raw = parseFloat(el.value) || 0;
+    el.dataset.raw = raw;
+    el.value = Number(raw).toLocaleString('en-US');
+    budgetFieldChanged(id, el.dataset.field, raw);
+}
+
 function budgetFieldChanged(id, field, value) {
     // Update local state
     const item = state.budgetItems.find(i => i.id === id);
     if (!item) return;
 
-    if (['budget_amount', 'actual_cost', 'contract_sum', 'status_percent'].includes(field)) {
+    if (['budget_amount', 'actual_cost', 'status_percent'].includes(field)) {
         item[field] = parseFloat(value) || 0;
     } else {
         item[field] = value;

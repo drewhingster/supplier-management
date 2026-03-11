@@ -445,6 +445,11 @@ async function init() {
             showApp();
             await loadInitialData();
             loadRecentAuditLogs(); // Load sidebar audit widget
+            // Restore last active view
+            const savedView = localStorage.getItem('currentView');
+            if (savedView && savedView !== 'suppliers') {
+                switchView(savedView);
+            }
         } else {
             showAuth();
         }
@@ -590,6 +595,7 @@ function setupEventListeners() {
 
 function switchView(view) {
     state.currentView = view;
+    localStorage.setItem('currentView', view);
 
     // Update desktop nav tabs
     elements.navSuppliers.classList.toggle('active', view === 'suppliers');

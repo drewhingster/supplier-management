@@ -3042,18 +3042,21 @@ a:hover {
 }
 
 .contracts-main .sidebar .stat-card {
-    padding: 1rem 0.75rem;
+    padding: 1rem 0.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     min-height: 80px;
+    overflow: hidden;
 }
 
 .contracts-main .sidebar .stat-value {
-    font-size: 1.125rem;
+    font-size: 0.85rem;
     line-height: 1.2;
     margin-bottom: 0.25rem;
+    word-break: break-word;
+    text-align: center;
 }
 
 .contracts-main .sidebar .stat-label {

@@ -6103,9 +6103,10 @@ a:hover {
 }
 
 .budget-action-btns button:hover { background: #e5e7eb; }
-.budget-complete-btn { color: #6b7280; background: #fff; border: 2px solid #d1d5db; }
-.budget-complete-btn.is-complete { color: #fff; background: #16a34a; border-color: #16a34a; }
-.budget-complete-btn.is-complete:hover { background: #15803d; }
+.budget-complete-btn { background: #fff !important; border: 2px solid #d1d5db !important; }
+.budget-complete-btn:hover { background: #f0fdf4 !important; border-color: #86efac !important; }
+.budget-complete-btn.is-complete { color: #fff; background: #16a34a !important; border-color: #16a34a !important; }
+.budget-complete-btn.is-complete:hover { background: #15803d !important; }
 .budget-delete-btn { color: #dc2626; }
 .budget-delete-btn:hover { background: #fee2e2; border-color: #fca5a5; }
 

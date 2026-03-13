@@ -463,12 +463,41 @@ function updateUserDisplay() {
     if (user) {
         elements.currentUserName.textContent = user.fullName || user.username;
 
-        if (user.role === 'view_only') {
+        if (user.role === 'view_only' || user.role === 'finance_readonly') {
             elements.userRoleBadge.classList.remove('hidden');
             document.body.classList.add('view-only-mode');
         } else {
             elements.userRoleBadge.classList.add('hidden');
             document.body.classList.remove('view-only-mode');
+        }
+
+        // Finance readonly: hide all nav tabs except Contracts
+        if (user.role === 'finance_readonly') {
+            elements.navSuppliers.classList.add('hidden');
+            elements.navTasks?.classList.add('hidden');
+            elements.navActivity?.classList.add('hidden');
+            elements.navLeave?.classList.add('hidden');
+            elements.navBudget?.classList.add('hidden');
+            // Mobile nav
+            document.getElementById('mobile-nav-suppliers')?.classList.add('hidden');
+            document.getElementById('mobile-nav-tasks')?.classList.add('hidden');
+            document.getElementById('mobile-nav-activity')?.classList.add('hidden');
+            document.getElementById('mobile-nav-leave')?.classList.add('hidden');
+            document.getElementById('mobile-nav-budget')?.classList.add('hidden');
+            // Force contracts view
+            switchView('contracts');
+        } else {
+            // Ensure tabs are visible for non-finance users
+            elements.navSuppliers.classList.remove('hidden');
+            elements.navTasks?.classList.remove('hidden');
+            elements.navActivity?.classList.remove('hidden');
+            elements.navLeave?.classList.remove('hidden');
+            elements.navBudget?.classList.remove('hidden');
+            document.getElementById('mobile-nav-suppliers')?.classList.remove('hidden');
+            document.getElementById('mobile-nav-tasks')?.classList.remove('hidden');
+            document.getElementById('mobile-nav-activity')?.classList.remove('hidden');
+            document.getElementById('mobile-nav-leave')?.classList.remove('hidden');
+            document.getElementById('mobile-nav-budget')?.classList.remove('hidden');
         }
     }
 }
@@ -594,6 +623,11 @@ function setupEventListeners() {
 // ==================== View Navigation ====================
 
 function switchView(view) {
+    // Finance readonly users can only view contracts
+    const user = api.getCurrentUser();
+    if (user && user.role === 'finance_readonly' && view !== 'contracts') {
+        view = 'contracts';
+    }
     state.currentView = view;
     localStorage.setItem('currentView', view);
 

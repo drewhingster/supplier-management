@@ -107,6 +107,16 @@ export default {
                 }
             }
 
+            // Finance read-only: can only access contracts (read-only) and auth routes
+            if (currentUser.role === 'finance_readonly') {
+                const isAuthRoute = path.startsWith('/api/auth/');
+                const isContractReadRoute = (path === '/api/contracts' || path.match(/^\/api\/contracts\/\d+$/) || path.match(/^\/api\/contracts\/\d+\/files\/\d+$/)) && request.method === 'GET';
+                const isSuppliersGetRoute = path === '/api/suppliers' && request.method === 'GET'; // needed to populate supplier names in contracts
+                if (!isAuthRoute && !isContractReadRoute && !isSuppliersGetRoute) {
+                    return jsonResponse({ error: 'Finance users can only view contracts' }, 403);
+                }
+            }
+
             // Categories routes
             if (path === '/api/categories') {
                 if (request.method === 'GET') return await getCategories(env);
@@ -360,7 +370,7 @@ async function setupUsersTable(env) {
                 full_name TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
                 password_salt TEXT NOT NULL,
-                role TEXT NOT NULL CHECK(role IN ('admin', 'view_only')),
+                role TEXT NOT NULL CHECK(role IN ('admin', 'view_only', 'finance_readonly')),
                 must_change_password INTEGER DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 last_login DATETIME
@@ -427,7 +437,8 @@ async function seedUsers(env) {
         { username: 'jyong', full_name: 'Jonathan Yong', role: 'admin' },
         { username: 'rshim', full_name: 'Ryan Shim', role: 'admin' },
         { username: 'broopchand', full_name: 'Basmattie Roopchand', role: 'admin' },
-        { username: 'elacruz', full_name: 'Errol La Cruez', role: 'view_only' }
+        { username: 'elacruz', full_name: 'Errol La Cruez', role: 'view_only' },
+        { username: 'finance', full_name: 'Finance Department', role: 'finance_readonly' }
     ];
 
     const results = [];

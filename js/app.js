@@ -663,7 +663,9 @@ function switchView(view) {
 
     // Load data if needed
     if (view === 'contracts' && state.contracts.length === 0) {
-        loadContracts();
+        loadContracts().then(() => checkForMissingContractFiles());
+    } else if (view === 'contracts') {
+        checkForMissingContractFiles();
     }
     if (view === 'tasks' && state.tasks.length === 0) {
         loadTasks().then(() => checkForUnclaimedTasks());
@@ -5172,4 +5174,55 @@ async function claimTask(taskId, btnEl) {
 
 function closeUnclaimedModal() {
     document.getElementById('unclaimed-modal').classList.add('hidden');
+}
+
+// ==================== MISSING CONTRACT FILES POPUP ====================
+
+function checkForMissingContractFiles() {
+    const user = api.getCurrentUser();
+    if (!user || user.role === 'finance_readonly' || user.role === 'view_only') return;
+
+    const missing = (state.contracts || []).filter(c => !c.file_count || c.file_count === 0);
+    if (missing.length === 0) return;
+
+    renderMissingFilesList(missing);
+    document.getElementById('missing-files-modal').classList.remove('hidden');
+}
+
+function renderMissingFilesList(contracts) {
+    const container = document.getElementById('missing-files-list');
+    if (!contracts.length) {
+        container.innerHTML = '<div class="unclaimed-empty">All contracts have attachments.</div>';
+        return;
+    }
+
+    container.innerHTML = contracts.map(contract => {
+        const amount = contract.amount
+            ? `GYD $${Number(contract.amount).toLocaleString()}`
+            : 'No amount set';
+        const supplier = contract.supplier_name ? escapeHtml(contract.supplier_name) : '';
+        return `
+            <div class="unclaimed-item" id="missing-file-item-${contract.id}">
+                <div class="unclaimed-item-info">
+                    <div class="unclaimed-item-title">${escapeHtml(contract.contract_number)}</div>
+                    <div class="unclaimed-item-meta">
+                        ${supplier ? `<span>${supplier}</span>` : ''}
+                        <span>${amount}</span>
+                    </div>
+                </div>
+                <button class="unclaimed-claim-btn" onclick="openContractForUpload(${contract.id})" style="background: #dc3545;">Upload</button>
+            </div>`;
+    }).join('');
+}
+
+function openContractForUpload(contractId) {
+    closeMissingFilesModal();
+    const contract = state.contracts.find(c => c.id === contractId);
+    if (contract) {
+        openContractModal(contract);
+    }
+}
+
+function closeMissingFilesModal() {
+    document.getElementById('missing-files-modal').classList.add('hidden');
 }

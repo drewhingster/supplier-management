@@ -1424,6 +1424,31 @@
     </div>
 
 
+    <!-- Missing Contract Attachments Popup -->
+    <div id="missing-files-modal" class="modal hidden">
+        <div class="modal-content unclaimed-modal-content">
+            <div class="modal-header">
+                <h2>
+                    <svg viewBox="0 0 24 24" width="22" height="22" style="vertical-align: middle; margin-right: 0.5rem; color: #dc3545;">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <line x1="12" y1="12" x2="12" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="12" cy="18.5" r="0.5" fill="currentColor"/>
+                    </svg>
+                    Contracts Missing Attachments
+                </h2>
+                <button class="modal-close" onclick="closeMissingFilesModal()">
+                    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </button>
+            </div>
+            <p class="unclaimed-subtitle">The following contracts do not have any files attached. Please upload the contract documents.</p>
+            <div id="missing-files-list" class="unclaimed-list"></div>
+            <div class="unclaimed-footer">
+                <button class="btn btn-secondary" onclick="closeMissingFilesModal()">Dismiss</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Unclaimed Procurement Popup -->
     <div id="unclaimed-modal" class="modal hidden">
         <div class="modal-content unclaimed-modal-content">

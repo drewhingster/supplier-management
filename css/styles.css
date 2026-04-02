@@ -6120,7 +6120,8 @@ a:hover {
 
 /* ==================== Unclaimed Procurement Popup ==================== */
 .unclaimed-modal-content {
-    max-width: 600px;
+    max-width: 850px;
+    width: 90vw;
     max-height: 80vh;
     overflow-y: auto;
     padding: 1.5rem 2rem;
@@ -6166,9 +6167,8 @@ a:hover {
     font-size: 0.9375rem;
     color: var(--color-text);
     margin-bottom: 0.25rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .unclaimed-item-meta {

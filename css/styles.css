@@ -6123,6 +6123,7 @@ a:hover {
     max-width: 600px;
     max-height: 80vh;
     overflow-y: auto;
+    padding: 1.5rem 2rem;
 }
 
 .unclaimed-subtitle {

@@ -456,6 +456,13 @@ class SupplierAPI {
         });
     }
 
+    async claimTask(id, assignedPerson) {
+        return await this.request(`/tasks/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ assigned_person: assignedPerson })
+        });
+    }
+
     async deleteTask(id) {
         return await this.request(`/tasks/${id}`, {
             method: 'DELETE'

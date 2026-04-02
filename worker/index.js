@@ -274,6 +274,7 @@ export default {
                 const id = parseInt(path.split('/').pop());
                 if (request.method === 'GET') return await getTask(id, env);
                 if (request.method === 'PUT') return await updateTask(id, request, env, currentUser);
+                if (request.method === 'PATCH') return await claimTask(id, request, env, currentUser);
                 if (request.method === 'DELETE') return await deleteTask(id, env, currentUser, request);
             }
 
@@ -2313,6 +2314,22 @@ async function updateTask(id, request, env, currentUser) {
     await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'Task', id, body.title.trim(), `Updated task: ${body.title.trim()}`, request);
 
     return jsonResponse({ success: true, task });
+}
+
+async function claimTask(id, request, env, currentUser) {
+    const body = await request.json();
+    const task = await env.DB.prepare('SELECT id, title FROM tasks WHERE id = ?').bind(id).first();
+    if (!task) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+    const assignedPerson = body.assigned_person?.trim() || null;
+    await env.DB.prepare(
+        'UPDATE tasks SET assigned_person = ?, updated_at = datetime("now") WHERE id = ?'
+    ).bind(assignedPerson, id).run();
+
+    const updated = await env.DB.prepare('SELECT * FROM tasks WHERE id = ?').bind(id).first();
+    await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'Task', id, task.title, `Claimed task: ${task.title} (assigned to ${assignedPerson})`, request);
+    return jsonResponse({ success: true, task: updated });
 }
 
 async function deleteTask(id, env, currentUser, request) {

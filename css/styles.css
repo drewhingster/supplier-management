@@ -6181,6 +6181,22 @@ a:hover {
     margin: 0 0.35rem;
 }
 
+.unclaimed-claim-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.unclaimed-person-select {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8125rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: #fff;
+    min-width: 130px;
+}
+
 .unclaimed-claim-btn {
     padding: 0.4rem 1rem;
     font-size: 0.8125rem;

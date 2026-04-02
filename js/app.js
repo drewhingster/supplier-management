@@ -5111,11 +5111,14 @@ function renderUnclaimedList(tasks) {
         return;
     }
 
+    const people = ['Andrew Hing', 'Japheth Sankar', 'Jonathan Yong', 'Ryan Shim'];
+
     container.innerHTML = tasks.map(task => {
         const budget = task.budget_amount
             ? `GYD $${Number(task.budget_amount).toLocaleString()}`
             : 'No budget set';
         const code = task.project_code ? escapeHtml(task.project_code) : '';
+        const options = people.map(p => `<option value="${p}">${p}</option>`).join('');
         return `
             <div class="unclaimed-item" id="unclaimed-item-${task.id}">
                 <div class="unclaimed-item-info">
@@ -5125,26 +5128,35 @@ function renderUnclaimedList(tasks) {
                         <span>${budget}</span>
                     </div>
                 </div>
-                <button class="unclaimed-claim-btn" onclick="claimTask(${task.id}, this)">Claim</button>
+                <div class="unclaimed-claim-controls">
+                    <select class="unclaimed-person-select" id="claim-select-${task.id}">
+                        <option value="">Select person</option>
+                        ${options}
+                    </select>
+                    <button class="unclaimed-claim-btn" onclick="claimTask(${task.id}, this)">Claim</button>
+                </div>
             </div>`;
     }).join('');
 }
 
 async function claimTask(taskId, btnEl) {
-    const user = api.getCurrentUser();
-    if (!user) return;
+    const selectEl = document.getElementById(`claim-select-${taskId}`);
+    const assignedPerson = selectEl?.value;
 
-    const fullName = user.fullName || user.full_name || user.username;
+    if (!assignedPerson) {
+        showToast('Please select a person to assign', 'error');
+        return;
+    }
 
     btnEl.disabled = true;
     btnEl.textContent = 'Claiming...';
 
     try {
-        await api.updateTask(taskId, { assigned_person: fullName });
+        await api.claimTask(taskId, assignedPerson);
 
         // Update local state
         const task = state.tasks.find(t => t.id === taskId);
-        if (task) task.assigned_person = fullName;
+        if (task) task.assigned_person = assignedPerson;
 
         // Remove the item from the popup
         const itemEl = document.getElementById(`unclaimed-item-${taskId}`);
@@ -5154,7 +5166,6 @@ async function claimTask(taskId, btnEl) {
             itemEl.style.transform = 'translateX(20px)';
             setTimeout(() => {
                 itemEl.remove();
-                // If no more unclaimed items, close the modal
                 const remaining = document.querySelectorAll('#unclaimed-list .unclaimed-item');
                 if (remaining.length === 0) {
                     closeUnclaimedModal();
@@ -5163,7 +5174,7 @@ async function claimTask(taskId, btnEl) {
         }
 
         renderTasks();
-        showToast(`Claimed: ${task?.title || 'Procurement item'}`, 'success');
+        showToast(`Assigned "${task?.title}" to ${assignedPerson}`, 'success');
     } catch (error) {
         console.error('Failed to claim task:', error);
         showToast('Failed to claim procurement item', 'error');

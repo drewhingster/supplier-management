@@ -666,7 +666,9 @@ function switchView(view) {
         loadContracts();
     }
     if (view === 'tasks' && state.tasks.length === 0) {
-        loadTasks();
+        loadTasks().then(() => checkForUnclaimedTasks());
+    } else if (view === 'tasks') {
+        checkForUnclaimedTasks();
     }
     if (view === 'activity') {
         loadActivityLogs();
@@ -5085,4 +5087,89 @@ async function deleteBudgetItem(id) {
     } catch (error) {
         showToast('Failed to delete item', 'error');
     }
+}
+
+// ==================== UNCLAIMED PROCUREMENT POPUP ====================
+
+function checkForUnclaimedTasks() {
+    const user = api.getCurrentUser();
+    if (!user || user.role === 'finance_readonly' || user.role === 'view_only') return;
+
+    const unclaimed = (state.tasks || []).filter(t => !t.assigned_person && !t.archived);
+    if (unclaimed.length === 0) return;
+
+    renderUnclaimedList(unclaimed);
+    document.getElementById('unclaimed-modal').classList.remove('hidden');
+}
+
+function renderUnclaimedList(tasks) {
+    const container = document.getElementById('unclaimed-list');
+    if (!tasks.length) {
+        container.innerHTML = '<div class="unclaimed-empty">No unclaimed procurements.</div>';
+        return;
+    }
+
+    container.innerHTML = tasks.map(task => {
+        const budget = task.budget_amount
+            ? `GYD $${Number(task.budget_amount).toLocaleString()}`
+            : 'No budget set';
+        const code = task.project_code ? escapeHtml(task.project_code) : '';
+        return `
+            <div class="unclaimed-item" id="unclaimed-item-${task.id}">
+                <div class="unclaimed-item-info">
+                    <div class="unclaimed-item-title">${escapeHtml(task.title || 'Untitled')}</div>
+                    <div class="unclaimed-item-meta">
+                        ${code ? `<span>${code}</span>` : ''}
+                        <span>${budget}</span>
+                    </div>
+                </div>
+                <button class="unclaimed-claim-btn" onclick="claimTask(${task.id}, this)">Claim</button>
+            </div>`;
+    }).join('');
+}
+
+async function claimTask(taskId, btnEl) {
+    const user = api.getCurrentUser();
+    if (!user) return;
+
+    const fullName = user.fullName || user.full_name || user.username;
+
+    btnEl.disabled = true;
+    btnEl.textContent = 'Claiming...';
+
+    try {
+        await api.updateTask(taskId, { assigned_person: fullName });
+
+        // Update local state
+        const task = state.tasks.find(t => t.id === taskId);
+        if (task) task.assigned_person = fullName;
+
+        // Remove the item from the popup
+        const itemEl = document.getElementById(`unclaimed-item-${taskId}`);
+        if (itemEl) {
+            itemEl.style.transition = 'opacity 0.25s, transform 0.25s';
+            itemEl.style.opacity = '0';
+            itemEl.style.transform = 'translateX(20px)';
+            setTimeout(() => {
+                itemEl.remove();
+                // If no more unclaimed items, close the modal
+                const remaining = document.querySelectorAll('#unclaimed-list .unclaimed-item');
+                if (remaining.length === 0) {
+                    closeUnclaimedModal();
+                }
+            }, 250);
+        }
+
+        renderTasks();
+        showToast(`Claimed: ${task?.title || 'Procurement item'}`, 'success');
+    } catch (error) {
+        console.error('Failed to claim task:', error);
+        showToast('Failed to claim procurement item', 'error');
+        btnEl.disabled = false;
+        btnEl.textContent = 'Claim';
+    }
+}
+
+function closeUnclaimedModal() {
+    document.getElementById('unclaimed-modal').classList.add('hidden');
 }

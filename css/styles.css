@@ -6117,3 +6117,99 @@ a:hover {
     .budget-summary-cards { grid-template-columns: 1fr; }
     .budget-section { padding: var(--space-sm); }
 }
+
+/* ==================== Unclaimed Procurement Popup ==================== */
+.unclaimed-modal-content {
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.unclaimed-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin: 0 0 1.25rem 0;
+    line-height: 1.5;
+}
+
+.unclaimed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.unclaimed-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    background: #f9fafb;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.unclaimed-item:hover {
+    border-color: var(--color-accent);
+    background: rgba(232, 119, 34, 0.04);
+}
+
+.unclaimed-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.unclaimed-item-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.unclaimed-item-meta {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.unclaimed-item-meta span + span::before {
+    content: " \2022 ";
+    margin: 0 0.35rem;
+}
+
+.unclaimed-claim-btn {
+    padding: 0.4rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--color-accent);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.unclaimed-claim-btn:hover {
+    background: #d06a1a;
+}
+
+.unclaimed-claim-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.unclaimed-footer {
+    margin-top: 1.25rem;
+    text-align: right;
+}
+
+.unclaimed-empty {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+}

@@ -5111,7 +5111,7 @@ function renderUnclaimedList(tasks) {
         return;
     }
 
-    const people = ['Andrew Hing', 'Japheth Sankar', 'Jonathan Yong', 'Ryan Shim'];
+    const people = ['Andrew Hing', 'Areesa Bipat', 'Japheth Sankar', 'Jonathan Yong', 'Ryan Shim'];
 
     container.innerHTML = tasks.map(task => {
         const budget = task.budget_amount

@@ -1335,21 +1335,22 @@
 
                     <!-- Contract Linking (shown when contract is required) -->
                     <div id="contract-link-section" class="conditional-section hidden">
-                        <div class="form-row two-col">
-                            <div class="form-group">
-                                <label for="task-linked-contract">Link to Contract</label>
-                                <select id="task-linked-contract">
-                                    <option value="">Select Contract</option>
-                                    <!-- Contracts will be populated dynamically -->
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="openContractModalFromTask()">
-                                    <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                                    Create New Contract
-                                </button>
-                            </div>
+                        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.875rem; color: var(--color-text-muted);">Linked Contracts</h4>
+                        <div id="linked-contracts-list" class="linked-contracts-list">
+                            <!-- Contract rows will be created by JavaScript -->
                         </div>
+                        <div class="linked-contracts-actions">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addLinkedContractRow()">
+                                <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                Add Contract Link
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openContractModalFromTask()">
+                                <svg viewBox="0 0 24 24" class="btn-icon-left" width="16" height="16"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                                Create New Contract
+                            </button>
+                        </div>
+                        <!-- Keep hidden select for backward compat -->
+                        <select id="task-linked-contract" class="hidden" style="display:none;"></select>
                     </div>
                 </div>
 
@@ -1561,6 +1562,11 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <div class="detail-section" id="task-detail-contracts-section" style="display: none;">
+                    <h3>Linked Contracts</h3>
+                    <div id="task-detail-contracts-list" class="linked-contracts-detail"></div>
                 </div>
 
                 <div class="detail-section">

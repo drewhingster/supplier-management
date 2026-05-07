@@ -3222,8 +3222,11 @@ async function openTaskModal(task = null) {
     // Populate contractor dropdown with suppliers from database
     await populateContractorDropdown(task?.contractor_supplier || '');
 
-    // Populate contract dropdown
-    await populateContractDropdown(task?.linked_contract_id || null);
+    // Ensure contracts are loaded for multi-contract linking
+    await ensureContractsLoaded();
+
+    // Reset linked contracts
+    resetLinkedContracts();
 
     if (task) {
         elements.taskId.value = task.id;
@@ -3279,6 +3282,15 @@ async function openTaskModal(task = null) {
             });
             updateAwardDetailsVisibility();
         }, 100);
+
+        // Load linked contracts for multi-contract linking
+        if (task.requires_contract === 1) {
+            await loadAndDisplayLinkedContracts(task.id);
+            // If no linked contracts but has legacy linked_contract_id, add it
+            if (linkedContractRows.length === 0 && task.linked_contract_id) {
+                addLinkedContractRow(task.linked_contract_id);
+            }
+        }
 
         // Load task suppliers for multi-supplier split
         resetSupplierModal();
@@ -3858,44 +3870,122 @@ function updateAwardDetailsVisibility() {
     }
 }
 
-// Populate contract dropdown
+// ==================== Multi-Contract Linking ====================
+
+let linkedContractRows = [];
+let linkedContractRowCounter = 0;
+
+// Ensure contracts are loaded for dropdowns
+async function ensureContractsLoaded() {
+    if (!state.contracts || state.contracts.length === 0) {
+        state.contracts = await api.getContracts();
+    }
+    return state.contracts;
+}
+
+// Populate contract dropdown (backward compat - now used for hidden element)
 async function populateContractDropdown(selectedId = null) {
-    const dropdown = elements.taskLinkedContract;
-    if (!dropdown) return;
+    // No-op: multi-contract linking replaces the single dropdown
+}
 
-    dropdown.innerHTML = '<option value="">Select Contract</option>';
+// Build a contract select dropdown HTML
+function buildContractSelectHtml(selectedId = null) {
+    const contracts = state.contracts || [];
+    let html = '<option value="">Select Contract</option>';
+    contracts.forEach(c => {
+        const sel = selectedId && parseInt(selectedId) === c.id ? 'selected' : '';
+        const label = `${c.contract_number || 'No #'} — ${c.supplier_name || 'Unknown'} ${c.amount ? '(G$' + Number(c.amount).toLocaleString() + ')' : ''}`;
+        html += `<option value="${c.id}" ${sel}>${escapeHtml(label)}</option>`;
+    });
+    return html;
+}
 
+// Add a contract link row to the form
+function addLinkedContractRow(contractId = null) {
+    const container = document.getElementById('linked-contracts-list');
+    if (!container) return;
+
+    linkedContractRowCounter++;
+    const rowId = `lc-row-${linkedContractRowCounter}`;
+
+    const row = document.createElement('div');
+    row.className = 'linked-contract-row';
+    row.id = rowId;
+    row.innerHTML = `
+        <select onchange="onLinkedContractChange('${rowId}', this.value)">
+            ${buildContractSelectHtml(contractId)}
+        </select>
+        <button type="button" class="remove-contract-link-btn" onclick="removeLinkedContractRow('${rowId}')" title="Remove">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        </button>
+    `;
+
+    container.appendChild(row);
+    linkedContractRows.push({ rowId, contractId: contractId || null });
+}
+
+function onLinkedContractChange(rowId, value) {
+    const entry = linkedContractRows.find(r => r.rowId === rowId);
+    if (entry) entry.contractId = value ? parseInt(value) : null;
+}
+
+function removeLinkedContractRow(rowId) {
+    const el = document.getElementById(rowId);
+    if (el) el.remove();
+    linkedContractRows = linkedContractRows.filter(r => r.rowId !== rowId);
+}
+
+function resetLinkedContracts() {
+    linkedContractRows = [];
+    linkedContractRowCounter = 0;
+    const container = document.getElementById('linked-contracts-list');
+    if (container) container.innerHTML = '';
+}
+
+function getLinkedContractIds() {
+    return linkedContractRows
+        .map(r => r.contractId)
+        .filter(id => id !== null && id !== undefined);
+}
+
+async function loadAndDisplayLinkedContracts(taskId) {
+    resetLinkedContracts();
     try {
-        // Use existing contracts from state or load them
-        let contracts = state.contracts;
-        if (!contracts || contracts.length === 0) {
-            contracts = await api.getContracts();
-        }
-
-        contracts.forEach(contract => {
-            const option = document.createElement('option');
-            option.value = contract.id;
-            option.textContent = `${contract.contract_number || 'No #'} - ${contract.title}`;
-            dropdown.appendChild(option);
-        });
-
-        if (selectedId) {
-            dropdown.value = selectedId;
+        const contracts = await api.getTaskContracts(taskId);
+        if (contracts.length > 0) {
+            contracts.forEach(c => addLinkedContractRow(c.contract_id));
         }
     } catch (error) {
-        console.error('Failed to load contracts:', error);
+        console.error('Failed to load task contracts:', error);
+    }
+}
+
+async function saveLinkedContracts(taskId) {
+    const ids = getLinkedContractIds();
+    try {
+        await api.saveTaskContracts(taskId, ids);
+    } catch (error) {
+        console.error('Failed to save linked contracts:', error);
+        showToast('Failed to save linked contracts', 'error');
+    }
+}
+
+// View a linked contract from the task detail modal
+async function viewLinkedContract(contractId) {
+    try {
+        const contract = await api.getContract(contractId);
+        if (contract) {
+            openContractDetailModal(contract);
+        }
+    } catch (error) {
+        showToast('Failed to load contract details', 'error');
     }
 }
 
 // Open contract modal from task modal
 function openContractModalFromTask() {
-    // Close task modal temporarily
     elements.taskModal.classList.add('hidden');
-
-    // Open contract modal
     openContractModal(null);
-
-    // TODO: After contract is created, re-open task modal and select the new contract
 }
 
 // Populate contractor dropdown with suppliers from database
@@ -4102,6 +4192,34 @@ async function openTaskDetailModal(task) {
         awardDocSection.style.display = 'flex';
     } else {
         awardDocSection.style.display = 'none';
+    }
+
+    // Populate linked contracts
+    const contractsSection = document.getElementById('task-detail-contracts-section');
+    const contractsList = document.getElementById('task-detail-contracts-list');
+    if (contractsSection && contractsList) {
+        try {
+            const linkedContracts = await api.getTaskContracts(task.id);
+            if (linkedContracts.length > 0) {
+                contractsSection.style.display = 'block';
+                contractsList.innerHTML = linkedContracts.map(c => `
+                    <div class="linked-contract-card" onclick="viewLinkedContract(${c.contract_id})">
+                        <svg viewBox="0 0 24 24" class="contract-icon">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        <div class="contract-info">
+                            <div class="contract-number-label">${escapeHtml(c.contract_number || 'No #')}</div>
+                            <div class="contract-meta">${escapeHtml(c.supplier_name || '')} ${c.amount ? '— G$' + Number(c.amount).toLocaleString() : ''}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                contractsSection.style.display = 'none';
+            }
+        } catch (e) {
+            contractsSection.style.display = 'none';
+        }
     }
 
     // Populate timeline
@@ -4316,6 +4434,11 @@ async function handleTaskSubmit(e) {
         console.log('About to save task suppliers for task:', taskId);
         if (taskId) {
             await saveTaskSuppliers(taskId);
+        }
+
+        // Save linked contracts if contract is required
+        if (taskId && elements.taskRequiresContract?.checked) {
+            await saveLinkedContracts(taskId);
         }
 
         closeTaskModal(true); // Skip confirmation since we just saved

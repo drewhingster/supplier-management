@@ -483,6 +483,20 @@ class SupplierAPI {
         });
     }
 
+    // ==================== Task Contracts (Multi-Contract Linking) ====================
+
+    async getTaskContracts(taskId) {
+        const response = await this.request(`/tasks/${taskId}/contracts`);
+        return response.contracts || [];
+    }
+
+    async saveTaskContracts(taskId, contractIds) {
+        return await this.request(`/tasks/${taskId}/contracts`, {
+            method: 'PUT',
+            body: JSON.stringify({ contract_ids: contractIds })
+        });
+    }
+
     // ==================== Task Remarks ====================
 
     async setupTaskRemarksTable() {

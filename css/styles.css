@@ -6118,6 +6118,92 @@ a:hover {
     .budget-section { padding: var(--space-sm); }
 }
 
+/* ==================== Multi-Contract Linking ==================== */
+.linked-contracts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.linked-contract-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.linked-contract-row select {
+    flex: 1;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8125rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.linked-contract-row .remove-contract-link-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-danger, #dc3545);
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s;
+}
+
+.linked-contract-row .remove-contract-link-btn:hover {
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.linked-contracts-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.linked-contracts-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.linked-contract-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.linked-contract-card:hover {
+    border-color: var(--color-accent);
+}
+
+.linked-contract-card .contract-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--color-primary);
+    flex-shrink: 0;
+}
+
+.linked-contract-card .contract-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.linked-contract-card .contract-number-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.linked-contract-card .contract-meta {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
 /* ==================== Unclaimed Procurement Popup ==================== */
 .unclaimed-modal-content {
     max-width: 850px;

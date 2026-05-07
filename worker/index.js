@@ -301,6 +301,13 @@ export default {
                 if (request.method === 'DELETE') return await deleteTaskSupplier(taskId, supplierId, env, currentUser, request);
             }
 
+            // Task contracts (multi-contract linking)
+            if (path.match(/^\/api\/tasks\/\d+\/contracts$/)) {
+                const taskId = parseInt(path.split('/')[3]);
+                if (request.method === 'GET') return await getTaskContracts(taskId, env);
+                if (request.method === 'PUT') return await saveTaskContracts(taskId, request, env, currentUser);
+            }
+
             // Task Remarks routes
             if (path.match(/^\/api\/tasks\/\d+\/remarks$/)) {
                 const taskId = parseInt(path.split('/')[3]);
@@ -2140,6 +2147,22 @@ async function setupTasksTable(env) {
             CREATE INDEX IF NOT EXISTS idx_task_suppliers_task_id ON task_suppliers(task_id)
         `).run();
 
+        // Create task_contracts table for multi-contract linking
+        await env.DB.prepare(`
+            CREATE TABLE IF NOT EXISTS task_contracts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                contract_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+                FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+            )
+        `).run();
+
+        await env.DB.prepare(`
+            CREATE INDEX IF NOT EXISTS idx_task_contracts_task_id ON task_contracts(task_id)
+        `).run();
+
         return jsonResponse({ success: true, message: 'Tasks table created successfully' });
     } catch (error) {
         return jsonResponse({ error: error.message }, 500);
@@ -2590,6 +2613,55 @@ async function deleteTaskSupplier(taskId, supplierId, env, currentUser, request)
     await logAudit(env, currentUser.id, currentUser.fullName, 'DELETE', 'TaskSupplier', supplierId, supplier.supplier_name, `Removed supplier "${supplier.supplier_name}" from task: ${task.title}`, request);
 
     return jsonResponse({ success: true });
+}
+
+// ==================== TASK CONTRACTS (Multi-Contract Linking) ====================
+
+async function getTaskContracts(taskId, env) {
+    const task = await env.DB.prepare('SELECT id FROM tasks WHERE id = ?').bind(taskId).first();
+    if (!task) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+
+    const { results } = await env.DB.prepare(`
+        SELECT tc.id, tc.task_id, tc.contract_id, tc.created_at,
+               c.contract_number, c.description, c.amount, c.supplier_id,
+               s.name as supplier_name
+        FROM task_contracts tc
+        JOIN contracts c ON tc.contract_id = c.id
+        LEFT JOIN suppliers s ON c.supplier_id = s.id
+        WHERE tc.task_id = ?
+        ORDER BY tc.created_at ASC
+    `).bind(taskId).all();
+
+    return jsonResponse({ contracts: results || [] });
+}
+
+async function saveTaskContracts(taskId, request, env, currentUser) {
+    const task = await env.DB.prepare('SELECT id, title FROM tasks WHERE id = ?').bind(taskId).first();
+    if (!task) {
+        return jsonResponse({ error: 'Task not found' }, 404);
+    }
+
+    const body = await request.json();
+    const contractIds = body.contract_ids || [];
+
+    // Delete all existing linked contracts for this task
+    await env.DB.prepare('DELETE FROM task_contracts WHERE task_id = ?').bind(taskId).run();
+
+    // Insert new links
+    const linked = [];
+    for (const contractId of contractIds) {
+        if (!contractId) continue;
+        await env.DB.prepare(
+            'INSERT INTO task_contracts (task_id, contract_id, created_at) VALUES (?, ?, datetime("now"))'
+        ).bind(taskId, parseInt(contractId)).run();
+        linked.push(contractId);
+    }
+
+    await logAudit(env, currentUser.id, currentUser.fullName, 'UPDATE', 'Task', taskId, task.title, `Linked ${linked.length} contract(s) to task: ${task.title}`, request);
+
+    return jsonResponse({ success: true, linked_count: linked.length });
 }
 
 // ==================== TASK REMARKS ====================

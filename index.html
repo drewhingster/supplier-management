@@ -1311,13 +1311,6 @@
                             <label for="task-contract-sum">Contract Sum (G$)</label>
                             <input type="number" id="task-contract-sum" step="0.01" min="0" placeholder="0.00">
                         </div>
-                        <div class="form-group checkbox-group contract-toggle">
-                            <label class="checkbox-label">
-                                <input type="checkbox" id="task-requires-contract" onchange="handleContractToggle()">
-                                <span class="checkbox-custom"></span>
-                                <span>Is a contract necessary?</span>
-                            </label>
-                        </div>
                     </div>
 
                     <!-- Multi-Supplier Split Section (shown when multi-supplier enabled) -->
@@ -1331,6 +1324,15 @@
                             <!-- Supplier rows will be created by JavaScript -->
                         </div>
                         <button type="button" id="add-supplier-row-btn" class="btn-secondary" onclick="window.addSupplierRow()">+ Add Another Supplier</button>
+                    </div>
+
+                    <!-- Contract Toggle (always visible) -->
+                    <div class="form-group checkbox-group contract-toggle" style="margin-top: 0.75rem;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="task-requires-contract" onchange="handleContractToggle()">
+                            <span class="checkbox-custom"></span>
+                            <span>Is a contract necessary?</span>
+                        </label>
                     </div>
 
                     <!-- Contract Linking (shown when contract is required) -->

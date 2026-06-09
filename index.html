@@ -1236,8 +1236,12 @@
                     <h3>Project Information</h3>
                     <div class="form-row four-col">
                         <div class="form-group">
-                            <label for="task-project-code">Project Code</label>
-                            <input type="text" id="task-project-code" placeholder="e.g., 2601200">
+                            <label for="task-project-code">Current / Capital</label>
+                            <select id="task-project-code">
+                                <option value="">-- Select --</option>
+                                <option value="Current">Current</option>
+                                <option value="Capital">Capital</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="task-budget-amount">Budget Amount (G$) <span class="required">*</span></label>
@@ -1498,7 +1502,7 @@
                     <h3>Basic Information</h3>
                     <div class="detail-grid">
                         <div class="detail-item">
-                            <span class="detail-label">Project Code</span>
+                            <span class="detail-label">Current / Capital</span>
                             <span class="detail-value" id="task-detail-project-code">-</span>
                         </div>
                         <div class="detail-item">

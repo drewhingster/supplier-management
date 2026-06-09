@@ -3348,9 +3348,13 @@ function renderWorkflowPlaceholder() {
 // Handle budget amount change - determine tier and render stages
 function handleBudgetChange() {
     const budgetAmount = parseFloat(elements.taskBudgetAmount?.value) || 0;
+    const contractSum = parseFloat(elements.taskContractSum?.value) || 0;
     const isSingleSource = elements.taskSingleSource?.checked || false;
 
-    if (budgetAmount <= 0) {
+    // Use whichever is higher: budget or actual contract sum
+    const effectiveAmount = Math.max(budgetAmount, contractSum);
+
+    if (effectiveAmount <= 0) {
         renderWorkflowPlaceholder();
         if (elements.tierBadge) {
             elements.tierBadge.textContent = 'Enter budget to determine tier';
@@ -3359,8 +3363,8 @@ function handleBudgetChange() {
         return;
     }
 
-    // Use Single Source tier if checkbox is checked, otherwise determine by budget
-    const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE : getProcurementTier(budgetAmount);
+    // Use Single Source tier if checkbox is checked, otherwise determine by effective amount
+    const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE : getProcurementTier(effectiveAmount);
     const requiresContract = elements.taskRequiresContract?.checked || false;
 
     // Update tier badge

@@ -5573,3 +5573,172 @@ function renderDashboard() {
             : '<p class="dashboard-empty">No procurement items yet</p>';
     }
 }
+
+// ==================== [UX-1] Command Palette (Ctrl+K) ====================
+
+let cmdkOpen = false;
+let cmdkResults = [];
+let cmdkActiveIndex = 0;
+
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (cmdkOpen) closeCommandPalette(); else openCommandPalette();
+    } else if (cmdkOpen && e.key === 'Escape') {
+        closeCommandPalette();
+    }
+});
+
+async function openCommandPalette() {
+    if (!api.isAuthenticated()) return;
+    const overlay = document.getElementById('command-palette');
+    const input = document.getElementById('cmdk-input');
+    if (!overlay || !input) return;
+
+    cmdkOpen = true;
+    cmdkActiveIndex = 0;
+    overlay.classList.remove('hidden');
+    input.value = '';
+    renderCmdkResults('');
+    input.focus();
+
+    // Lazy-load collections not yet in memory (suppliers load at startup)
+    const user = api.getCurrentUser();
+    const isFinance = user && user.role === 'finance_readonly';
+    try {
+        const loads = [];
+        if (state.contracts.length === 0) loads.push(api.getContracts({}).then(c => { state.contracts = c; }));
+        if (!isFinance && state.tasks.length === 0) loads.push(api.getTasks({}).then(t => { state.tasks = t; }));
+        if (loads.length > 0) {
+            await Promise.all(loads);
+            if (cmdkOpen) renderCmdkResults(input.value);
+        }
+    } catch (e) {
+        // Search proceeds with whatever is already loaded
+    }
+}
+
+function closeCommandPalette() {
+    cmdkOpen = false;
+    document.getElementById('command-palette')?.classList.add('hidden');
+}
+
+function handleCmdkInput(e) {
+    cmdkActiveIndex = 0;
+    renderCmdkResults(e.target.value);
+}
+
+function handleCmdkKeydown(e) {
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        moveCmdkActive(1);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        moveCmdkActive(-1);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const result = cmdkResults[cmdkActiveIndex];
+        if (result) selectCmdkResult(result.type, result.id);
+    }
+}
+
+function renderCmdkResults(query) {
+    const container = document.getElementById('cmdk-results');
+    if (!container) return;
+
+    const q = (query || '').trim().toLowerCase();
+    if (!q) {
+        cmdkResults = [];
+        container.innerHTML = '<div class="cmdk-hint">Start typing to search suppliers, contracts and procurements</div>';
+        return;
+    }
+
+    const user = api.getCurrentUser();
+    const isFinance = user && user.role === 'finance_readonly';
+    const matches = (str) => (str || '').toLowerCase().includes(q);
+
+    const suppliers = isFinance ? [] : (state.suppliers || []).filter(s =>
+        matches(s.name) || matches(s.contact_person) || matches(s.telephone)).slice(0, 6);
+    const contracts = (state.contracts || []).filter(c =>
+        matches(c.contract_number) || matches(c.supplier_name) || matches(c.description)).slice(0, 6);
+    const tasks = isFinance ? [] : (state.tasks || []).filter(t =>
+        matches(t.title) || matches(t.project_code) || matches(t.contractor_supplier) || matches(t.assigned_person)).slice(0, 6);
+
+    cmdkResults = [
+        ...suppliers.map(s => ({ type: 'supplier', id: s.id })),
+        ...contracts.map(c => ({ type: 'contract', id: c.id })),
+        ...tasks.map(t => ({ type: 'task', id: t.id }))
+    ];
+
+    if (cmdkResults.length === 0) {
+        container.innerHTML = '<div class="cmdk-hint">No matches found</div>';
+        return;
+    }
+
+    const icons = {
+        supplier: '<svg viewBox="0 0 24 24" class="cmdk-item-icon"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
+        contract: '<svg viewBox="0 0 24 24" class="cmdk-item-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="14,2 14,8 20,8" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+        task: '<svg viewBox="0 0 24 24" class="cmdk-item-icon"><path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" fill="none"/></svg>'
+    };
+
+    let idx = 0;
+    const itemHtml = (type, id, title, meta) => {
+        const html = `
+            <button class="cmdk-item ${idx === cmdkActiveIndex ? 'active' : ''}" data-index="${idx}"
+                    onclick="selectCmdkResult('${type}', ${id})" onmousemove="setCmdkActive(${idx})">
+                ${icons[type]}
+                <span class="cmdk-item-title">${escapeHtml(title)}</span>
+                ${meta ? `<span class="cmdk-item-meta">${escapeHtml(meta)}</span>` : ''}
+            </button>`;
+        idx++;
+        return html;
+    };
+
+    let html = '';
+    if (suppliers.length > 0) {
+        html += '<div class="cmdk-group-label">Suppliers</div>';
+        html += suppliers.map(s => itemHtml('supplier', s.id, s.name, s.contact_person || '')).join('');
+    }
+    if (contracts.length > 0) {
+        html += '<div class="cmdk-group-label">Contracts</div>';
+        html += contracts.map(c => itemHtml('contract', c.id, c.contract_number, c.supplier_name || '')).join('');
+    }
+    if (tasks.length > 0) {
+        html += '<div class="cmdk-group-label">Procurements</div>';
+        html += tasks.map(t => itemHtml('task', t.id, t.title, t.project_code || t.assigned_person || '')).join('');
+    }
+
+    container.innerHTML = html;
+}
+
+function setCmdkActive(index) {
+    if (index === cmdkActiveIndex) return;
+    cmdkActiveIndex = index;
+    document.querySelectorAll('.cmdk-item').forEach(el => {
+        el.classList.toggle('active', parseInt(el.dataset.index, 10) === index);
+    });
+}
+
+function moveCmdkActive(delta) {
+    if (cmdkResults.length === 0) return;
+    cmdkActiveIndex = (cmdkActiveIndex + delta + cmdkResults.length) % cmdkResults.length;
+    document.querySelectorAll('.cmdk-item').forEach(el => {
+        const isActive = parseInt(el.dataset.index, 10) === cmdkActiveIndex;
+        el.classList.toggle('active', isActive);
+        if (isActive) el.scrollIntoView({ block: 'nearest' });
+    });
+}
+
+function selectCmdkResult(type, id) {
+    closeCommandPalette();
+    if (type === 'supplier') {
+        const supplier = state.suppliers.find(s => s.id === id);
+        if (supplier) { switchView('suppliers'); openDetailModal(supplier); }
+    } else if (type === 'contract') {
+        const contract = state.contracts.find(c => c.id === id);
+        if (contract) { switchView('contracts'); openContractDetailModal(contract); }
+    } else if (type === 'task') {
+        const task = state.tasks.find(t => t.id === id);
+        if (task) { switchView('tasks'); openTaskDetailModal(task); }
+    }
+}

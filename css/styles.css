@@ -6316,3 +6316,193 @@ a:hover {
     color: var(--color-text-muted);
     font-size: 0.875rem;
 }
+
+/* ==========================================================================
+   [UI-1] Dashboard Landing Page
+   ========================================================================== */
+
+.dashboard-main {
+    display: block;
+    padding: var(--space-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.dashboard-section .grid-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: var(--space-lg);
+}
+
+.dashboard-date {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.dashboard-stat-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.dashboard-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.dashboard-stat-value {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1.1;
+}
+
+.dashboard-stat-label {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.dashboard-stat-warning .dashboard-stat-value {
+    color: var(--color-warning);
+}
+
+.dashboard-stat-danger .dashboard-stat-value {
+    color: var(--color-error);
+}
+
+.dashboard-charts {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: var(--space-md);
+}
+
+.dashboard-panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.dashboard-panel-title {
+    font-size: 0.9375rem;
+    margin-bottom: var(--space-md);
+    color: var(--color-text-secondary);
+}
+
+.dashboard-donut {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+}
+
+.donut-svg {
+    width: 160px;
+    height: 160px;
+    flex-shrink: 0;
+}
+
+.donut-pct {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    fill: var(--color-text);
+}
+
+.donut-label {
+    font-size: 0.6875rem;
+    fill: var(--color-text-muted);
+}
+
+.donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.dashboard-tier-bars {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.tier-bar-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 32px;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.tier-bar-label {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tier-bar-track {
+    height: 14px;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.tier-bar-fill {
+    height: 100%;
+    border-radius: var(--radius-sm);
+    transition: width var(--transition-slow);
+}
+
+.tier-bar-count {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-align: right;
+    color: var(--color-text);
+}
+
+.dashboard-empty {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    text-align: center;
+    padding: var(--space-lg) 0;
+}
+
+@media (max-width: 768px) {
+    .dashboard-main {
+        padding: var(--space-md);
+    }
+
+    .dashboard-charts {
+        grid-template-columns: 1fr;
+    }
+
+    .tier-bar-row {
+        grid-template-columns: 110px 1fr 28px;
+    }
+}

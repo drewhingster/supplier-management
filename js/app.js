@@ -249,6 +249,8 @@ const elements = {
     app: document.getElementById('app'),
 
     // Navigation
+    navDashboard: document.getElementById('nav-dashboard'),
+    dashboardView: document.getElementById('dashboard-view'),
     navSuppliers: document.getElementById('nav-suppliers'),
     navContracts: document.getElementById('nav-contracts'),
     navTasks: document.getElementById('nav-tasks'),
@@ -445,11 +447,9 @@ async function init() {
             showApp();
             await loadInitialData();
             loadRecentAuditLogs(); // Load sidebar audit widget
-            // Restore last active view
+            // Restore last active view ([UI-1] default landing is dashboard)
             const savedView = localStorage.getItem('currentView');
-            if (savedView && savedView !== 'suppliers') {
-                switchView(savedView);
-            }
+            switchView(savedView || 'dashboard');
         } else {
             showAuth();
         }
@@ -473,12 +473,14 @@ function updateUserDisplay() {
 
         // Finance readonly: hide all nav tabs except Contracts
         if (user.role === 'finance_readonly') {
+            elements.navDashboard?.classList.add('hidden');
             elements.navSuppliers.classList.add('hidden');
             elements.navTasks?.classList.add('hidden');
             elements.navActivity?.classList.add('hidden');
             elements.navLeave?.classList.add('hidden');
             elements.navBudget?.classList.add('hidden');
             // Mobile nav
+            document.getElementById('mobile-nav-dashboard')?.classList.add('hidden');
             document.getElementById('mobile-nav-suppliers')?.classList.add('hidden');
             document.getElementById('mobile-nav-tasks')?.classList.add('hidden');
             document.getElementById('mobile-nav-activity')?.classList.add('hidden');
@@ -488,11 +490,13 @@ function updateUserDisplay() {
             switchView('contracts');
         } else {
             // Ensure tabs are visible for non-finance users
+            elements.navDashboard?.classList.remove('hidden');
             elements.navSuppliers.classList.remove('hidden');
             elements.navTasks?.classList.remove('hidden');
             elements.navActivity?.classList.remove('hidden');
             elements.navLeave?.classList.remove('hidden');
             elements.navBudget?.classList.remove('hidden');
+            document.getElementById('mobile-nav-dashboard')?.classList.remove('hidden');
             document.getElementById('mobile-nav-suppliers')?.classList.remove('hidden');
             document.getElementById('mobile-nav-tasks')?.classList.remove('hidden');
             document.getElementById('mobile-nav-activity')?.classList.remove('hidden');
@@ -632,6 +636,7 @@ function switchView(view) {
     localStorage.setItem('currentView', view);
 
     // Update desktop nav tabs
+    elements.navDashboard?.classList.toggle('active', view === 'dashboard');
     elements.navSuppliers.classList.toggle('active', view === 'suppliers');
     elements.navContracts.classList.toggle('active', view === 'contracts');
     elements.navTasks?.classList.toggle('active', view === 'tasks');
@@ -640,6 +645,7 @@ function switchView(view) {
     elements.navBudget?.classList.toggle('active', view === 'budget');
 
     // Update mobile nav tabs
+    document.getElementById('mobile-nav-dashboard')?.classList.toggle('active', view === 'dashboard');
     document.getElementById('mobile-nav-suppliers')?.classList.toggle('active', view === 'suppliers');
     document.getElementById('mobile-nav-contracts')?.classList.toggle('active', view === 'contracts');
     document.getElementById('mobile-nav-tasks')?.classList.toggle('active', view === 'tasks');
@@ -648,6 +654,7 @@ function switchView(view) {
     document.getElementById('mobile-nav-budget')?.classList.toggle('active', view === 'budget');
 
     // Show/hide views
+    elements.dashboardView?.classList.toggle('hidden', view !== 'dashboard');
     elements.suppliersView.classList.toggle('hidden', view !== 'suppliers');
     elements.contractsView.classList.toggle('hidden', view !== 'contracts');
     elements.tasksView?.classList.toggle('hidden', view !== 'tasks');
@@ -680,6 +687,9 @@ function switchView(view) {
     }
     if (view === 'budget') {
         loadBudgetItems();
+    }
+    if (view === 'dashboard') {
+        loadDashboardView();
     }
 }
 
@@ -5363,4 +5373,145 @@ function openContractForUpload(contractId) {
 
 function closeMissingFilesModal() {
     document.getElementById('missing-files-modal').classList.add('hidden');
+}
+
+// ==================== [UI-1] Dashboard ====================
+
+const DASHBOARD_TIER_COLORS = {
+    cash_advance: '#2e7d32',
+    single_quote: '#1565c0',
+    three_quote_rfq: '#e65100',
+    ministerial_tender_board: '#00695c',
+    npta: '#7b1fa2',
+    public_tender_npta: '#c62828',
+    cabinet: '#263238',
+    single_source: '#6d4c41'
+};
+
+async function loadDashboardView() {
+    const dateEl = document.getElementById('dashboard-date');
+    if (dateEl) {
+        dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    const loads = [];
+    if (state.tasks.length === 0) loads.push(loadTasks());
+    if (state.contracts.length === 0) loads.push(loadContracts());
+    if (state.budgetItems.length === 0) loads.push(loadBudgetItems());
+    try {
+        await Promise.all(loads);
+    } catch (e) {
+        console.error('Dashboard data load failed:', e);
+    }
+    renderDashboard();
+}
+
+function getTaskTierAndProgress(task) {
+    const isSingleSource = task.single_source_procurement === 1;
+    const effectiveAmount = Math.max(task.budget_amount || 0, task.contract_sum || 0);
+    const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE
+        : (effectiveAmount > 0 ? getProcurementTier(effectiveAmount) : null);
+
+    let completedStages = [], naStages = [];
+    try { completedStages = JSON.parse(task.completed_stages || '[]'); } catch (e) { /* noop */ }
+    try { naStages = JSON.parse(task.na_stages || '[]'); } catch (e) { /* noop */ }
+
+    const stages = tier ? getTierStages(tier, task.requires_contract === 1) : [];
+    const progress = calculateProgress(completedStages, stages.length - naStages.length);
+    return { tier, progress };
+}
+
+function renderDashboard() {
+    const statsEl = document.getElementById('dashboard-stats');
+    const donutEl = document.getElementById('dashboard-donut');
+    const barsEl = document.getElementById('dashboard-tier-bars');
+    if (!statsEl) return;
+
+    const activeTasks = (state.tasks || []).filter(t => !t.archived);
+    const taskInfos = activeTasks.map(t => ({ task: t, ...getTaskTierAndProgress(t) }));
+    const inProgressCount = taskInfos.filter(i => i.progress < 100).length;
+    const unclaimedCount = activeTasks.filter(t => !t.assigned_person).length;
+
+    // Contracts expiring within 60 days
+    const now = new Date();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + 60);
+    const expiringCount = (state.contracts || []).filter(c => {
+        if (!c.end_date) return false;
+        let s = String(c.end_date);
+        if (s.length === 10) s += 'T00:00:00';
+        const d = new Date(s);
+        return d >= now && d <= cutoff;
+    }).length;
+
+    // Budget utilization
+    let totalBudget = 0, totalActual = 0;
+    (state.budgetItems || []).forEach(i => {
+        totalBudget += (i.budget_amount || 0);
+        totalActual += (i.actual_cost || 0);
+    });
+    const utilization = totalBudget > 0 ? Math.round((totalActual / totalBudget) * 100) : 0;
+
+    statsEl.innerHTML = `
+        <div class="dashboard-stat-card" onclick="switchView('tasks')">
+            <span class="dashboard-stat-value">${inProgressCount}</span>
+            <span class="dashboard-stat-label">Active Procurements</span>
+        </div>
+        <div class="dashboard-stat-card ${unclaimedCount > 0 ? 'dashboard-stat-warning' : ''}" onclick="switchView('tasks')">
+            <span class="dashboard-stat-value">${unclaimedCount}</span>
+            <span class="dashboard-stat-label">Unclaimed Items</span>
+        </div>
+        <div class="dashboard-stat-card ${expiringCount > 0 ? 'dashboard-stat-warning' : ''}" onclick="switchView('contracts')">
+            <span class="dashboard-stat-value">${expiringCount}</span>
+            <span class="dashboard-stat-label">Contracts Expiring (60 days)</span>
+        </div>
+        <div class="dashboard-stat-card ${utilization > 100 ? 'dashboard-stat-danger' : ''}" onclick="switchView('budget')">
+            <span class="dashboard-stat-value">${utilization}%</span>
+            <span class="dashboard-stat-label">Budget Utilization</span>
+        </div>
+    `;
+
+    // Donut chart: budget spent vs remaining
+    if (donutEl) {
+        const pct = Math.min(utilization, 100);
+        const r = 54;
+        const circumference = 2 * Math.PI * r;
+        const donutColor = utilization > 100 ? 'var(--color-error)' : utilization > 85 ? 'var(--color-warning)' : 'var(--color-primary)';
+        donutEl.innerHTML = `
+            <svg viewBox="0 0 140 140" class="donut-svg" role="img" aria-label="Budget utilization ${utilization}%">
+                <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--color-bg-tertiary)" stroke-width="16"/>
+                <circle cx="70" cy="70" r="${r}" fill="none" stroke="${donutColor}" stroke-width="16"
+                    stroke-dasharray="${(circumference * pct / 100).toFixed(1)} ${circumference.toFixed(1)}"
+                    stroke-linecap="round" transform="rotate(-90 70 70)"/>
+                <text x="70" y="66" text-anchor="middle" class="donut-pct">${utilization}%</text>
+                <text x="70" y="86" text-anchor="middle" class="donut-label">spent</text>
+            </svg>
+            <div class="donut-legend">
+                <div><span class="legend-dot" style="background:${donutColor}"></span>Spent: $${Number(totalActual).toLocaleString('en-US')}</div>
+                <div><span class="legend-dot" style="background:var(--color-bg-tertiary)"></span>Remaining: $${Number(Math.max(totalBudget - totalActual, 0)).toLocaleString('en-US')}</div>
+            </div>
+        `;
+    }
+
+    // Bar chart: active procurements per tier
+    if (barsEl) {
+        const counts = {};
+        taskInfos.forEach(i => {
+            if (i.tier) counts[i.tier.id] = (counts[i.tier.id] || 0) + 1;
+        });
+        const tiersWithCounts = Object.values(PROCUREMENT_TIERS).filter(t => counts[t.id]);
+        const maxCount = Math.max(1, ...Object.values(counts));
+
+        barsEl.innerHTML = tiersWithCounts.length > 0
+            ? tiersWithCounts.map(t => `
+                <div class="tier-bar-row">
+                    <span class="tier-bar-label" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</span>
+                    <div class="tier-bar-track">
+                        <div class="tier-bar-fill" style="width:${Math.round((counts[t.id] / maxCount) * 100)}%; background:${DASHBOARD_TIER_COLORS[t.id] || 'var(--color-primary)'}"></div>
+                    </div>
+                    <span class="tier-bar-count">${counts[t.id]}</span>
+                </div>
+            `).join('')
+            : '<p class="dashboard-empty">No procurement items yet</p>';
+    }
 }

@@ -2864,10 +2864,12 @@ function renderTasks() {
 }
 
 function createTaskRow(task) {
-    // Use Single Source tier if single_source_procurement is checked, otherwise determine by budget
+    // Use Single Source tier if single_source_procurement is checked, otherwise determine by
+    // the higher of budget amount or contract sum (matches handleBudgetChange)
     const isSingleSource = task.single_source_procurement === 1;
+    const effectiveAmount = Math.max(task.budget_amount || 0, task.contract_sum || 0);
     const tier = isSingleSource ? PROCUREMENT_TIERS.SINGLE_SOURCE
-        : (task.budget_amount ? getProcurementTier(task.budget_amount) : null);
+        : (effectiveAmount > 0 ? getProcurementTier(effectiveAmount) : null);
 
     // Parse completed stages
     let completedStages = [];
@@ -2948,8 +2950,11 @@ function createTaskRow(task) {
         `;
     }).join('');
 
+    // [UI-2] Tier-colored left border class
+    const tierRowClass = tier ? `tier-row-${tier.id.replace(/_/g, '-')}` : '';
+
     return `
-        <div class="clickup-task-row" data-task-id="${task.id}">
+        <div class="clickup-task-row ${tierRowClass}" data-task-id="${task.id}">
             <div class="clickup-task-main" onclick="handleTaskView(${task.id})">
                 <div onclick="event.stopPropagation()">
                     <button class="clickup-expand-btn" onclick="toggleTaskExpand(${task.id})">

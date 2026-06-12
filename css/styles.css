@@ -1056,6 +1056,54 @@ a:hover {
     color: var(--color-text-muted);
 }
 
+/* [UI-7] Skeleton loaders */
+.skeleton-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    width: 100%;
+    max-width: 760px;
+}
+
+.skeleton-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.skeleton-row {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.skeleton-line {
+    height: 12px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--color-bg-tertiary) 25%, var(--color-bg-secondary) 50%, var(--color-bg-tertiary) 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.2s linear infinite;
+}
+
+.skeleton-line.w-15 { width: 15%; }
+.skeleton-line.w-20 { width: 20%; }
+.skeleton-line.w-40 { width: 40%; }
+.skeleton-line.w-55 { width: 55%; }
+.skeleton-line.w-70 { width: 70%; }
+
+@keyframes skeletonShimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
 /* ==========================================================================
    Supplier Modal
    ========================================================================== */

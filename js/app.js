@@ -2863,6 +2863,18 @@ function renderTasks() {
     listBody.innerHTML = filteredTasks.map(task => createTaskRow(task)).join('');
 }
 
+// [UI-9] Colored avatar initials for assigned people
+const AVATAR_COLORS = ['#05668D', '#e87722', '#2e7d32', '#7b1fa2', '#c62828', '#00695c', '#6d4c41', '#283593'];
+
+function getAvatarHtml(name) {
+    if (!name) return '<span class="avatar-unassigned">-</span>';
+    const initials = name.trim().split(/\s+/).map(p => p[0]).join('').slice(0, 2).toUpperCase();
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+    const color = AVATAR_COLORS[hash % AVATAR_COLORS.length];
+    return `<span class="avatar-initials" style="background:${color}" title="${escapeHtml(name)}">${escapeHtml(initials)}</span>`;
+}
+
 function createTaskRow(task) {
     // Use Single Source tier if single_source_procurement is checked, otherwise determine by
     // the higher of budget amount or contract sum (matches handleBudgetChange)
@@ -2978,7 +2990,7 @@ function createTaskRow(task) {
                 </div>
                 <div class="clickup-task-date">${startDate}</div>
                 <div class="clickup-task-date ${isOverdue ? 'overdue' : ''}">${dueDate}</div>
-                <div class="clickup-task-assigned">${escapeHtml(task.assigned_person || '-')}</div>
+                <div class="clickup-task-assigned">${getAvatarHtml(task.assigned_person)}${task.assigned_person ? `<span class="assigned-name">${escapeHtml(task.assigned_person)}</span>` : ''}</div>
                 <div>${priorityHtml}</div>
                 <div>${statusHtml}</div>
                 <div class="clickup-progress">

@@ -1,5 +1,5 @@
 // Service Worker for Procurement Management System PWA
-const CACHE_NAME = 'procurement-v28';
+const CACHE_NAME = 'procurement-v29';
 const urlsToCache = [
     '/',
     '/index.html',

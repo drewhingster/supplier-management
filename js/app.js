@@ -5402,6 +5402,22 @@ function toggleTheme() {
     }
 }
 
+// ==================== [UI-8] Micro-interactions ====================
+
+function animateCountUp(el) {
+    const target = parseInt(el.dataset.count, 10) || 0;
+    const suffix = el.dataset.suffix || '';
+    const duration = 600;
+    const start = performance.now();
+    function tick(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(target * eased) + suffix;
+        if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+
 // ==================== [UI-1] Dashboard ====================
 
 const DASHBOARD_TIER_COLORS = {
@@ -5481,22 +5497,25 @@ function renderDashboard() {
 
     statsEl.innerHTML = `
         <div class="dashboard-stat-card" onclick="switchView('tasks')">
-            <span class="dashboard-stat-value">${inProgressCount}</span>
+            <span class="dashboard-stat-value" data-count="${inProgressCount}">0</span>
             <span class="dashboard-stat-label">Active Procurements</span>
         </div>
         <div class="dashboard-stat-card ${unclaimedCount > 0 ? 'dashboard-stat-warning' : ''}" onclick="switchView('tasks')">
-            <span class="dashboard-stat-value">${unclaimedCount}</span>
+            <span class="dashboard-stat-value" data-count="${unclaimedCount}">0</span>
             <span class="dashboard-stat-label">Unclaimed Items</span>
         </div>
         <div class="dashboard-stat-card ${expiringCount > 0 ? 'dashboard-stat-warning' : ''}" onclick="switchView('contracts')">
-            <span class="dashboard-stat-value">${expiringCount}</span>
+            <span class="dashboard-stat-value" data-count="${expiringCount}">0</span>
             <span class="dashboard-stat-label">Contracts Expiring (60 days)</span>
         </div>
         <div class="dashboard-stat-card ${utilization > 100 ? 'dashboard-stat-danger' : ''}" onclick="switchView('budget')">
-            <span class="dashboard-stat-value">${utilization}%</span>
+            <span class="dashboard-stat-value" data-count="${utilization}" data-suffix="%">0%</span>
             <span class="dashboard-stat-label">Budget Utilization</span>
         </div>
     `;
+
+    // [UI-8] Count-up animation on stat values
+    statsEl.querySelectorAll('.dashboard-stat-value').forEach(animateCountUp);
 
     // Donut chart: budget spent vs remaining
     if (donutEl) {

@@ -342,6 +342,11 @@ a:hover {
     white-space: nowrap;
 }
 
+/* [UI-8] Button press micro-interaction */
+.btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
 .btn-icon,
 .btn-icon-left {
     width: 18px;
@@ -2702,16 +2707,18 @@ a:hover {
     border-radius: 8px;
     padding: 1rem 1.25rem;
     cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
     display: grid;
     grid-template-columns: minmax(120px, 150px) 1fr 2fr minmax(100px, 140px) minmax(140px, 180px) auto;
     align-items: center;
     gap: 1rem;
 }
 
+/* [UI-8] Hover lift micro-interaction */
 .contract-card:hover {
     border-color: var(--color-accent);
     box-shadow: 0 4px 16px rgba(232, 119, 34, 0.12);
+    transform: translateY(-2px);
 }
 
 .contract-card-header {
@@ -4533,6 +4540,14 @@ a:hover {
 .stage-checkbox input:checked + .checkbox-custom {
     background: var(--color-success);
     border-color: var(--color-success);
+    animation: checkPop 250ms ease; /* [UI-8] */
+}
+
+/* [UI-8] Checkmark pop animation */
+@keyframes checkPop {
+    0% { transform: scale(0.8); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
 }
 
 .stage-checkbox input:checked + .checkbox-custom::after {

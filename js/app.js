@@ -857,7 +857,7 @@ async function loadInitialData() {
         }
 
         // Load suppliers
-        state.suppliers = await api.getSuppliers();
+        state.suppliers = filterPendingDeletes('supplier', await api.getSuppliers());
 
         // NOW render categories with accurate counts
         renderCategoryFilters();
@@ -930,7 +930,7 @@ async function loadCategories() {
 
 async function loadSuppliers() {
     try {
-        state.suppliers = await api.getSuppliers();
+        state.suppliers = filterPendingDeletes('supplier', await api.getSuppliers());
         renderSuppliers();
         // Re-render category filters to update counts
         renderCategoryFilters();
@@ -953,7 +953,7 @@ async function loadContracts() {
             filters.search = state.contractFilters.search;
         }
 
-        state.contracts = await api.getContracts(filters);
+        state.contracts = filterPendingDeletes('contract', await api.getContracts(filters));
         renderContracts();
         updateContractStatistics();
     } catch (error) {
@@ -2074,19 +2074,29 @@ function handleEditSupplier() {
 async function handleDeleteSupplier() {
     if (!state.currentSupplier) return;
 
-    const confirmed = confirm(`Are you sure you want to delete "${state.currentSupplier.name}"?\n\nThis action cannot be undone and will also delete all associated documents.`);
+    // [UX-2] Optimistic delete with undo window
+    const supplier = state.currentSupplier;
+    closeDetailModal();
 
-    if (!confirmed) return;
+    state.suppliers = state.suppliers.filter(s => s.id !== supplier.id);
+    renderSuppliers();
+    renderCategoryFilters();
+    updateNotifications();
 
-    try {
-        await api.deleteSupplier(state.currentSupplier.id);
-        closeDetailModal();
-        await loadSuppliers();
-        await loadCategories();
-        showToast('Supplier deleted successfully');
-    } catch (error) {
-        showToast(error.message || 'Failed to delete supplier', 'error');
-    }
+    showUndoToast(`Supplier "${supplier.name}" deleted`, {
+        type: 'supplier',
+        id: supplier.id,
+        onUndo: () => {
+            state.suppliers.push(supplier);
+            renderSuppliers();
+            renderCategoryFilters();
+            updateNotifications();
+        },
+        onCommit: async () => {
+            await api.deleteSupplier(supplier.id);
+            await loadCategories();
+        }
+    });
 }
 
 function viewDocument(supplierId, docType) {
@@ -2610,18 +2620,24 @@ function handleEditContract() {
 async function handleDeleteContract() {
     if (!state.currentContract) return;
 
-    const confirmed = confirm(`Are you sure you want to delete contract "${state.currentContract.contract_number}"?\n\nThis will also delete all associated files.`);
+    // [UX-2] Optimistic delete with undo window
+    const contract = state.currentContract;
+    closeContractDetailModal();
 
-    if (!confirmed) return;
+    state.contracts = state.contracts.filter(c => c.id !== contract.id);
+    renderContracts();
+    updateContractStatistics();
 
-    try {
-        await api.deleteContract(state.currentContract.id);
-        closeContractDetailModal();
-        await loadContracts();
-        showToast('Contract deleted successfully');
-    } catch (error) {
-        showToast(error.message || 'Failed to delete contract', 'error');
-    }
+    showUndoToast(`Contract "${contract.contract_number}" deleted`, {
+        type: 'contract',
+        id: contract.id,
+        onUndo: () => {
+            state.contracts.push(contract);
+            renderContracts();
+            updateContractStatistics();
+        },
+        onCommit: () => api.deleteContract(contract.id)
+    });
 }
 
 function viewContractFile(contractId, fileId) {
@@ -2766,7 +2782,7 @@ async function loadTasks() {
             // Note: assigned_person filter is now done client-side for partial matching
         };
 
-        state.tasks = await api.getTasks(filters);
+        state.tasks = filterPendingDeletes('task', await api.getTasks(filters));
         renderTasks();
         updateTaskStatistics();
     } catch (error) {
@@ -4357,18 +4373,10 @@ function handleTaskEditFromDetail() {
 async function handleTaskDeleteFromDetail() {
     if (!state.currentTask) return;
 
-    if (!confirm(`Are you sure you want to delete "${state.currentTask.title}"?\n\nThis action cannot be undone.`)) {
-        return;
-    }
-
-    try {
-        await api.deleteTask(state.currentTask.id);
-        closeTaskDetailModal();
-        await loadTasks();
-        showToast('Procurement item deleted successfully');
-    } catch (error) {
-        showToast(error.message || 'Failed to delete procurement item', 'error');
-    }
+    // [UX-2] Optimistic delete with undo window
+    const taskId = state.currentTask.id;
+    closeTaskDetailModal();
+    handleTaskDelete(taskId);
 }
 
 function viewTaskAwardDocument() {
@@ -4544,18 +4552,24 @@ async function handleTaskView(taskId) {
 }
 
 async function handleTaskDelete(taskId) {
-    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
-        return;
-    }
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
 
-    try {
-        await api.deleteTask(taskId);
-        showToast('Task deleted successfully', 'success');
-        await loadTasks();
-    } catch (error) {
-        console.error('Failed to delete task:', error);
-        showToast('Failed to delete task', 'error');
-    }
+    // [UX-2] Optimistic delete with undo window
+    state.tasks = state.tasks.filter(t => t.id !== taskId);
+    renderTasks();
+    updateTaskStatistics();
+
+    showUndoToast(`"${task.title}" deleted`, {
+        type: 'task',
+        id: taskId,
+        onUndo: () => {
+            state.tasks.push(task);
+            renderTasks();
+            updateTaskStatistics();
+        },
+        onCommit: () => api.deleteTask(taskId)
+    });
 }
 
 async function handleTaskArchive(taskId, archived) {
@@ -5066,7 +5080,7 @@ async function loadBudgetItems() {
     try {
         elements.budgetLoadingState?.classList.remove('hidden');
         elements.budgetEmptyState?.classList.add('hidden');
-        state.budgetItems = await api.getCapitalBudgetItems();
+        state.budgetItems = filterPendingDeletes('budget', await api.getCapitalBudgetItems());
         renderBudgetTable();
     } catch (error) {
         console.error('Failed to load budget items:', error);
@@ -5242,15 +5256,23 @@ async function toggleBudgetComplete(id) {
 }
 
 async function deleteBudgetItem(id) {
-    if (!confirm('Delete this budget line item?')) return;
-    try {
-        await api.deleteCapitalBudgetItem(id);
-        state.budgetItems = state.budgetItems.filter(i => i.id !== id);
-        renderBudgetTable();
-        showToast('Budget item deleted');
-    } catch (error) {
-        showToast('Failed to delete item', 'error');
-    }
+    const index = state.budgetItems.findIndex(i => i.id === id);
+    if (index === -1) return;
+
+    // [UX-2] Optimistic delete with undo window
+    const item = state.budgetItems[index];
+    state.budgetItems.splice(index, 1);
+    renderBudgetTable();
+
+    showUndoToast(`"${item.project_title || 'Budget item'}" deleted`, {
+        type: 'budget',
+        id: id,
+        onUndo: () => {
+            state.budgetItems.splice(Math.min(index, state.budgetItems.length), 0, item);
+            renderBudgetTable();
+        },
+        onCommit: () => api.deleteCapitalBudgetItem(id)
+    });
 }
 
 // ==================== UNCLAIMED PROCUREMENT POPUP ====================
@@ -5607,8 +5629,8 @@ async function openCommandPalette() {
     const isFinance = user && user.role === 'finance_readonly';
     try {
         const loads = [];
-        if (state.contracts.length === 0) loads.push(api.getContracts({}).then(c => { state.contracts = c; }));
-        if (!isFinance && state.tasks.length === 0) loads.push(api.getTasks({}).then(t => { state.tasks = t; }));
+        if (state.contracts.length === 0) loads.push(api.getContracts({}).then(c => { state.contracts = filterPendingDeletes('contract', c); }));
+        if (!isFinance && state.tasks.length === 0) loads.push(api.getTasks({}).then(t => { state.tasks = filterPendingDeletes('task', t); }));
         if (loads.length > 0) {
             await Promise.all(loads);
             if (cmdkOpen) renderCmdkResults(input.value);
@@ -5741,4 +5763,76 @@ function selectCmdkResult(type, id) {
         const task = state.tasks.find(t => t.id === id);
         if (task) { switchView('tasks'); openTaskDetailModal(task); }
     }
+}
+
+// ==================== [UX-2] Undo Toasts (delayed deletes) ====================
+
+// Deletes are applied to the UI immediately, but the server delete is delayed
+// for the undo window. Key: `${type}-${id}` -> { commit }
+const pendingDeletes = new Map();
+
+function isPendingDelete(type, id) {
+    return pendingDeletes.has(`${type}-${id}`);
+}
+
+function filterPendingDeletes(type, items) {
+    if (pendingDeletes.size === 0) return items;
+    return items.filter(item => !isPendingDelete(type, item.id));
+}
+
+// If the user leaves mid-countdown, commit pending deletes (best effort)
+window.addEventListener('beforeunload', () => {
+    pendingDeletes.forEach(entry => {
+        try { entry.commit(); } catch (e) { /* best effort */ }
+    });
+});
+
+function showUndoToast(message, { type, id, onUndo, onCommit, duration = 6000 }) {
+    let stack = document.getElementById('toast-stack');
+    if (!stack) {
+        stack = document.createElement('div');
+        stack.id = 'toast-stack';
+        document.body.appendChild(stack);
+    }
+
+    const key = `${type}-${id}`;
+    const el = document.createElement('div');
+    el.className = 'undo-toast';
+    el.innerHTML = `
+        <svg viewBox="0 0 24 24" class="undo-toast-icon"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" fill="none"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        <span class="undo-toast-message"></span>
+        <button class="undo-toast-btn">Undo</button>
+        <div class="undo-toast-progress"><div class="undo-toast-progress-fill" style="animation-duration:${duration}ms"></div></div>
+    `;
+    el.querySelector('.undo-toast-message').textContent = message;
+    stack.appendChild(el);
+
+    let settled = false;
+    let timer = null;
+
+    const commit = async () => {
+        if (settled) return;
+        settled = true;
+        pendingDeletes.delete(key);
+        clearTimeout(timer);
+        el.remove();
+        try {
+            await onCommit();
+        } catch (error) {
+            showToast(error.message || 'Delete failed', 'error');
+            onUndo(); // restore the item since the server delete failed
+        }
+    };
+
+    timer = setTimeout(commit, duration);
+    pendingDeletes.set(key, { commit });
+
+    el.querySelector('.undo-toast-btn').addEventListener('click', () => {
+        if (settled) return;
+        settled = true;
+        pendingDeletes.delete(key);
+        clearTimeout(timer);
+        el.remove();
+        onUndo();
+    });
 }

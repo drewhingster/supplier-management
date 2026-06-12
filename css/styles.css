@@ -4277,6 +4277,37 @@ a:hover {
     background: var(--color-success);
 }
 
+/* [UI-3] Segmented workflow progress bars - one segment per stage */
+.progress-segments {
+    flex: 1;
+    display: flex;
+    gap: 2px;
+    height: 8px;
+}
+
+.progress-seg {
+    flex: 1;
+    background: var(--color-bg-tertiary);
+    border-radius: 2px;
+    transition: background-color 0.3s ease;
+}
+
+.progress-segments.progress-low .seg-filled {
+    background: var(--color-error);
+}
+
+.progress-segments.progress-medium .seg-filled {
+    background: var(--color-warning);
+}
+
+.progress-segments.progress-high .seg-filled {
+    background: var(--color-accent);
+}
+
+.progress-segments.progress-complete .seg-filled {
+    background: var(--color-success);
+}
+
 .progress-text {
     font-size: 0.75rem;
     font-weight: 600;

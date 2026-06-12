@@ -2953,6 +2953,16 @@ function createTaskRow(task) {
     // [UI-2] Tier-colored left border class
     const tierRowClass = tier ? `tier-row-${tier.id.replace(/_/g, '-')}` : '';
 
+    // [UI-3] Segmented progress bar - one segment per applicable stage
+    const applicableStages = stages.filter(s => !naStages.includes(s.id));
+    const progressSegmentsHtml = applicableStages.length > 0
+        ? `<div class="progress-segments ${progressClass}" title="${completedStages.length} of ${applicableStages.length} stages complete">
+            ${applicableStages.map(s => `<span class="progress-seg ${completedStages.includes(s.id) ? 'seg-filled' : ''}"></span>`).join('')}
+           </div>`
+        : `<div class="progress-bar-container">
+            <div class="progress-bar-fill ${progressClass}" style="width: ${progress}%"></div>
+           </div>`;
+
     return `
         <div class="clickup-task-row ${tierRowClass}" data-task-id="${task.id}">
             <div class="clickup-task-main" onclick="handleTaskView(${task.id})">
@@ -2972,9 +2982,7 @@ function createTaskRow(task) {
                 <div>${priorityHtml}</div>
                 <div>${statusHtml}</div>
                 <div class="clickup-progress">
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill ${progressClass}" style="width: ${progress}%"></div>
-                    </div>
+                    ${progressSegmentsHtml}
                     <span class="progress-text">${progress}%</span>
                 </div>
             </div>

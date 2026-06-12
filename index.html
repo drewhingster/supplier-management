@@ -861,8 +861,20 @@
                             <tbody id="budget-table-body"></tbody>
                         </table>
                     </div>
+                    <!-- [UI-6] Budget empty state with illustration + CTA -->
                     <div id="budget-empty-state" class="empty-state hidden">
-                        <p>No budget items yet. Click "Add Line Item" to start.</p>
+                        <svg viewBox="0 0 120 120" class="empty-icon">
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="8 4"/>
+                            <rect x="35" y="40" width="50" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <rect x="35" y="56" width="50" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                            <rect x="35" y="72" width="30" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        <h3>No Budget Items Yet</h3>
+                        <p>Add your first line item to start tracking the capital budget.</p>
+                        <button class="btn btn-primary" onclick="addBudgetRow()">
+                            <svg viewBox="0 0 24 24" class="btn-icon-left"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            Add First Line Item
+                        </button>
                     </div>
                     <div id="budget-loading-state" class="loading-state hidden">
                         <div class="spinner"></div>

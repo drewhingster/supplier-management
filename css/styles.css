@@ -992,7 +992,7 @@ a:hover {
     gap: 4px;
 }
 
-/* Empty State */
+/* Empty State ([UI-6] polish: fade-in + tinted icon) */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -1000,12 +1000,25 @@ a:hover {
     justify-content: center;
     padding: var(--space-3xl);
     text-align: center;
+    animation: emptyStateIn 400ms ease both;
+}
+
+@keyframes emptyStateIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .empty-icon {
     width: 120px;
     height: 120px;
-    color: var(--color-border);
+    color: var(--color-primary);
+    opacity: 0.35;
     margin-bottom: var(--space-xl);
 }
 

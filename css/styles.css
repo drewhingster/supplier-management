@@ -7023,6 +7023,35 @@ a:hover {
     to { width: 0%; }
 }
 
+/* ==========================================================================
+   [UX-3] Stale Procurement Indicator
+   ========================================================================== */
+.stale-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    color: #92400e;
+    background: rgba(245, 158, 11, 0.15);
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+[data-theme="dark"] .stale-chip {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.18);
+}
+
+.stale-chip svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
     #toast-stack {
         left: var(--space-md);

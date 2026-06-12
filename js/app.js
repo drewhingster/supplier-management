@@ -2934,6 +2934,19 @@ function createTaskRow(task) {
     // Check if overdue
     const isOverdue = task.end_date && new Date(task.end_date) < new Date() && progress < 100;
 
+    // [UX-3] Stale indicator - no updates in 14+ days on incomplete, non-archived items
+    let staleChipHtml = '';
+    if (!task.archived && progress < 100 && task.updated_at) {
+        let u = String(task.updated_at);
+        if (u.length === 19) u = u.replace(' ', 'T') + 'Z'; // SQLite UTC datetime
+        const idleDays = Math.floor((Date.now() - new Date(u).getTime()) / 86400000);
+        if (idleDays >= 14) {
+            staleChipHtml = `<span class="stale-chip" title="No updates in ${idleDays} days">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="12 6 12 12 16 14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                ${idleDays}d idle</span>`;
+        }
+    }
+
     // Priority styling
     const priority = task.priority || 'Normal';
     const priorityClass = `priority-${priority.toLowerCase()}`;
@@ -3003,6 +3016,7 @@ function createTaskRow(task) {
                     ${escapeHtml(task.title || '-')}
                     ${task.project_code ? `<span class="task-code">${escapeHtml(task.project_code)}</span>` : ''}
                     ${task.archived ? '<span class="badge badge-archived" style="margin-left:0.5rem;">Archived</span>' : ''}
+                    ${staleChipHtml}
                 </div>
                 <div class="clickup-task-date">${startDate}</div>
                 <div class="clickup-task-date ${isOverdue ? 'overdue' : ''}">${dueDate}</div>

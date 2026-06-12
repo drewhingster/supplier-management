@@ -5850,3 +5850,19 @@ function showUndoToast(message, { type, id, onUndo, onCommit, duration = 6000 })
         onUndo();
     });
 }
+
+// ==================== [UX-4] Offline indicator ====================
+
+window.addEventListener('offline', () => {
+    document.getElementById('offline-banner')?.classList.remove('hidden');
+});
+
+window.addEventListener('online', () => {
+    document.getElementById('offline-banner')?.classList.add('hidden');
+    showToast('Connection restored');
+});
+
+// Initial check (script loads at end of body, DOM is available)
+if (!navigator.onLine) {
+    document.getElementById('offline-banner')?.classList.remove('hidden');
+}

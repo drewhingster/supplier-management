@@ -1842,6 +1842,12 @@
         <svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
     </button>
 
+    <!-- [UX-4] Offline indicator -->
+    <div id="offline-banner" class="offline-banner hidden">
+        <svg viewBox="0 0 24 24"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.58 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+        <span>You're offline — changes won't be saved until your connection returns</span>
+    </div>
+
     <!-- [UX-1] Command Palette -->
     <div id="command-palette" class="cmdk-overlay hidden" onclick="if (event.target === this) closeCommandPalette()">
         <div class="cmdk-panel">

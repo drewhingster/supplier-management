@@ -446,6 +446,7 @@ async function seedUsers(env) {
         { username: 'rshim', full_name: 'Ryan Shim', role: 'admin' },
         { username: 'abipat', full_name: 'Areesa Bipat', role: 'admin' },
         { username: 'elacruz', full_name: 'Errol La Cruez', role: 'view_only' },
+        { username: 'sjohnson', full_name: 'Scott Johnson', role: 'view_only' },
         { username: 'finance', full_name: 'Finance Department', role: 'finance_readonly' }
     ];
 

@@ -15,8 +15,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script>
-        // [UI-4] Apply saved theme before first paint to avoid flash
-        (function () { try { if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) { } })();
+        // [UI-4] Apply saved theme / [UX-5] density before first paint to avoid flash
+        (function () { try {
+            if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+            if (localStorage.getItem('density') === 'compact') document.documentElement.setAttribute('data-density', 'compact');
+        } catch (e) { } })();
     </script>
 </head>
 <body>
@@ -183,6 +186,11 @@
                 <button id="theme-toggle" class="btn btn-ghost" title="Toggle dark mode" onclick="toggleTheme()">
                     <svg viewBox="0 0 24 24" class="btn-icon theme-icon-moon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                     <svg viewBox="0 0 24 24" class="btn-icon theme-icon-sun"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2"/></svg>
+                </button>
+
+                <!-- [UX-5] Density toggle -->
+                <button id="density-toggle" class="btn btn-ghost" title="Toggle compact view" onclick="toggleDensity()">
+                    <svg viewBox="0 0 24 24" class="btn-icon"><line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="2"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/><line x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2"/></svg>
                 </button>
 
                 <button id="logout-btn" class="btn btn-ghost" title="Logout">

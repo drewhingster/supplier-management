@@ -5450,6 +5450,20 @@ function toggleTheme() {
     }
 }
 
+// ==================== [UX-5] Density toggle ====================
+
+function toggleDensity() {
+    const root = document.documentElement;
+    const isCompact = root.getAttribute('data-density') === 'compact';
+    if (isCompact) {
+        root.removeAttribute('data-density');
+        localStorage.setItem('density', 'comfortable');
+    } else {
+        root.setAttribute('data-density', 'compact');
+        localStorage.setItem('density', 'compact');
+    }
+}
+
 // ==================== [UI-8] Micro-interactions ====================
 
 function animateCountUp(el) {

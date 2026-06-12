@@ -7097,3 +7097,48 @@ a:hover {
         width: 100%;
     }
 }
+
+/* ==========================================================================
+   [UX-5] Density Toggle (compact mode)
+   ========================================================================== */
+[data-density="compact"] .clickup-task-main {
+    padding: 0.4rem 1rem;
+    gap: 0.5rem;
+}
+
+[data-density="compact"] .clickup-task-name {
+    font-size: 0.8125rem;
+}
+
+[data-density="compact"] .clickup-subtask {
+    padding: 0.3rem 0.75rem;
+    margin: 0.125rem 0;
+}
+
+[data-density="compact"] .supplier-card {
+    padding: var(--space-md);
+}
+
+[data-density="compact"] .contract-card {
+    padding: 0.5rem 1.25rem;
+}
+
+[data-density="compact"] .activity-table th,
+[data-density="compact"] .activity-table td {
+    padding: 0.3rem var(--space-md);
+}
+
+[data-density="compact"] .budget-table th,
+[data-density="compact"] .budget-table td {
+    padding: 0.2rem 0.5rem;
+}
+
+[data-density="compact"] .clickup-list-header {
+    padding: 0.4rem 1rem;
+}
+
+/* Highlight the toggle button when compact is active */
+[data-density="compact"] #density-toggle {
+    color: var(--color-primary);
+    background: var(--color-bg-tertiary);
+}

@@ -89,6 +89,10 @@ export default {
             if (path === '/api/users' && request.method === 'GET') {
                 return await getUsers(env);
             }
+            if (path.match(/^\/api\/users\/\d+\/role$/) && request.method === 'PUT') {
+                const userId = parseInt(path.split('/')[3]);
+                return await updateUserRole(request, env, userId, currentUser);
+            }
 
             // ==================== AUDIT LOG ROUTES ====================
             if (path === '/api/audit-logs' && request.method === 'GET') {
@@ -446,7 +450,7 @@ async function seedUsers(env) {
         { username: 'rshim', full_name: 'Ryan Shim', role: 'admin' },
         { username: 'abipat', full_name: 'Areesa Bipat', role: 'admin' },
         { username: 'elacruz', full_name: 'Errol La Cruez', role: 'view_only' },
-        { username: 'sjohnson', full_name: 'Scott Johnson', role: 'view_only' },
+        { username: 'sjohnson', full_name: 'Scott Johnson', role: 'admin' },
         { username: 'finance', full_name: 'Finance Department', role: 'finance_readonly' }
     ];
 
@@ -681,6 +685,44 @@ async function getUsers(env) {
         `).all();
 
         return jsonResponse({ users: result.results });
+    } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+    }
+}
+
+// Update user role (admin only)
+async function updateUserRole(request, env, userId, currentUser) {
+    try {
+        // Only admins can update roles
+        if (currentUser.role !== 'admin') {
+            return jsonResponse({ error: 'Only admins can update user roles' }, 403);
+        }
+
+        const body = await request.json();
+        const { role } = body;
+
+        // Validate role
+        const validRoles = ['admin', 'view_only', 'finance_readonly'];
+        if (!validRoles.includes(role)) {
+            return jsonResponse({ error: 'Invalid role. Must be admin, view_only, or finance_readonly' }, 400);
+        }
+
+        // Update the user's role
+        const result = await env.DB.prepare(`
+            UPDATE users
+            SET role = ?
+            WHERE id = ?
+        `).bind(role, userId).run();
+
+        if (result.changes === 0) {
+            return jsonResponse({ error: 'User not found' }, 404);
+        }
+
+        // Log the role change
+        await logAudit(env, currentUser.username, 'user_role_updated', 'users', userId,
+            `Updated user role to ${role}`);
+
+        return jsonResponse({ success: true, message: 'User role updated successfully' });
     } catch (error) {
         return jsonResponse({ error: error.message }, 500);
     }
